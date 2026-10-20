@@ -29,3 +29,17 @@ The system SHALL provide a navigation surface (index and links) so users can dis
 #### Scenario: Discover articles
 - **WHEN** a user opens the learn section
 - **THEN** the system lists available articles with links and, where present, their titles in the active locale
+
+### Requirement: Planning guides
+The system SHALL provide planning guides covering investing, tax, and estate topics in addition to the glossary and articles.
+
+#### Scenario: Open a planning guide
+- **WHEN** a user opens a planning guide
+- **THEN** the system renders it in the active locale with the same rich formatting as other content
+
+### Requirement: Contextual links
+The system SHALL allow insights and reports to link to relevant glossary entries or guides.
+
+#### Scenario: Insight explanation
+- **WHEN** an insight references a financial concept
+- **THEN** the user can open the related glossary entry or guide

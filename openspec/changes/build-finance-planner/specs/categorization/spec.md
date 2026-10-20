@@ -34,3 +34,14 @@ The system SHALL support free-form labels (tags) that can be attached to transac
 #### Scenario: Unique label names
 - **WHEN** a user creates a label with a name that already exists
 - **THEN** the system rejects the duplicate or returns the existing label instead of creating a second one
+
+### Requirement: Tax and essential classification
+The system SHALL allow categories to carry a tax treatment (`none`, `deductible`, `income`, `capital_gain`, `dividend`) and an essential flag used for emergency-fund calculations.
+
+#### Scenario: Mark a category deductible
+- **WHEN** a user marks a category as tax-deductible
+- **THEN** its transactions are included in deductible-expense summaries
+
+#### Scenario: Mark a category essential
+- **WHEN** a user marks a category as essential
+- **THEN** its average monthly spend contributes to the emergency-fund runway

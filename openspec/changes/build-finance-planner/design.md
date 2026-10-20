@@ -2,186 +2,236 @@
 
 ## Context
 
-Greenfield, self-hosted wealth-planning web application. Single maintainer is the first user, but the project is intended to be generic enough for others to self-host. The app must combine budgeting, investment growth tracking, debt amortization, and multi-currency reporting — a combination no single existing OSS tool provides. Deployment target is a home lab via Docker Compose. Primary language is Portuguese (Brazil) with English (US) as the secondary language.
+Self-hosted, multi-lingual (en-US / pt-BR) finance planner. The first implementation established the data foundation (accounts, transactions, budgets, investments, debts, projections, FX snapshots, API, knowledge). This revision reframes the product around **import → review → report → insight → plan**, inspired by the information architecture of Origin's web app: a left rail split into **Track** (Overview, Spending, Invest, Forecast, Equity) and **Services** (Brokerage, Estate Planning, Tax, Financial Planner), with report tabs, saved reports, summary stats, and an optional assistant entry point.
 
-Key constraints established with the user:
+The product is not a transaction-entry app. Statements are imported, reviewed for cleanliness, and then turned into reports, insights, and a plan. Manual entry remains only for corrections.
 
-- Next.js full-stack + PostgreSQL, latest stable dependencies.
-- Web dashboard only, but fully responsive (no separate mobile app).
-- Multi-currency with **snapshot** base-amounts for historically consistent reports.
-- Debt amortization must support both **Price** and **SAC** methods.
-- Single-user auth (env credentials) + API-token auth.
-- A versioned, documented REST API is a first-class deliverable (agent integration surface).
-- Knowledge module is static markdown, rendered richly.
-- CSV import first; OFX deferred.
-- FX fetch is a durable background job with retry + exponential backoff (pg-boss).
+Constraints carried forward:
+
+- Next.js 16 full-stack + PostgreSQL, latest stable dependencies.
+- Web-only, responsive.
+- Multi-currency with snapshot base-amounts.
+- Single-user auth (env credentials) + API token.
+- Versioned, documented REST API as the integration surface.
+- Static-Markdown knowledge module, rendered richly.
+- CSV import first, OFX and brokerage import in this revision.
+- FX and background jobs via pg-boss with retry/backoff.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- A single deployable unit (`docker compose up`) that boots app + PostgreSQL and migrates the schema on start.
-- A service layer that is shared by the web UI (server components) and the REST API so the API cannot drift from UI behavior.
-- A versioned OpenAPI contract generated from Zod schemas, with interactive docs.
-- Historically consistent multi-currency reporting via snapshot amounts.
-- Correct Brazilian debt amortization (Price and SAC).
-- en-US and pt-BR localization of the entire UI.
+- Make import the primary path and transaction review the primary data-management surface.
+- Provide a report suite with ranges, filters, saved reports, comparison, and CSV export.
+- Provide deterministic, actionable insights without requiring an LLM.
+- Add equity/net worth, brokerage, tax (Brazil-first summaries), financial planning, and estate planning.
+- Add an optional, opt-in assistant grounded in the same services, disabled by default.
+- Reorganize navigation to match the Track / Services / Learn model.
+- Keep every domain accessible through `/api/v1` for agents.
 
 **Non-Goals:**
 
-- Multi-user accounts, roles, or teams (single user for now).
+- Multi-user accounts, roles, or sharing.
 - Native mobile app.
-- Native bank-sync integrations (GoCardless/Plaid) — not in this phase.
-- OFX import in the first milestone (designed-for, implemented later).
-- Real-time collaborative editing or web sockets.
-- A DB-backed CMS for the knowledge module.
+- Bank-sync integrations (GoCardless/Plaid) — still out of scope.
+- Tax calculation, tax filing, legal documents, or regulated financial advice.
+- Real-time brokerage connectivity (CSV/manual first).
+- Stochastic (Monte Carlo) planning in the first revision.
+- Full PDF report generation in the first revision (CSV now).
 
 ## Decisions
 
-### 1. Architecture: API-first, shared service layer
-
-The app is a Next.js App Router project. Both the web UI and the `/api/v1/*` REST API call the same **service layer** (plain TypeScript modules over Drizzle). Server components call services directly (no HTTP round-trip); route handlers wrap the same functions. This guarantees the public API and the dashboard behave identically.
+### 1. Product information architecture
 
 ```
-Next.js App Router
-  ├─ (dashboard)/…        → server components → service layer
-  └─ app/api/v1/*/route   → route handlers   → service layer
-                                    ▲
-                     service layer (Drizzle + Zod validation)
-                                    │
-                                PostgreSQL
+TRACK                          SERVICES                    LEARN
+Overview                       Brokerage                   Glossary
+Spending                       Tax                         Guides
+  Overview                     Financial Planner
+  Breakdown & budget           Estate Planning
+  Transactions
+  Recurring
+  Reports
+Invest
+Forecast
+Equity
+Import
 ```
 
-*Alternatives considered:* Hono mounted as a separate API (adds a second framework; rejected to keep a single runtime). UI calling the API over HTTP from server components (adds latency and self-request complexity; rejected).
+- **Track** answers "what is happening": current position, spending, investments, forecast, equity.
+- **Services** answer "what should I do": brokerage, tax, planner, estate.
+- **Learn** explains concepts and links back from insights/reports.
+- **Import** is a first-class, always-visible entry point (it is the primary way data enters).
+- Insights appear on the Overview and on a dedicated Insights surface; the assistant is a floating entry point (phase 2).
 
-### 2. Stack
+*Alternatives considered:* keeping the flat nav (fails to distinguish tracking from planning); nesting reports under Overview (hides the core value). Rejected.
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Language | TypeScript (strict) | type safety across API + UI |
-| Runtime | Node.js 22 LTS | current LTS |
-| Package manager | pnpm | fast, deterministic |
-| Framework | Next.js (App Router), React 19 | user choice, current |
-| ORM | Drizzle ORM | SQL-first, lightweight, typed, no codegen bloat |
-| Validation | Zod | single source for validation + types + OpenAPI |
-| API contract | `zod-to-openapi` → OpenAPI 3.1 + Swagger UI at `/api/v1/docs` | contract-first |
-| Client types | `openapi-typescript` | typed clients for tests/external consumers |
-| Jobs | `pg-boss` (Postgres-backed) | durable retry/backoff, no new infra |
-| Styling/UI | Tailwind CSS + shadcn/ui | responsive, composable |
-| Charts | Recharts | dashboard-grade |
-| i18n | next-intl | App Router standard, en-US + pt-BR |
-| Knowledge | MDX (next-mdx-remote or `mdx-components`) | rich static content |
-| Testing | Vitest (unit) + Playwright (e2e) | current defaults |
+### 2. Import-first data flow
 
-### 3. Data model
+```
+source ──▶ adapter ──▶ mapping profile ──▶ staged rows ──▶ validate + dedupe ──▶ review ──▶ commit
+ CSV        CSV         saved column map     import_batches    per-row errors      UI        transactions
+ OFX        OFX                             import_rows       fingerprints                  brokerage
+ Brokerage  brokerage CSV                                                                    dividends
+ Wallet MCP agent-assisted (agent reads Wallet, writes through /api/v1)
+```
 
-Drizzle schema, PostgreSQL 17. Core tables (types abbreviated):
+- `import_batches` and `import_rows` persist staging so a user can review before committing, and so partial failures are recoverable.
+- `import_profiles` stores reusable column mappings per source/account.
+- Deduplication uses a fingerprint over `(account, date, amount, counterparty, note)` plus a fuzzy window, surfacing possible duplicates for review rather than silently dropping them.
+- File hash + `Idempotency-Key` prevent re-import.
+- Brokerage imports stage positions, lots, sales, and dividends alongside transactions.
 
-- `users` — single row enforced by migration/seed. `id`, `username`, `password_hash`.
-- `accounts` — `id`, `name`, `type` (checking/savings/credit_card/investment/loan/mortgage/asset/cash), `currency` (ISO 4217), `opening_balance`, `archived`.
-- `categories` — `id`, `name`, `type` (income/expense), `parent_id` (nullable, hierarchy), `color`, `icon`.
-- `labels` — `id`, `name` (unique).
-- `transactions` — `id`, `account_id`, `category_id` (nullable), `amount` (signed, account currency), `currency`, `base_currency`, `base_amount` (snapshot), `fx_rate_id` (nullable), `record_date`, `created_at`, `updated_at`, `note`, `payment_type`, `counterparty`, `label_ids` (array or join table).
-- `fx_rates` — `id`, `base`, `quote`, `rate`, `date`, unique(`base`,`quote`,`date`).
-- `budgets` — `id`, `name`, `period_type` (monthly/annual/custom), `start_date`, `end_date` (nullable), `amount`, scope via join tables `budget_accounts`, `budget_categories`, `budget_labels`.
-- `investment_positions` — `id`, `account_id`, `symbol`, `name`, `instrument_type` (stock/etf/fund/bond/crypto), `quantity`, `avg_cost`, `currency`.
-- `investment_prices` — `id`, `position_id`, `date`, `price`, `currency`.
-- `debts` — `id`, `account_id`, `name`, `type` (installment/financed/mortgage/loan/credit_card), `principal`, `interest_rate` (annual %), `term` (periods), `start_date`, `payment_frequency`, `amortization_method` (price/sac/custom), `grace_periods`.
-- `debt_schedule` — generated rows: `id`, `debt_id`, `period_number`, `due_date`, `payment`, `interest`, `principal`, `balance`. Re-computed (not hand-edited) when a debt's inputs change.
-- `recurring_transactions` — `id`, `account_id`, `category_id`, `amount`, `currency`, `frequency` (daily/weekly/monthly/yearly), `start_date`, `end_date` (nullable), `note`, `payment_type`.
-- `api_keys` (deferred) — revocable tokens; v1 uses env `API_TOKEN`.
+### 3. Reports
 
-`pg_boss` manages its own tables (auto-created).
+- A `reports` service exposes pure aggregation functions over Drizzle queries: cash flow, income, expenses, transfers, spending by category, budget vs actual, net worth, debt, and investment performance.
+- A report config is a serializable object: `{ type, from, to, accountIds, categoryIds, labelIds, currency, groupBy, chartType, comparison }`.
+- `saved_reports` stores `(name, config)`; saved reports are reopened with the same configuration.
+- Every report returns summary totals, a period table, and optional series for charting.
+- CSV export is generated server-side from the same rows.
+- Period comparison computes current vs previous period and vs the same period last year.
+- Currency: reports aggregate `base_amount` snapshots; equity uses the snapshot rate for the reporting date.
 
-### 4. Multi-currency snapshot
+### 4. Insights
 
-Each transaction stores its `amount`/`currency` (as entered) **and** a `base_amount`/`base_currency` snapshot computed from the FX rate active on `record_date`. Reports aggregate `base_amount`, so historical reports never change when rates move. If no rate exists for `record_date`, the nearest prior rate is used (with the source rate captured via `fx_rate_id`). Corrections to a transaction re-resolve its snapshot.
+- Deterministic rules over the user's data; no LLM required.
+- Insight shape: `{ type, severity, data, action }`. The service **does not embed prose**; the UI translates `type` + `data` through the `insights` namespace, keeping en-US/pt-BR parity.
+- Rule set (v1): savings rate, budget variance, category spending spike (vs trailing average), upcoming recurring bills, debt burden (debt-to-income / interest cost), investment allocation drift, net-worth trend, cash-flow risk (projected negative balance).
+- Severity: `info`, `warning`, `critical`.
+- `insight_acknowledgements` stores `(insight_type, signature, acknowledged_at)`, where `signature` hashes the underlying condition. If the condition changes, the insight resurfaces.
+- Insufficient history produces an explicit "not enough data" state, never a false positive.
 
-*Alternatives considered:* convert on-the-fly at report time (rejected — a transaction's BRL value would change over time, violating historical consistency).
+### 5. Assistant (phase 2)
 
-### 5. FX fetch job
+- Optional in-app "Ask anything" chat, **disabled by default**.
+- Provider/model/API key via env (`ASSISTANT_PROVIDER`, `ASSISTANT_MODEL`, `ASSISTANT_API_KEY`, optional `ASSISTANT_BASE_URL` for OpenAI-compatible/local models such as Ollama).
+- Uses the Vercel AI SDK with tool-calling. Tools call the **same service layer** (cash flow, net worth, budgets, insights, transaction search) so answers are grounded, never fabricated.
+- Read-only by default; any proposed write requires explicit user confirmation.
+- No data leaves the server unless the assistant is configured and used. Documented in the UI and README.
+- Every answer carries an informational, non-advice disclaimer.
+- Conversation history stored locally (`assistant_conversations`, `assistant_messages`).
+- The assistant is a *consumer* of the API contract, not a privileged path.
 
-- Source: Frankfurter API (ECB reference rates, free, no key), covering BRL/EUR/USD (and more).
-- Cadence: daily (business days; ECB does not publish on weekends/holidays — job tolerates gaps and backfills from historical data).
-- Queue: pg-boss with a scheduled job and **exponential backoff + jitter** on failure, capped retries. Workers run in the app process (no extra container).
-- Rates stored as `fx_rates` rows keyed by `(base, quote, date)`; fetched for every currency pair the user actually holds (derived from accounts), plus base currency.
+### 6. Equity
 
-### 6. Authentication
+- Net worth = assets − liabilities, in the base currency.
+- Assets: checking, savings, investment, brokerage, cash, property/asset accounts, plus manual estate assets.
+- Liabilities: credit cards, loans, mortgages.
+- Composition by account type and currency, with drill-down links.
+- `net_worth_snapshots` records dated totals plus a breakdown; a pg-boss job records them (daily) so trends are cheap to chart.
+- Account balances convert at the snapshot date's FX rate; historical snapshots are immutable.
 
-- **Web**: single user. `AUTH_USERNAME` + `AUTH_PASSWORD_HASH` (bcrypt/argon2) env vars. Login route validates and sets an httpOnly, signed session cookie (JWT or opaque session in DB). Middleware guards all dashboard routes.
-- **API**: bearer token via `Authorization: Bearer <token>`, validated against env `API_TOKEN` (v1). Revocable `api_keys` table is a deferred follow-up.
-- Passwords never stored in plaintext; secrets only via environment variables / `.env` (git-ignored).
+### 7. Brokerage
 
-### 7. REST API contract
+- Extends investments with cost-basis detail: `brokerage_lots` (acquisition date, quantity, cost per unit, fees, currency) and `brokerage_sales` (date, quantity, price, fees, currency).
+- Cost basis uses the **average-cost** method by default (Brazilian convention for stocks/FIIs); FIFO is a later option.
+- Realized gains derive from sales against average cost; unrealized gains use the latest price.
+- Allocation by instrument, currency, and account.
+- `dividends` records income and flows into cash-flow and tax reports.
+- Import from brokerage CSV (symbol, date, type, quantity, price, fees) or manual entry; tax export as CSV.
+- Brazil-first instrument support (stocks, FIIs, ETFs, funds, bonds, crypto) without hard-coding a single broker.
 
-- Base path `/api/v1/*`; versioning via URL prefix; non-breaking additive changes only within v1.
-- OpenAPI 3.1 generated from Zod schemas via `zod-to-openapi`; served at `/api/v1/docs` (Swagger UI) and `/api/v1/openapi.json`.
-- Batch endpoints: `POST /api/v1/transactions` accepts an array (max 50) and returns per-item results (`inputIndex`, `success`, `error`, `id`).
-- Idempotency: `Idempotency-Key` header on mutating endpoints; duplicate keys return the original result instead of re-writing.
-- Consistent error envelope: `{ error: { code, message, fields? } }`.
-- Typed client generated via `openapi-typescript` for tests and external consumers.
+### 8. Tax (Brazil-first)
 
-### 8. Debt amortization
+- Produces **summaries**, not calculations or filings:
+  - income by category for a tax year;
+  - deductible expenses (categories/transactions flagged `is_deductible` / `tax_treatment`);
+  - realized capital gains and losses from brokerage;
+  - dividends received.
+- `categories.tax_treatment` (`none | deductible | income | capital_gain | dividend`) and `transactions.is_deductible` provide the classification.
+- CSV exports for an accountant.
+- Explicit disclaimer that the app does not calculate or file taxes and is not tax advice.
+- Jurisdiction is isolated behind a `tax` module so other countries can be added later.
 
-`debt_schedule` is generated from `debts` using the configured `amortization_method`:
+### 9. Financial planner
 
-- **Price (tabela Price)**: constant payment; interest computed on declining balance; principal portion grows over time.
-- **SAC (Sistema de Amortização Constante)**: constant principal portion; interest declines; payment decreases over time.
-- **custom**: manual schedule (imported or hand-entered rows).
+- `goals`: name, type (`emergency | retirement | home | custom`), target amount, target date, currency, priority, linked accounts, notes.
+- `scenarios`: name + assumptions (`incomeGrowth`, `inflation`, `returnRate`, `savingsRate`, `horizonMonths`), with base/optimistic/pessimistic presets.
+- Projections reuse the deterministic forecast engine; the planner compares scenarios side by side.
+- Required contribution solves for the periodic amount needed to reach a goal by its date at the assumed return.
+- Emergency-fund runway = liquid assets ÷ essential monthly expenses (categories flagged `is_essential`).
+- No stochastic modeling in this revision.
 
-Payments may be monthly (default) with configurable `payment_frequency` and grace periods. Recomputing the schedule is idempotent and triggered on debt create/update.
+### 10. Estate planning
 
-### 9. Projections
+- `estate_assets`: inventory of accounts, investments, property, and other assets with values.
+- `beneficiaries`: name, relationship, intended share, notes.
+- `estate_documents`: checklist items (will, power of attorney, insurance, etc.) with status.
+- Free-form notes and CSV export.
+- Data stays local to the server; there is no external sync.
+- Explicit disclaimer: no legal advice, no legal documents.
 
-Future cash flow = current account balances + recurring transaction series + debt schedules + budget burn. `recurring_transactions` seed a projection engine that expands each series over a configurable horizon (default 12 months). Projections are computed on demand and cached per (account, horizon).
+### 11. Data model additions
 
-### 10. Knowledge module
+New tables: `import_batches`, `import_rows`, `import_profiles`, `saved_reports`, `insight_acknowledgements`, `net_worth_snapshots`, `brokerage_lots`, `brokerage_sales`, `dividends`, `goals`, `scenarios`, `estate_assets`, `beneficiaries`, `estate_documents`, and (phase 2) `assistant_conversations` / `assistant_messages`.
 
-Static `.mdx` files under `content/` (glossary + articles), rendered at build time with `mdx-components` and styled with shadcn/ui primitives (typography, callouts, tables). A `/learn` section lists and displays content. Localization: content authored in both languages (per-locale content directories).
+Column additions: `transactions.review_status` (`pending | reviewed`), `transactions.is_deductible`, `transactions.parent_transaction_id` (for splits), `categories.tax_treatment`, `categories.is_essential`, `investment_positions.instrument_type` gains `fii`.
 
-### 11. i18n
+### 12. Stack (retained)
 
-`next-intl` with locale routing (`/en` and `/pt-BR`), message catalogs in `messages/{locale}.json`, server-component + client-component translation. All UI strings, dates, and currency formatting are locale-aware (`Intl.NumberFormat`/`Intl.DateTimeFormat`).
+TypeScript, Node 24 LTS, pnpm, Next.js 16 (App Router), React 19, Drizzle ORM, PostgreSQL 17, Zod + `@asteasolutions/zod-to-openapi`, `openapi-typescript`, pg-boss, next-intl, Tailwind + shadcn-style primitives, Recharts, MDX (`next-mdx-remote`), Vitest, Playwright. The assistant adds `ai` + a provider adapter.
 
-### 12. Deployment
+### 13. Multi-currency snapshot (retained)
 
-`docker-compose.yml`:
+Transactions keep native `amount`/`currency` plus `base_amount`/`base_currency` and `fx_rate_id`, resolved against `record_date` (nearest prior rate). Reports aggregate `base_amount`; historical figures never drift.
 
-- `db`: `postgres:17-alpine`, named volume, `healthcheck` (pg_isready), env for POSTGRES_USER/PASSWORD/DB.
-- `app`: multi-stage build (deps → build with `output: 'standalone'` → slim runtime). Runs Drizzle migrations on start (entrypoint), then starts the Next.js server. Depends on `db` being healthy. Exposes port 3000.
-- pg-boss workers co-located in the `app` process; no separate container.
-- Env via `.env` (git-ignored) + `.env.example` committed.
+### 14. FX and background jobs (retained)
 
-Reverse proxy (Caddy) is explicitly optional and deferred; for local testing the app is reached directly at `localhost:3000`.
+Daily Frankfurter/ECB fetch via pg-boss with retry + exponential backoff; new `net-worth-snapshot` job for equity history. Both persist state in Postgres.
 
-### 13. Testing
+### 15. Authentication (retained)
 
-- Vitest for service-layer unit tests (amortization, FX snapshot resolution, idempotency, CSV parsing).
-- Playwright for e2e (login, create transaction, CSV import, budget view).
-- Contract tests against the generated OpenAPI client.
+Single user via `AUTH_USERNAME` + `AUTH_PASSWORD`/`AUTH_PASSWORD_HASH`; httpOnly signed session cookie; `API_TOKEN` bearer for `/api/v1`. Tax and estate data inherit the same single-user boundary.
+
+### 16. REST API contract (retained, expanded)
+
+`/api/v1` remains the single integration surface. New read endpoints for reports and insights and CRUD for goals, scenarios, brokerage, tax summaries, and estate data. The assistant consumes the same service layer. Batch + `Idempotency-Key` + consistent error envelope remain.
+
+### 17. Debt amortization (retained)
+
+Price and SAC schedules generated from debt inputs; regenerated on change.
+
+### 18. Projections (retained, expanded)
+
+Deterministic cash-flow forecasts gain scenario assumptions (income growth, inflation) used by the planner. Outputs remain reproducible.
+
+### 19. Knowledge (retained, expanded)
+
+Static Markdown/MDX content gains planning guides (investing, tax, estate) and contextual links from insights/reports. Per-locale content directories with default-locale fallback.
+
+### 20. i18n (retained)
+
+next-intl with `/pt-BR` and `/en`; all new screens, insight types, report labels, and disclaimers are localized. Insight prose is translated in the UI from `type` + `data`.
+
+### 21. Deployment (retained)
+
+Docker Compose: app + PostgreSQL, migrations and seed on startup, pg-boss workers co-located. New optional env vars for the assistant. Reverse proxy still optional.
+
+### 22. Testing (expanded)
+
+Vitest for report aggregations, insight rules, planner math (required contribution, runway), tax classification, and brokerage gains. Playwright for import → review → report → insight flows. Existing amortization, FX, idempotency, and CSV tests remain.
 
 ## Risks / Trade-offs
 
-- [Drizzle vs Prisma migrations on startup] → Pin Drizzle `migrate()` in the entrypoint; if a migration fails, container exits non-zero and healthcheck fails fast rather than serving a half-migrated schema.
-- [pg-boss in-process workers vs app restart mid-backoff] → pg-boss state lives in Postgres, so scheduled/retry state survives restarts; that is the whole point of choosing it over node-cron.
-- [ECB FX gaps on weekends/holidays] → Snapshot resolver falls back to nearest prior rate; job backfills historical dates on next run.
-- [Snapshot rate at transaction time vs today's rate ambiguity] → Always resolve against `record_date`, never "now", so historical reports are stable; documented in the API.
-- [Single-user model growing to multi-user] → Service layer scopes queries by a single implicit user id; introduce explicit user_id early so adding users later is an additive migration, not a rewrite.
-- [OFX parsing complexity (encodings, bank dialects)] → Explicitly deferred; CSV path and the API contract are stable regardless of parser.
-- [Knowledge content authoring in two languages] → Per-locale content directories keep fallback simple (missing locale falls back to default).
+- [Scope: all domains in one change] → Keep each capability independently shippable; implement in three phases (reports/insights/equity first, planning/brokerage/tax next, estate/assistant last) while the spec covers the whole.
+- [Tax/estate liability] → Summaries and inventories only; prominent disclaimers; no calculations, filing, legal advice, or documents.
+- [Sensitive estate/tax data] → Single-user boundary, local-only storage, no external calls unless the assistant is explicitly enabled.
+- [Assistant privacy] → Opt-in, provider-configurable, read-only default, documented data flow, no data sent when disabled.
+- [Import fidelity (OFX/brokerage)] → Staging + per-row errors + dedupe; never silently drop rows.
+- [Brazil-specific rules] → Isolate tax/brokerage conventions behind modules; average-cost default; jurisdiction noted in the UI.
+- [Report/insight performance] → Date-range indexes and base-amount aggregation; pre-aggregation later if needed.
+- [i18n of insights] → Return `type` + `data`, translate in the UI; no embedded English prose.
+- [Currency drift in equity] → Snapshot net worth at a date and store it immutably; never recompute historical snapshots.
 
 ## Migration Plan
 
-Greenfield — no existing data to migrate. Initial deployment:
-
-1. `docker compose up --build` on the host.
-2. `app` entrypoint runs Drizzle migrations, seeds the single user (from env), then starts the server.
-3. Verify `/api/v1/docs` renders and `/login` works.
-
-Rollback: for the initial release there is no prior version; a bad migration is fixed forward (new migration) rather than rolled back.
+Additive Drizzle migrations only (new tables/columns); existing data is preserved. The UI reorganization redirects old routes to their new locations. Rollback is a new forward migration; no destructive changes. The assistant remains disabled until configured.
 
 ## Open Questions
 
-- FX provider: Frankfurter (ECB) is the default. If the user later needs currencies ECB does not publish (e.g., crypto or some exotics), we may add a second provider or self-host Frankfurter.
-- API key management (revocable `api_keys`) is deferred; confirm the UI/flow when we build it.
-- Knowledge module search (full-text) is not in scope; confirm if needed later.
+- Default assistant provider (OpenAI-compatible, Anthropic, Google, or local Ollama) and whether to ship a sample config.
+- Exact Brazilian tax summaries to include (IRPF fields, capital-gains exemption thresholds, carnê-leão) — summaries only.
+- Brokerage corporate actions (splits, bonuses, amortization) and whether FIFO is needed alongside average cost.
+- Beneficiary share validation (must total 100%?).
+- Report export scope beyond CSV (PDF/Excel) and whether saved reports are shareable.
+- Insight thresholds: fixed defaults vs. user-configurable settings.

@@ -24,12 +24,41 @@ The system SHALL record each transaction in its native amount and currency and S
 - **WHEN** exchange rates change after a transaction is recorded
 - **THEN** the transaction's stored base-amount does not change
 
+### Requirement: Import-first creation
+The system SHALL treat import as the primary creation path and SHALL keep manual creation available for corrections.
+
+#### Scenario: Manual correction
+- **WHEN** a user manually creates or edits a transaction
+- **THEN** it is stored with the same validation and snapshot behavior as imported transactions
+
 ### Requirement: Transaction querying
-The system SHALL allow filtering transactions by account, category, label, date range, amount range, and payment type, with pagination and sorting.
+The system SHALL allow filtering transactions by account, category, label, date range, amount range, review status, and payment type, with pagination and sorting.
 
 #### Scenario: Filter by category and date
 - **WHEN** a user queries transactions by category and date range
 - **THEN** the system returns only matching transactions, ordered and paginated
+
+### Requirement: Review workflow
+The system SHALL support a reviewed status and SHALL allow bulk recategorization, merging duplicate transactions, and splitting a transaction into parts.
+
+#### Scenario: Bulk recategorize
+- **WHEN** a user selects multiple transactions and applies a category
+- **THEN** all selected transactions are updated and marked reviewed
+
+#### Scenario: Merge duplicates
+- **WHEN** a user merges two duplicate transactions
+- **THEN** one record remains and the removed record no longer contributes to reports
+
+#### Scenario: Split a transaction
+- **WHEN** a user splits a transaction into parts
+- **THEN** the parts sum to the original amount and the original is no longer counted separately
+
+### Requirement: Recurring detection
+The system SHALL detect recurring transactions and SHALL show upcoming bills and subscriptions.
+
+#### Scenario: Upcoming bills
+- **WHEN** recurring patterns exist in the reviewed data
+- **THEN** the system lists the next expected occurrences
 
 ### Requirement: Transaction update and delete
 The system SHALL allow updating and deleting transactions, re-resolving the snapshot when amount, currency, or date changes.
@@ -40,7 +69,7 @@ The system SHALL allow updating and deleting transactions, re-resolving the snap
 
 #### Scenario: Delete transaction
 - **WHEN** a user deletes a transaction
-- **THEN** the system removes it and any labels referencing only it are unaffected
+- **THEN** the system removes it and it no longer contributes to reports
 
 ### Requirement: Payment types
 The system SHALL support a fixed set of payment types including cash, debit card, credit card, transfer, pix, boleto, and ted.

@@ -51,3 +51,28 @@ The system SHALL require a valid bearer token for all API endpoints and SHALL re
 #### Scenario: Token required
 - **WHEN** a request to an API endpoint lacks a valid bearer token
 - **THEN** the system responds `401 Unauthorized`
+
+### Requirement: Reports and insights endpoints
+The system SHALL expose report and insight endpoints under `/api/v1` with the same filters and options available in the interface.
+
+#### Scenario: Fetch a report
+- **WHEN** a client requests a report with a type and range
+- **THEN** the system returns the same summary and rows as the interface
+
+#### Scenario: Fetch insights
+- **WHEN** a client requests insights
+- **THEN** the system returns the typed insight list with severity and data
+
+### Requirement: Planning endpoints
+The system SHALL expose CRUD endpoints for goals, scenarios, brokerage positions, tax summaries, and estate data.
+
+#### Scenario: Create a goal
+- **WHEN** a client POSTs a goal
+- **THEN** the system stores it and returns it with a generated id
+
+### Requirement: Export endpoints
+The system SHALL expose CSV export for reports, tax summaries, brokerage data, and estate inventories.
+
+#### Scenario: Export a report
+- **WHEN** a client requests a report export
+- **THEN** the system returns a CSV attachment

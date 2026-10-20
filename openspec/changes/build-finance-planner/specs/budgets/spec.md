@@ -30,3 +30,28 @@ The system SHALL compute each budget's spend for its period as the sum of matchi
 #### Scenario: Income netting
 - **WHEN** a budget period contains income in a scoped category
 - **THEN** spend is reported as `max(0, expenses - income)` for that scope
+
+### Requirement: Variance and alerts
+The system SHALL report each budget's variance (amount minus spend, absolute and percentage) and SHALL alert when a budget is over its limit or close to it.
+
+#### Scenario: Near-limit alert
+- **WHEN** a budget's spend crosses the configured near-limit threshold
+- **THEN** the system surfaces a warning for that budget
+
+#### Scenario: Over-limit alert
+- **WHEN** a budget's spend exceeds its amount
+- **THEN** the system surfaces an over-budget alert
+
+### Requirement: Budget review
+The system SHALL provide a review view that compares actual spending with the budget by category for the period.
+
+#### Scenario: Review by category
+- **WHEN** a user opens the budget review
+- **THEN** the system lists each scoped category with budgeted and actual amounts and the difference
+
+### Requirement: Period comparison
+The system SHALL compare a budget period against the previous period.
+
+#### Scenario: Previous period
+- **WHEN** a user enables period comparison
+- **THEN** the system shows spend and variance for the current and previous periods

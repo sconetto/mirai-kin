@@ -26,3 +26,17 @@ The system SHALL report projected cash flow in the base currency using active ex
 #### Scenario: Multi-currency forecast
 - **WHEN** recurring transactions are defined in multiple currencies
 - **THEN** the forecast aggregates them in the base currency using active rates
+
+### Requirement: Scenario assumptions
+The system SHALL support base, optimistic, and pessimistic forecast scenarios with configurable income growth, inflation, and return assumptions.
+
+#### Scenario: Scenario output
+- **WHEN** a scenario is selected
+- **THEN** the forecast applies its assumptions to the projected periods
+
+### Requirement: Reproducible output
+The system SHALL produce deterministic projections from the configured assumptions.
+
+#### Scenario: Same inputs, same output
+- **WHEN** a projection is run twice with identical inputs and assumptions
+- **THEN** the resulting figures are identical
