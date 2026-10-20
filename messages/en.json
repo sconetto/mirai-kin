@@ -1,0 +1,199 @@
+{
+  "common": {
+    "appName": "Finance Planner",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "loading": "Loading...",
+    "empty": "Nothing here yet",
+    "logout": "Log out",
+    "language": "Language",
+    "login": "Log in",
+    "name": "Name",
+    "amount": "Amount",
+    "date": "Date",
+    "currency": "Currency",
+    "category": "Category",
+    "account": "Account",
+    "notes": "Notes",
+    "type": "Type",
+    "status": "Status",
+    "total": "Total",
+    "actions": "Actions",
+    "back": "Back",
+    "none": "None",
+    "optional": "optional"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "budgets": "Budgets",
+    "investments": "Investments",
+    "debts": "Debts",
+    "projections": "Projections",
+    "import": "Import",
+    "learn": "Learn"
+  },
+  "login": {
+    "title": "Log in",
+    "subtitle": "Access your finance dashboard",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Log in",
+    "error": "Invalid username or password"
+  },
+  "dashboard": {
+    "title": "Overview",
+    "subtitle": "Your financial situation in one place",
+    "netWorth": "Net worth",
+    "accounts": "Accounts",
+    "income": "Income",
+    "expenses": "Expenses",
+    "recentTransactions": "Recent transactions",
+    "spendingByCategory": "Spending by category",
+    "balanceTrend": "Balance trend",
+    "noTransactions": "No transactions recorded"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "subtitle": "Accounts across currencies",
+    "new": "New account",
+    "openingBalance": "Opening balance",
+    "balance": "Balance",
+    "archived": "Archived",
+    "empty": "No accounts yet",
+    "created": "Account created"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "subtitle": "All of your entries",
+    "new": "New transaction",
+    "empty": "No transactions found",
+    "counterparty": "Counterparty",
+    "paymentType": "Payment type",
+    "baseAmount": "Base-currency amount",
+    "created": "Transaction created",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "applyFilter": "Filter"
+  },
+  "budgets": {
+    "title": "Budgets",
+    "subtitle": "Track your spending limits",
+    "new": "New budget",
+    "amount": "Limit",
+    "spend": "Spent",
+    "remaining": "Remaining",
+    "overBudget": "Over budget",
+    "onTrack": "On track",
+    "period": "Period",
+    "empty": "No budgets yet"
+  },
+  "investments": {
+    "title": "Investments",
+    "subtitle": "Track your portfolio growth",
+    "new": "New position",
+    "symbol": "Symbol",
+    "quantity": "Quantity",
+    "avgCost": "Average cost",
+    "value": "Current value",
+    "cost": "Total cost",
+    "gain": "Gain/Loss",
+    "empty": "No positions yet",
+    "latestPrice": "Latest price",
+    "addPrice": "Record price",
+    "price": "Price"
+  },
+  "debts": {
+    "title": "Debts",
+    "subtitle": "Financing, loans, and installments",
+    "new": "New debt",
+    "principal": "Principal",
+    "rate": "Annual interest (%)",
+    "term": "Term (months)",
+    "method": "Amortization method",
+    "startDate": "Start date",
+    "schedule": "Schedule",
+    "period": "Period",
+    "payment": "Payment",
+    "interest": "Interest",
+    "balance": "Balance",
+    "empty": "No debts yet"
+  },
+  "projections": {
+    "title": "Projections",
+    "subtitle": "Future cash flow",
+    "horizon": "Horizon (months)",
+    "month": "Month",
+    "income": "Income",
+    "expenses": "Expenses",
+    "debtPayments": "Debt payments",
+    "net": "Net",
+    "empty": "Not enough data to project"
+  },
+  "import": {
+    "title": "Import",
+    "subtitle": "Import transactions from a CSV file",
+    "csv": "CSV content",
+    "account": "Target account",
+    "submit": "Import",
+    "result": "Import result",
+    "success": "Imported",
+    "failed": "Failed",
+    "row": "Row",
+    "hint": "Accepted columns: date, amount, currency, category, note, paymentType, counterparty"
+  },
+  "learn": {
+    "title": "Learn",
+    "subtitle": "Finance knowledge for better decisions",
+    "glossary": "Glossary",
+    "articles": "Articles",
+    "empty": "No content available",
+    "readMore": "Read article"
+  },
+  "enums": {
+    "accountType": {
+      "checking": "Checking",
+      "savings": "Savings",
+      "credit_card": "Credit card",
+      "investment": "Investment",
+      "loan": "Loan",
+      "mortgage": "Mortgage",
+      "asset": "Asset",
+      "cash": "Cash"
+    },
+    "categoryType": {
+      "income": "Income",
+      "expense": "Expense"
+    },
+    "paymentType": {
+      "cash": "Cash",
+      "debit_card": "Debit card",
+      "credit_card": "Credit card",
+      "transfer": "Transfer",
+      "pix": "Pix",
+      "boleto": "Boleto",
+      "ted": "TED"
+    },
+    "amortization": {
+      "price": "Price",
+      "sac": "SAC",
+      "custom": "Custom"
+    },
+    "debtType": {
+      "installment": "Installments",
+      "financed": "Financed goods",
+      "mortgage": "Mortgage",
+      "loan": "Loan",
+      "credit_card": "Credit card"
+    },
+    "period": {
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "custom": "Custom"
+    }
+  }
+}

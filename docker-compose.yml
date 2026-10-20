@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fin}
+      POSTGRES_DB: ${POSTGRES_DB:-fin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fin} -d ${POSTGRES_DB:-fin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-fin}:${POSTGRES_PASSWORD:-fin}@db:5432/${POSTGRES_DB:-fin}
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-admin}
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production-please}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
+      API_TOKEN: ${API_TOKEN:-dev-api-token}
+      BASE_CURRENCY: ${BASE_CURRENCY:-BRL}
+      FX_SOURCE_URL: ${FX_SOURCE_URL:-https://api.frankfurter.app}
+    ports:
+      - "3100:3000"
+
+volumes:
+  db_data:

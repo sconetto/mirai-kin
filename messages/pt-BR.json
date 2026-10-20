@@ -1,0 +1,199 @@
+{
+  "common": {
+    "appName": "Planejador Financeiro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "add": "Adicionar",
+    "loading": "Carregando...",
+    "empty": "Nada por aqui ainda",
+    "logout": "Sair",
+    "language": "Idioma",
+    "login": "Entrar",
+    "name": "Nome",
+    "amount": "Valor",
+    "date": "Data",
+    "currency": "Moeda",
+    "category": "Categoria",
+    "account": "Conta",
+    "notes": "Observações",
+    "type": "Tipo",
+    "status": "Status",
+    "total": "Total",
+    "actions": "Ações",
+    "back": "Voltar",
+    "none": "Nenhum",
+    "optional": "opcional"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "accounts": "Contas",
+    "transactions": "Transações",
+    "budgets": "Orçamentos",
+    "investments": "Investimentos",
+    "debts": "Dívidas",
+    "projections": "Projeções",
+    "import": "Importar",
+    "learn": "Aprender"
+  },
+  "login": {
+    "title": "Entrar",
+    "subtitle": "Acesse seu painel financeiro",
+    "username": "Usuário",
+    "password": "Senha",
+    "submit": "Entrar",
+    "error": "Usuário ou senha inválidos"
+  },
+  "dashboard": {
+    "title": "Visão geral",
+    "subtitle": "Sua situação financeira em um só lugar",
+    "netWorth": "Patrimônio líquido",
+    "accounts": "Contas",
+    "income": "Receitas",
+    "expenses": "Despesas",
+    "recentTransactions": "Transações recentes",
+    "spendingByCategory": "Gastos por categoria",
+    "balanceTrend": "Evolução do saldo",
+    "noTransactions": "Nenhuma transação registrada"
+  },
+  "accounts": {
+    "title": "Contas",
+    "subtitle": "Contas em várias moedas",
+    "new": "Nova conta",
+    "openingBalance": "Saldo inicial",
+    "balance": "Saldo",
+    "archived": "Arquivada",
+    "empty": "Nenhuma conta cadastrada",
+    "created": "Conta criada"
+  },
+  "transactions": {
+    "title": "Transações",
+    "subtitle": "Todos os seus lançamentos",
+    "new": "Nova transação",
+    "empty": "Nenhuma transação encontrada",
+    "counterparty": "Contraparte",
+    "paymentType": "Forma de pagamento",
+    "baseAmount": "Valor na moeda base",
+    "created": "Transação criada",
+    "filterFrom": "De",
+    "filterTo": "Até",
+    "applyFilter": "Filtrar"
+  },
+  "budgets": {
+    "title": "Orçamentos",
+    "subtitle": "Acompanhe seus limites de gasto",
+    "new": "Novo orçamento",
+    "amount": "Limite",
+    "spend": "Gasto",
+    "remaining": "Restante",
+    "overBudget": "Acima do orçamento",
+    "onTrack": "Dentro do orçamento",
+    "period": "Período",
+    "empty": "Nenhum orçamento criado"
+  },
+  "investments": {
+    "title": "Investimentos",
+    "subtitle": "Acompanhe o crescimento do seu portfólio",
+    "new": "Nova posição",
+    "symbol": "Símbolo",
+    "quantity": "Quantidade",
+    "avgCost": "Custo médio",
+    "value": "Valor atual",
+    "cost": "Custo total",
+    "gain": "Resultado",
+    "empty": "Nenhuma posição cadastrada",
+    "latestPrice": "Último preço",
+    "addPrice": "Registrar preço",
+    "price": "Preço"
+  },
+  "debts": {
+    "title": "Dívidas",
+    "subtitle": "Financiamentos, empréstimos e parcelas",
+    "new": "Nova dívida",
+    "principal": "Valor financiado",
+    "rate": "Juros ao ano (%)",
+    "term": "Prazo (meses)",
+    "method": "Método de amortização",
+    "startDate": "Início",
+    "schedule": "Cronograma",
+    "period": "Parcela",
+    "payment": "Pagamento",
+    "interest": "Juros",
+    "balance": "Saldo devedor",
+    "empty": "Nenhuma dívida cadastrada"
+  },
+  "projections": {
+    "title": "Projeções",
+    "subtitle": "Fluxo de caixa futuro",
+    "horizon": "Horizonte (meses)",
+    "month": "Mês",
+    "income": "Receitas",
+    "expenses": "Despesas",
+    "debtPayments": "Parcelas de dívidas",
+    "net": "Saldo",
+    "empty": "Sem dados suficientes para projetar"
+  },
+  "import": {
+    "title": "Importar",
+    "subtitle": "Importe transações a partir de um arquivo CSV",
+    "csv": "Conteúdo CSV",
+    "account": "Conta de destino",
+    "submit": "Importar",
+    "result": "Resultado da importação",
+    "success": "Importadas",
+    "failed": "Falhas",
+    "row": "Linha",
+    "hint": "Colunas aceitas: date, amount, currency, category, note, paymentType, counterparty"
+  },
+  "learn": {
+    "title": "Aprender",
+    "subtitle": "Conhecimento financeiro para decisões melhores",
+    "glossary": "Glossário",
+    "articles": "Artigos",
+    "empty": "Nenhum conteúdo disponível",
+    "readMore": "Ler artigo"
+  },
+  "enums": {
+    "accountType": {
+      "checking": "Conta corrente",
+      "savings": "Poupança",
+      "credit_card": "Cartão de crédito",
+      "investment": "Investimento",
+      "loan": "Empréstimo",
+      "mortgage": "Financiamento imobiliário",
+      "asset": "Bem",
+      "cash": "Dinheiro"
+    },
+    "categoryType": {
+      "income": "Receita",
+      "expense": "Despesa"
+    },
+    "paymentType": {
+      "cash": "Dinheiro",
+      "debit_card": "Cartão de débito",
+      "credit_card": "Cartão de crédito",
+      "transfer": "Transferência",
+      "pix": "Pix",
+      "boleto": "Boleto",
+      "ted": "TED"
+    },
+    "amortization": {
+      "price": "Price",
+      "sac": "SAC",
+      "custom": "Personalizado"
+    },
+    "debtType": {
+      "installment": "Parcelado",
+      "financed": "Bem financiado",
+      "mortgage": "Financiamento imobiliário",
+      "loan": "Empréstimo",
+      "credit_card": "Cartão de crédito"
+    },
+    "period": {
+      "monthly": "Mensal",
+      "annual": "Anual",
+      "custom": "Personalizado"
+    }
+  }
+}

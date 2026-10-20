@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+openspec
+.opencode
+coverage
+playwright-report
+test-results
+*.log
+.env
+.env.local
+README.md
