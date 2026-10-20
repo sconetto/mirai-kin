@@ -21,8 +21,8 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -31,7 +31,7 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
         </CardHeader>
         <CardContent>
           {accounts.length === 0 ? (
-            <p className="text-sm text-slate-400">{tc("empty")}</p>
+            <p className="text-sm text-ink-3">{tc("empty")}</p>
           ) : (
             <form action={createPositionAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <input type="hidden" name="locale" value={locale} />
@@ -66,11 +66,11 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
         </CardHeader>
         <CardContent>
           {positions.length === 0 ? (
-            <p className="text-sm text-slate-400">{t("empty")}</p>
+            <p className="text-sm text-ink-3">{t("empty")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-slate-500">
+                <thead className="text-left text-xs font-medium text-ink-3">
                   <tr>
                     <th className="py-2">{t("symbol")}</th>
                     <th className="py-2">{tc("name")}</th>
@@ -81,13 +81,13 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
                     <th className="py-2 text-right">{t("gain")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line/70">
                   {positions.map((position) => {
                     const gain = Number(position.gain);
                     return (
                       <tr key={position.id}>
                         <td className="py-2 font-medium">{position.symbol}</td>
-                        <td className="py-2 text-slate-600">{position.name}</td>
+                        <td className="py-2 text-ink-2">{position.name}</td>
                         <td className="py-2 text-right">{formatNumber(position.quantity, locale)}</td>
                         <td className="py-2 text-right">
                           {formatCurrency(position.avgCost, position.currency, locale)}
@@ -99,7 +99,7 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
                           {formatCurrency(position.value, position.currency, locale)}
                         </td>
                         <td
-                          className={`py-2 text-right font-medium ${gain >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                          className={`py-2 text-right font-medium ${gain >= 0 ? "text-positive" : "text-negative"}`}
                         >
                           {formatCurrency(position.gain, position.currency, locale)} (
                           {position.gainPct}%)

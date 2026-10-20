@@ -15,8 +15,8 @@ export default async function ImportPage({ params }: { params: Promise<{ locale:
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -39,7 +39,7 @@ export default async function ImportPage({ params }: { params: Promise<{ locale:
               placeholder={"date,amount,currency,category,note\n2026-01-15,-45.90,BRL,Groceries,Market"}
               required
             />
-            <p className="text-xs text-slate-400">{t("hint")}</p>
+            <p className="text-xs text-ink-3">{t("hint")}</p>
             <Button type="submit" disabled={accounts.length === 0}>
               {t("submit")}
             </Button>
@@ -47,7 +47,7 @@ export default async function ImportPage({ params }: { params: Promise<{ locale:
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-400">{tc("appName")}</p>
+      <p className="text-xs text-ink-3">{tc("appName")}</p>
     </div>
   );
 }

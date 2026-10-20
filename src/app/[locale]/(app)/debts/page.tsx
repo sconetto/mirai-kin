@@ -24,8 +24,8 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -68,14 +68,14 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
         </CardHeader>
         <CardContent>
           {detailed.length === 0 ? (
-            <p className="text-sm text-slate-400">{t("empty")}</p>
+            <p className="text-sm text-ink-3">{t("empty")}</p>
           ) : (
             <div className="space-y-4">
               {detailed.map((debt) => (
-                <details key={debt.id} className="rounded-lg border border-slate-200 p-3">
+                <details key={debt.id} className="rounded-lg border border-line p-3">
                   <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm">
                     <span className="font-medium">{debt.name}</span>
-                    <span className="text-slate-500">
+                    <span className="text-ink-3">
                       {te(`debtType.${debt.type}`)} · {te(`amortization.${debt.amortizationMethod}`)} ·{" "}
                       {formatCurrency(debt.principal, debt.currency, locale)} · {debt.term}x
                     </span>
@@ -83,7 +83,7 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
 
                   <div className="mt-3 overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead className="text-left uppercase text-slate-500">
+                      <thead className="text-left text-xs font-medium text-ink-3">
                         <tr>
                           <th className="py-1">{t("period")}</th>
                           <th className="py-1">{tc("date")}</th>
@@ -92,7 +92,7 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
                           <th className="py-1 text-right">{t("balance")}</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-line/70">
                         {debt.schedule.map((row) => (
                           <tr key={row.id}>
                             <td className="py-1">{row.periodNumber}</td>
@@ -100,7 +100,7 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
                             <td className="py-1 text-right">
                               {formatCurrency(row.payment, debt.currency, locale)}
                             </td>
-                            <td className="py-1 text-right text-slate-500">
+                            <td className="py-1 text-right text-ink-3">
                               {formatCurrency(row.interest, debt.currency, locale)}
                             </td>
                             <td className="py-1 text-right">

@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
+import { BrandMark } from "@/components/brand";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -40,22 +41,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   }
 
+  function isActive(href: string) {
+    return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  }
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="text-sm font-semibold text-slate-900">
-            {tc("appName")}
-          </Link>
-          <div className="flex items-center gap-3">
-            <label className="sr-only" htmlFor="locale-switcher">
-              {tc("language")}
-            </label>
+    <div className="min-h-screen lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
+        <Link href="/" className="flex items-center gap-2.5 px-1">
+          <BrandMark />
+          <span className="text-sm font-semibold tracking-tight text-ink">{tc("appName")}</span>
+        </Link>
+
+        <nav className="mt-9 flex flex-1 flex-col gap-1">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "rounded-lg border-l-2 px-3 py-2 text-sm transition-colors",
+                isActive(item.href)
+                  ? "border-accent bg-accent-soft font-medium text-accent-strong"
+                  : "border-transparent text-ink-2 hover:bg-paper hover:text-ink",
+              )}
+            >
+              {t(item.key)}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="mt-6 space-y-3 border-t border-line/70 pt-4">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-ink-3">{tc("language")}</span>
             <select
-              id="locale-switcher"
               value={locale}
               onChange={(event) => switchLocale(event.target.value)}
-              className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+              className="w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink"
             >
               {routing.locales.map((item) => (
                 <option key={item} value={item}>
@@ -63,36 +84,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={logout}
-              className="text-sm text-slate-600 hover:text-slate-900"
-              type="button"
-            >
-              {tc("logout")}
-            </button>
-          </div>
+          </label>
+          <button
+            onClick={logout}
+            type="button"
+            className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-2 transition-colors hover:bg-paper hover:text-ink"
+          >
+            {tc("logout")}
+          </button>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 pb-2">
-          {NAV.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "whitespace-nowrap rounded px-3 py-1.5 text-sm transition-colors",
-                  active
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                )}
+      </aside>
+
+      <div className="lg:hidden">
+        <header className="border-b border-line bg-surface px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" className="flex items-center gap-2.5">
+              <BrandMark />
+              <span className="text-sm font-semibold tracking-tight text-ink">{tc("appName")}</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <select
+                value={locale}
+                onChange={(event) => switchLocale(event.target.value)}
+                aria-label={tc("language")}
+                className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink"
               >
-                {t(item.key)}
-              </Link>
-            );
-          })}
+                {routing.locales.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={logout}
+                type="button"
+                className="rounded-lg px-2 py-1.5 text-sm text-ink-2 hover:bg-paper hover:text-ink"
+              >
+                {tc("logout")}
+              </button>
+            </div>
+          </div>
+        </header>
+        <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-3 py-2">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors",
+                isActive(item.href)
+                  ? "bg-accent font-medium text-white"
+                  : "text-ink-2 hover:bg-paper hover:text-ink",
+              )}
+            >
+              {t(item.key)}
+            </Link>
+          ))}
         </nav>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      </div>
+
+      <main className="min-w-0 px-4 py-6 lg:px-10 lg:py-10">
+        <div className="mx-auto max-w-5xl">{children}</div>
+      </main>
     </div>
   );
 }

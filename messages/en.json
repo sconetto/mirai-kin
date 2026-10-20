@@ -40,6 +40,9 @@
   "login": {
     "title": "Log in",
     "subtitle": "Access your finance dashboard",
+    "brandTitle": "Your money, in clear view.",
+    "brandBody": "Accounts, budgets, investments, and debts in one dashboard — private, on your own server.",
+    "brandFooter": "Self-hosted. Your data stays yours.",
     "username": "Username",
     "password": "Password",
     "submit": "Log in",

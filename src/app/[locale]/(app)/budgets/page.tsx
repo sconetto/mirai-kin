@@ -21,8 +21,8 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -56,11 +56,11 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
         </CardHeader>
         <CardContent>
           {budgets.length === 0 ? (
-            <p className="text-sm text-slate-400">{t("empty")}</p>
+            <p className="text-sm text-ink-3">{t("empty")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-slate-500">
+                <thead className="text-left text-xs font-medium text-ink-3">
                   <tr>
                     <th className="py-2">{tc("name")}</th>
                     <th className="py-2">{t("period")}</th>
@@ -70,11 +70,11 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
                     <th className="py-2">{tc("status")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line/70">
                   {budgets.map((budget) => (
                     <tr key={budget.id}>
                       <td className="py-2 font-medium">{budget.name}</td>
-                      <td className="py-2 text-slate-600">
+                      <td className="py-2 text-ink-2">
                         {formatDate(budget.startDate, locale)} · {te(`period.${budget.periodType}`)}
                       </td>
                       <td className="py-2 text-right">

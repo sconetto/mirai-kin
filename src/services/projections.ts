@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { debts, debtSchedule, recurringTransactions } from "@/db/schema";
 import type { RecurrenceFrequency } from "@/db/schema";

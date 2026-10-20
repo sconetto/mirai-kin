@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "@/i18n/navigation";
 
 export function LoginForm() {
   const t = useTranslations("login");
@@ -40,9 +40,9 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="username">
+        <label className="mb-1.5 block text-sm font-medium text-ink-2" htmlFor="username">
           {t("username")}
         </label>
         <Input
@@ -54,7 +54,7 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="password">
+        <label className="mb-1.5 block text-sm font-medium text-ink-2" htmlFor="password">
           {t("password")}
         </label>
         <Input
@@ -66,7 +66,11 @@ export function LoginForm() {
           required
         />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="rounded-lg border border-negative/20 bg-[#fef3f2] px-3 py-2 text-sm text-negative">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "…" : t("submit")}
       </Button>

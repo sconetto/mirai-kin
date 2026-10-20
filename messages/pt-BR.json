@@ -40,6 +40,9 @@
   "login": {
     "title": "Entrar",
     "subtitle": "Acesse seu painel financeiro",
+    "brandTitle": "Seu dinheiro, com clareza.",
+    "brandBody": "Contas, orçamentos, investimentos e dívidas em um só painel — privado, no seu próprio servidor.",
+    "brandFooter": "Auto-hospedado. Seus dados ficam com você.",
     "username": "Usuário",
     "password": "Senha",
     "submit": "Entrar",

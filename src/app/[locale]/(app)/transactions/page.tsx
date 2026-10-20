@@ -35,8 +35,8 @@ export default async function TransactionsPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -45,7 +45,7 @@ export default async function TransactionsPage({
         </CardHeader>
         <CardContent>
           {accounts.length === 0 ? (
-            <p className="text-sm text-slate-400">{tc("empty")}</p>
+            <p className="text-sm text-ink-3">{tc("empty")}</p>
           ) : (
             <form action={createTransactionAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <input type="hidden" name="locale" value={locale} />
@@ -89,25 +89,25 @@ export default async function TransactionsPage({
         </CardHeader>
         <CardContent>
           <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-3">
               {t("filterFrom")}
               <Input name="from" type="date" defaultValue={filter.from ?? ""} className="mt-1" />
             </label>
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-3">
               {t("filterTo")}
               <Input name="to" type="date" defaultValue={filter.to ?? ""} className="mt-1" />
             </label>
-            <Button type="submit" className="bg-slate-600 hover:bg-slate-500">
+            <Button type="submit" variant="secondary">
               {t("applyFilter")}
             </Button>
           </form>
 
           {result.transactions.length === 0 ? (
-            <p className="text-sm text-slate-400">{t("empty")}</p>
+            <p className="text-sm text-ink-3">{t("empty")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-slate-500">
+                <thead className="text-left text-xs font-medium text-ink-3">
                   <tr>
                     <th className="py-2">{tc("date")}</th>
                     <th className="py-2">{tc("account")}</th>
@@ -118,31 +118,31 @@ export default async function TransactionsPage({
                     <th className="py-2">{tc("notes")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line/70">
                   {result.transactions.map((transaction) => {
                     const account = accounts.find((item) => item.id === transaction.accountId);
                     const category = categories.find((item) => item.id === transaction.categoryId);
                     return (
                       <tr key={transaction.id}>
                         <td className="py-2">{formatDate(transaction.recordDate, locale)}</td>
-                        <td className="py-2 text-slate-600">{account?.name ?? "—"}</td>
-                        <td className="py-2 text-slate-600">{category?.name ?? "—"}</td>
+                        <td className="py-2 text-ink-2">{account?.name ?? "—"}</td>
+                        <td className="py-2 text-ink-2">{category?.name ?? "—"}</td>
                         <td className="py-2 text-right font-medium">
                           {formatCurrency(transaction.amount, transaction.currency, locale)}
                         </td>
-                        <td className="py-2 text-right text-slate-500">
+                        <td className="py-2 text-right text-ink-3">
                           {formatCurrency(
                             transaction.baseAmount,
                             transaction.baseCurrency,
                             locale,
                           )}
                         </td>
-                        <td className="py-2 text-slate-600">
+                        <td className="py-2 text-ink-2">
                           {transaction.paymentType
                             ? te(`paymentType.${transaction.paymentType}`)
                             : "—"}
                         </td>
-                        <td className="py-2 text-slate-500">{transaction.note ?? "—"}</td>
+                        <td className="py-2 text-ink-3">{transaction.note ?? "—"}</td>
                       </tr>
                     );
                   })}

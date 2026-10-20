@@ -20,12 +20,12 @@ export default async function ArticlePage({
 
   return (
     <article className="mx-auto max-w-3xl space-y-4">
-      <Link href="/learn" className="text-sm text-slate-500 hover:underline">
+      <Link href="/learn" className="text-sm text-ink-3 hover:underline">
         ← {t("title")}
       </Link>
-      <h1 className="text-2xl font-semibold">{article.title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">{article.title}</h1>
       {article.description ? (
-        <p className="text-sm text-slate-500">{article.description}</p>
+        <p className="text-sm text-ink-3">{article.description}</p>
       ) : null}
       <Mdx source={article.content} />
     </article>

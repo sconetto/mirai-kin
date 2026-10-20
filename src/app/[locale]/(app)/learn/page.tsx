@@ -14,8 +14,8 @@ export default async function LearnPage({ params }: { params: Promise<{ locale: 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-slate-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 
       <Card>
@@ -23,7 +23,7 @@ export default async function LearnPage({ params }: { params: Promise<{ locale: 
           <CardTitle>{t("glossary")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {glossary ? <Mdx source={glossary} /> : <p className="text-sm text-slate-400">{t("empty")}</p>}
+          {glossary ? <Mdx source={glossary} /> : <p className="text-sm text-ink-3">{t("empty")}</p>}
         </CardContent>
       </Card>
 
@@ -33,19 +33,19 @@ export default async function LearnPage({ params }: { params: Promise<{ locale: 
         </CardHeader>
         <CardContent>
           {articles.length === 0 ? (
-            <p className="text-sm text-slate-400">{t("empty")}</p>
+            <p className="text-sm text-ink-3">{t("empty")}</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line/70">
               {articles.map((article) => (
                 <li key={article.slug} className="py-2">
                   <Link
                     href={`/learn/${article.slug}`}
-                    className="font-medium text-slate-900 hover:underline"
+                    className="font-medium text-ink hover:underline"
                   >
                     {article.title}
                   </Link>
                   {article.description ? (
-                    <p className="text-xs text-slate-500">{article.description}</p>
+                    <p className="text-xs text-ink-3">{article.description}</p>
                   ) : null}
                 </li>
               ))}
