@@ -39,6 +39,10 @@ The system SHALL support a configurable provider and model, including an OpenAI-
 - **WHEN** a local OpenAI-compatible endpoint is configured without an API key
 - **THEN** the assistant can use that endpoint without requiring a hosted credential
 
+#### Scenario: Local provider
+- **WHEN** an OpenAI-compatible base URL and model are configured
+- **THEN** the assistant uses that endpoint
+
 ### Requirement: Grounded tool use
 The assistant SHALL answer by calling the application's service layer for reports, insights, transactions, budgets, planning, and projections, and SHALL NOT fabricate financial figures.
 
