@@ -4,6 +4,7 @@ import { categoryTranslation } from "@/lib/category-translations";
 import { getEnv } from "@/lib/env";
 import { getDb } from "./index";
 import { accounts, categories, users } from "./schema";
+import { markTransferCategories, mergeDuplicateCategories } from "./category-maintenance";
 
 const SEED_CATEGORIES = [
   { name: "Salary", type: "income" },
@@ -74,6 +75,12 @@ export async function ensureSeed(): Promise<void> {
       .update(categories)
       .set({ nameEn: translation.en, namePt: translation.pt })
       .where(eq(categories.id, category.id));
+  }
+
+  await mergeDuplicateCategories();
+  const markedTransfers = await markTransferCategories();
+  if (markedTransfers > 0) {
+    console.log(`[categories] marked ${markedTransfers} Wallet transfer rows`);
   }
 
   const anyAccount = await db.select({ id: accounts.id }).from(accounts).limit(1);

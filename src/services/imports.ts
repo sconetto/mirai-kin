@@ -17,6 +17,7 @@ import {
 import type { ImportSource } from "@/db/schema";
 import { createTransaction } from "./transactions";
 import { backfillTransfers } from "./transfers";
+import { findCategory } from "@/lib/category-match";
 import { applyImportBalance } from "./reconciliation";
 import { firstMatch, listRules } from "./rules";
 
@@ -446,12 +447,6 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
   const selected = rowIds ? new Set(rowIds) : null;
 
   const categoryRows = await db.select().from(categories);
-  const categoryByName = new Map<string, string>();
-  for (const category of categoryRows) {
-    categoryByName.set(category.name.toLowerCase(), category.id);
-    if (category.nameEn) categoryByName.set(category.nameEn.toLowerCase(), category.id);
-    if (category.namePt) categoryByName.set(category.namePt.toLowerCase(), category.id);
-  }
   const rules = await listRules();
 
   const results: { row: number; success: boolean; id?: string; error?: string }[] = [];
@@ -467,9 +462,11 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
     try {
       if (normalized.kind === "transaction") {
         if (!batch.accountId) throw new Error("No account selected");
-        const baseCategoryId = normalized.categoryName
-          ? (categoryByName.get(normalized.categoryName.toLowerCase()) ?? null)
+        const category = normalized.categoryName
+          ? findCategory(categoryRows, normalized.categoryName, Number(normalized.amount))
           : null;
+        const baseCategoryId = category?.id ?? null;
+        const transferCategory = category?.name === "Transfer";
         const match = firstMatch(
           {
             accountId: batch.accountId,
@@ -491,7 +488,9 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
           currency: normalized.currency,
           recordDate: `${normalized.recordDate}T12:00:00.000Z`,
           note: normalized.note ?? null,
-          paymentType: (normalized.paymentType as never) ?? null,
+          paymentType: transferCategory
+            ? "transfer"
+            : ((normalized.paymentType as never) ?? null),
           counterparty: normalized.counterparty ?? null,
           categoryId,
           labelIds: match?.actions.labelIds ?? [],

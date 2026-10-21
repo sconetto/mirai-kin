@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { afterAll, describe, expect, it } from "vitest";
-import { closeDb } from "@/db";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { closeDb, getDb } from "@/db";
+import { categories, transactions } from "@/db/schema";
 import { deleteCategory } from "./categories";
 import { listCategories, createCategory } from "./categories";
 
@@ -19,6 +21,30 @@ describe.skipIf(!process.env.DATABASE_URL)("localized categories", () => {
     );
     expect(known.length).toBeGreaterThan(0);
     expect(known.every((category) => category.nameEn && category.namePt)).toBe(true);
+  });
+
+  it("has no duplicate localized names", async () => {
+    const duplicates = await getDb()
+      .select({ nameEn: categories.nameEn, namePt: categories.namePt })
+      .from(categories)
+      .groupBy(categories.nameEn, categories.namePt)
+      .having(sql`count(*) > 1`);
+    expect(duplicates).toHaveLength(0);
+  });
+
+  it("marks every Transfer-category leg as a transfer", async () => {
+    const [row] = await getDb()
+      .select({ count: sql<number>`count(*)::int` })
+      .from(transactions)
+      .innerJoin(categories, eq(categories.id, transactions.categoryId))
+      .where(
+        and(
+          sql`${categories.name} = 'Transfer'`,
+          isNull(transactions.paymentType),
+          isNull(transactions.transferId),
+        ),
+      );
+    expect(row?.count ?? 0).toBe(0);
   });
 
   it("stores translations for a newly created category", async () => {

@@ -10,6 +10,7 @@ import { forecast } from "@/services/projections";
 import { getReport } from "@/services/reports";
 import type { ReportType } from "@/services/reports";
 import { listTransactions } from "@/services/transactions";
+import { findCategory } from "@/lib/category-match";
 import { localizedCategoryName } from "@/lib/category-name";
 import { transactionCreateSchema } from "@/lib/schemas";
 import { createPendingAction } from "@/services/assistant";
@@ -36,15 +37,9 @@ async function resolveAccount(name: string) {
   return { account: exact ?? partial ?? null, accounts };
 }
 
-async function resolveCategory(name: string) {
+async function resolveCategory(name: string, amount?: number) {
   const categories = await listCategories();
-  const needle = name.trim().toLowerCase();
-  const matches = categories.filter((category) =>
-    [category.name, category.nameEn, category.namePt]
-      .filter(Boolean)
-      .some((value) => value!.toLowerCase().includes(needle)),
-  );
-  return { category: matches[0] ?? null, categories, matches };
+  return { category: findCategory(categories, name, amount), categories };
 }
 
 export function buildAssistantTools(conversationId: string) {
@@ -278,7 +273,7 @@ export function buildAssistantTools(conversationId: string) {
         let categoryId: string | null = null;
         let categoryName: string | null = null;
         if (input.categoryName) {
-          const resolvedCategory = await resolveCategory(input.categoryName);
+          const resolvedCategory = await resolveCategory(input.categoryName, input.amount);
           if (!resolvedCategory.category) {
             return {
               error: `Category "${input.categoryName}" was not found.`,

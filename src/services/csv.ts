@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { accounts, categories } from "@/db/schema";
 import type { PaymentType } from "@/db/schema";
 import { parseCsvRows } from "./csv-parse";
+import { findCategory } from "@/lib/category-match";
 import { createTransaction } from "./transactions";
 
 export type CsvImportResult = {
@@ -25,12 +26,6 @@ export async function importCsv(csv: string, options: { accountId?: string } = {
   }
 
   const categoryRows = await db.select().from(categories);
-  const categoryByName = new Map<string, string>();
-  for (const category of categoryRows) {
-    categoryByName.set(category.name.toLowerCase(), category.id);
-    if (category.nameEn) categoryByName.set(category.nameEn.toLowerCase(), category.id);
-    if (category.namePt) categoryByName.set(category.namePt.toLowerCase(), category.id);
-  }
 
   const results: CsvImportResult[] = errors.map((error) => ({
     row: error.rowNumber,
@@ -40,17 +35,21 @@ export async function importCsv(csv: string, options: { accountId?: string } = {
 
   for (const row of rows) {
     try {
+      const category = row.categoryName
+        ? findCategory(categoryRows, row.categoryName, Number(row.amount))
+        : null;
       const transaction = await createTransaction({
         accountId,
         amount: row.amount,
         currency: row.currency,
         recordDate: row.recordDate.toISOString(),
         note: row.note ?? null,
-        paymentType: (row.paymentType as PaymentType | undefined) ?? null,
+        paymentType:
+          category?.name === "Transfer"
+            ? "transfer"
+            : ((row.paymentType as PaymentType | undefined) ?? null),
         counterparty: row.counterparty ?? null,
-        categoryId: row.categoryName
-          ? (categoryByName.get(row.categoryName.toLowerCase()) ?? null)
-          : null,
+        categoryId: category?.id ?? null,
       });
       results.push({ row: row.rowNumber, success: true, id: transaction.id });
     } catch (error) {
