@@ -121,7 +121,7 @@ export function BalanceChart({
         ))}
       </div>
 
-      <div className="mt-3 hidden max-h-[560px] overflow-y-auto pr-1 sm:block">
+      <div className="mt-3 hidden max-h-[560px] overflow-y-auto pr-1 lg:block">
         <div style={{ height: Math.max(240, sorted.length * 36) }} className="w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -206,17 +206,27 @@ export function BalanceChart({
                     const top = Number(y ?? 0);
                     const barWidth = Number(width ?? 0);
                     const barHeight = Number(height ?? 0);
+                    const barStart = left + Math.min(0, barWidth);
+                    const barEnd = left + Math.max(0, barWidth);
+                    const isNegative = numeric < 0;
+                    const inside = numeric !== 0 && Math.abs(barWidth) > 78;
                     return (
                       <text
                         x={
-                          numeric < 0
-                            ? left + Math.min(0, barWidth) - 8
-                            : left + Math.max(0, barWidth) + 8
+                          inside
+                            ? isNegative
+                              ? barStart + 8
+                              : barEnd - 8
+                            : isNegative
+                              ? barStart - 8
+                              : barEnd + 8
                         }
                         y={top + barHeight / 2}
-                        textAnchor={numeric < 0 ? "end" : "start"}
+                        textAnchor={
+                          inside ? (isNegative ? "start" : "end") : isNegative ? "end" : "start"
+                        }
                         dominantBaseline="middle"
-                        fill="var(--color-ink-2)"
+                        fill={inside ? "#ffffff" : "var(--color-ink-2)"}
                         fontSize={11}
                       >
                         {compact.format(numeric)}
@@ -230,7 +240,7 @@ export function BalanceChart({
         </div>
       </div>
 
-      <ul className="mt-3 divide-y divide-line/70 sm:hidden">
+      <ul className="mt-3 divide-y divide-line/70 lg:hidden">
         {sorted.map((item) => (
           <li key={item.id} className="py-3">
             <div className="flex items-start justify-between gap-3">
@@ -247,7 +257,7 @@ export function BalanceChart({
                 </p>
               </div>
               <p
-                className={`tabular shrink-0 text-sm font-semibold ${
+                className={`tabular shrink-0 whitespace-nowrap text-sm font-semibold ${
                   item.total < 0 ? "text-negative" : "text-ink"
                 }`}
               >
