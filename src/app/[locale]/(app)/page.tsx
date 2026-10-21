@@ -112,7 +112,7 @@ export default async function DashboardPage({
       : tp(`status.${data.overallStatus}` as never);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <PageHeader title={t("title")} subtitle={t("subtitle")}>
         <div className="flex flex-wrap items-center gap-2">
           <div
@@ -252,8 +252,8 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <div className="columns-1 gap-0.5 xl:columns-2">
-        <Card className="mb-0.5 break-inside-avoid">
+      <div className="columns-1 gap-2 xl:columns-2">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("trajectory")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("trajectorySubtitle")}</p>
@@ -286,7 +286,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-0.5 break-inside-avoid">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("goals")}</CardTitle>
           </CardHeader>
@@ -359,7 +359,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-0.5 break-inside-avoid">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("composition")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("compositionSubtitle")}</p>
@@ -373,7 +373,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-0.5 break-inside-avoid overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35 [column-span:all]">
+        <Card className="mb-2 break-inside-avoid overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35 [column-span:all]">
           <CardHeader>
             <CardTitle>{t("cashflow")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
@@ -405,7 +405,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-      <Card className="mb-0.5 break-inside-avoid border-t-4 border-t-negative">
+      <Card className="mb-2 break-inside-avoid border-t-4 border-t-negative">
         <CardHeader className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{t("spendingTrend")}</CardTitle>
@@ -449,7 +449,7 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <Card className="mb-0.5 break-inside-avoid border-t-4 border-t-negative">
+      <Card className="mb-2 break-inside-avoid border-t-4 border-t-negative">
         <CardHeader className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{t("outflows")}</CardTitle>
@@ -470,7 +470,7 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-        <Card className="mb-0.5 break-inside-avoid">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("movement")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("movementSubtitle")}</p>
@@ -484,7 +484,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-0.5 break-inside-avoid">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("contributionPace")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("contributionSubtitle")}</p>
@@ -498,7 +498,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-0.5 break-inside-avoid">
+        <Card className="mb-2 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("thisMonth")}</CardTitle>
           </CardHeader>
