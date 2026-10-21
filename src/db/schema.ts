@@ -76,6 +76,9 @@ export type GoalType = (typeof GOAL_TYPES)[number];
 export const TAX_TREATMENTS = ["none", "deductible", "income", "capital_gain", "dividend"] as const;
 export type TaxTreatment = (typeof TAX_TREATMENTS)[number];
 
+export const TRANSFER_STATUSES = ["paired", "unpaired"] as const;
+export type TransferStatus = (typeof TRANSFER_STATUSES)[number];
+
 const money = (name: string) => numeric(name, { precision: 20, scale: 4 });
 const rate = (name: string) => numeric(name, { precision: 30, scale: 10 });
 const quantity = (name: string) => numeric(name, { precision: 30, scale: 8 });
@@ -145,6 +148,26 @@ export const fxRates = pgTable(
   ],
 );
 
+export const transfers = pgTable("transfers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  fromAccountId: uuid("from_account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  toAccountId: uuid("to_account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  amount: money("amount").notNull(),
+  currency: text("currency").notNull(),
+  counterAmount: money("counter_amount").notNull(),
+  counterCurrency: text("counter_currency").notNull(),
+  rate: rate("rate").notNull().default("1"),
+  note: text("note"),
+  status: text("status").$type<TransferStatus>().notNull().default("paired"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const transactions = pgTable(
   "transactions",
   {
@@ -172,6 +195,7 @@ export const transactions = pgTable(
       (): AnyPgColumn => transactions.id,
       { onDelete: "cascade" },
     ),
+    transferId: uuid("transfer_id").references(() => transfers.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

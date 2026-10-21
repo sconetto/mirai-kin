@@ -111,6 +111,22 @@ export const transactionMergeSchema = z.object({
   duplicateId: z.uuid(),
 });
 
+export const transferCreateSchema = z.object({
+  fromAccountId: z.uuid(),
+  toAccountId: z.uuid(),
+  amount: decimal,
+  currency: currencyCode,
+  counterAmount: decimal.optional(),
+  counterCurrency: currencyCode.optional(),
+  date: isoDateTime,
+  note: z.string().nullish(),
+});
+
+export const transferPairSchema = z.object({
+  firstId: z.uuid(),
+  secondId: z.uuid(),
+});
+
 export const budgetCreateSchema = z.object({
   name: z.string().min(1),
   periodType: z.enum(BUDGET_PERIODS).optional(),
@@ -194,6 +210,8 @@ export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
 export type TransactionBulkInput = z.infer<typeof transactionBulkSchema>;
 export type TransactionSplitInput = z.infer<typeof transactionSplitSchema>;
 export type TransactionMergeInput = z.infer<typeof transactionMergeSchema>;
+export type TransferCreateInput = z.infer<typeof transferCreateSchema>;
+export type TransferPairInput = z.infer<typeof transferPairSchema>;
 export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
 export type InvestmentPositionCreateInput = z.infer<typeof investmentPositionCreateSchema>;
 export type DebtCreateInput = z.infer<typeof debtCreateSchema>;

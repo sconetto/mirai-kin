@@ -18,6 +18,8 @@ import {
   transactionBatchSchema,
   transactionCreateSchema,
   transactionUpdateSchema,
+  transferCreateSchema,
+  transferPairSchema,
 } from "@/lib/schemas";
 
 const genericEntity = z.record(z.string(), z.unknown());
@@ -59,6 +61,8 @@ export function buildOpenApiDocument() {
   registry.register("DebtInput", debtCreateSchema);
   registry.register("DebtUpdate", debtUpdateSchema);
   registry.register("CsvImportInput", csvImportSchema);
+  registry.register("TransferInput", transferCreateSchema);
+  registry.register("TransferPair", transferPairSchema);
 
   const idParams = z.object({ id: z.uuid() });
 
@@ -314,6 +318,46 @@ export function buildOpenApiDocument() {
     tags: ["debts"],
     security,
     request: { params: idParams },
+    responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+
+  // Transfers
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/transfers",
+    tags: ["transfers"],
+    security,
+    responses: { 200: ok(genericList), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/transfers",
+    tags: ["transfers"],
+    security,
+    request: { body: { content: json(transferCreateSchema) } },
+    responses: { 201: created(genericEntity), 400: badRequest, 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "delete",
+    path: "/api/v1/transfers/{id}",
+    tags: ["transfers"],
+    security,
+    request: { params: idParams },
+    responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/transfers/pair",
+    tags: ["transfers"],
+    security,
+    request: { body: { content: json(transferPairSchema) } },
+    responses: { 201: created(genericEntity), 400: badRequest, 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/transfers/backfill",
+    tags: ["transfers"],
+    security,
     responses: { 200: ok(genericEntity), 401: unauthorized },
   });
 

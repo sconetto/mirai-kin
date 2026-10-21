@@ -106,7 +106,10 @@
     "merge": "Mesclar",
     "splitAction": "Dividir",
     "filterStatus": "Status",
-    "apply": "Aplicar"
+    "apply": "Aplicar",
+    "transfer": "Transferência",
+    "unpairedTransfer": "Transferência não pareada",
+    "pairTransfer": "Parear como transferência"
   },
   "budgets": {
     "title": "Orçamentos",

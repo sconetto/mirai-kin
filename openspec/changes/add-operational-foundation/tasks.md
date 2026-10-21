@@ -2,13 +2,13 @@
 
 ## 1. Transfers
 
-- [ ] 1.1 Add the `transfers` table and `transactions.transfer_id` plus migration
-- [ ] 1.2 Implement the transfer service (create, pair, unpair, cross-currency counter-amount and rate)
-- [ ] 1.3 Implement automatic pairing on import and backfill of existing `paymentType = 'transfer'` records
-- [ ] 1.4 Exclude transfers from income/expense reports and add a transfers report that counts pairs once
-- [ ] 1.5 Expose transfer creation, pairing, and unpairing through `/api/v1`
+- [x] 1.1 Add the `transfers` table and `transactions.transfer_id` plus migration
+- [x] 1.2 Implement the transfer service (create, pair, unpair, cross-currency counter-amount and rate)
+- [x] 1.3 Implement automatic pairing on import and backfill of existing `paymentType = 'transfer'` records
+- [x] 1.4 Exclude transfers from income/expense reports and add a transfers report that counts pairs once
+- [x] 1.5 Expose transfer creation, pairing, and unpairing through `/api/v1`
 - [ ] 1.6 Build transfer pairing/review UI and surface unpaired transfers in data quality
-- [ ] 1.7 Add unit tests for pairing, cross-currency transfers, and unpairing
+- [x] 1.7 Add unit tests for pairing, cross-currency transfers, and unpairing
 
 ## 2. Reconciliation and data quality
 

@@ -18,6 +18,8 @@ export type ReviewRow = {
   counterparty: string | null;
   categoryId: string | null;
   reviewStatus: string;
+  transferId: string | null;
+  paymentType: string | null;
 };
 
 export function TransactionReview({
@@ -88,6 +90,16 @@ export function TransactionReview({
         >
           {t("markReviewed")}
         </Button>
+        <Button
+          type="submit"
+          name="intent"
+          value="pair"
+          size="sm"
+          variant="secondary"
+          disabled={selected.length !== 2}
+        >
+          {t("pairTransfer")}
+        </Button>
       </div>
 
       {rows.length === 0 ? (
@@ -132,9 +144,15 @@ export function TransactionReview({
                     </Money>
                   </td>
                   <td className="py-2.5">
-                    <Badge tone={row.reviewStatus === "reviewed" ? "success" : "neutral"}>
-                      {row.reviewStatus === "reviewed" ? t("reviewed") : t("pending")}
-                    </Badge>
+                    {row.transferId ? (
+                      <Badge tone="success">{t("transfer")}</Badge>
+                    ) : row.paymentType === "transfer" ? (
+                      <Badge tone="warning">{t("unpairedTransfer")}</Badge>
+                    ) : (
+                      <Badge tone={row.reviewStatus === "reviewed" ? "success" : "neutral"}>
+                        {row.reviewStatus === "reviewed" ? t("reviewed") : t("pending")}
+                      </Badge>
+                    )}
                   </td>
                 </tr>
               ))}

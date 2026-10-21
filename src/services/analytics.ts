@@ -17,6 +17,7 @@ export async function overview(limitRecent = 10) {
     gte(transactions.recordDate, monthStart),
     lte(transactions.recordDate, monthEnd),
     sql`${transactions.reviewStatus} <> 'split'`,
+    sql`${transactions.transferId} is null`,
     sql`(${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer')`,
   ];
 

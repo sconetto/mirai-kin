@@ -109,9 +109,9 @@ async function getPeriodRows(config: ReportConfig): Promise<ReportRow[]> {
   const rows = await db
     .select({
       key: periodExpr,
-      income: sql<string>`coalesce(sum(case when ${transactions.amount} > 0 and (${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer') then ${transactions.baseAmount} else 0 end), 0)`,
-      expenses: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 and (${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer') then -${transactions.baseAmount} else 0 end), 0)`,
-      transfers: sql<string>`coalesce(sum(case when ${transactions.paymentType} = 'transfer' then abs(${transactions.baseAmount}) else 0 end), 0)`,
+      income: sql<string>`coalesce(sum(case when ${transactions.amount} > 0 and ${transactions.transferId} is null and (${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer') then ${transactions.baseAmount} else 0 end), 0)`,
+      expenses: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 and ${transactions.transferId} is null and (${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer') then -${transactions.baseAmount} else 0 end), 0)`,
+      transfers: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 and (${transactions.transferId} is not null or ${transactions.paymentType} = 'transfer') then abs(${transactions.baseAmount}) else 0 end), 0)`,
     })
     .from(transactions)
     .where(and(...baseConditions(config)))
@@ -137,6 +137,7 @@ async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
   const db = getDb();
   const conditions = [
     ...baseConditions(config),
+    sql`${transactions.transferId} is null`,
     sql`(${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer')`,
   ];
   const rows = await db

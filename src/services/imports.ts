@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import type { ImportSource } from "@/db/schema";
 import { createTransaction } from "./transactions";
+import { backfillTransfers } from "./transfers";
 
 export type ImportField =
   | "date"
@@ -413,6 +414,7 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
   );
 
   const results: { row: number; success: boolean; id?: string; error?: string }[] = [];
+  const createdTransactionIds: string[] = [];
 
   for (const row of rows) {
     if (row.status === "committed") continue;
@@ -435,6 +437,7 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
             ? (categoryByName.get(normalized.categoryName.toLowerCase()) ?? null)
             : null,
         });
+        createdTransactionIds.push(transaction.id);
         results.push({ row: row.rowNumber, success: true, id: transaction.id });
       } else {
         const positionId = await commitBrokerageRow(normalized, batch.accountId);
@@ -447,6 +450,10 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
     } catch (error) {
       results.push({ row: row.rowNumber, success: false, error: (error as Error).message });
     }
+  }
+
+  if (createdTransactionIds.length > 0) {
+    await backfillTransfers(createdTransactionIds);
   }
 
   await db

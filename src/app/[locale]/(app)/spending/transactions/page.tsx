@@ -52,6 +52,8 @@ export default async function SpendingTransactionsPage({
     counterparty: transaction.counterparty,
     categoryId: transaction.categoryId,
     reviewStatus: transaction.reviewStatus,
+    transferId: transaction.transferId,
+    paymentType: transaction.paymentType,
   }));
 
   return (

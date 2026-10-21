@@ -32,6 +32,7 @@ import { createPosition } from "@/services/investments";
 import { deleteSavedReport, saveReport } from "@/services/reports";
 import type { ReportConfig } from "@/services/reports";
 import { bulkRecategorize, createTransaction, markReviewed } from "@/services/transactions";
+import { pairTransactions } from "@/services/transfers";
 import type { ImportSource } from "@/db/schema";
 
 function field(formData: FormData, key: string): string | undefined {
@@ -134,7 +135,11 @@ export async function bulkTransactionAction(formData: FormData) {
   const ids = formData.getAll("ids").map(String).filter(Boolean);
   if (ids.length > 0) {
     const intent = field(formData, "intent");
-    if (intent === "recategorize") {
+    if (intent === "pair") {
+      if (ids.length === 2) {
+        await pairTransactions(ids[0], ids[1]);
+      }
+    } else if (intent === "recategorize") {
       const categoryId = field(formData, "categoryId") ?? null;
       await bulkRecategorize(ids, categoryId, true);
     } else {
