@@ -252,10 +252,12 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <div className="columns-1 gap-2 xl:columns-2">
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("trajectory")}</CardTitle>
+      <div className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2 xl:flex-row xl:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("trajectory")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("trajectorySubtitle")}</p>
             {data.activeScenario ? (
               <p className="mt-1 text-xs text-ink-3">
@@ -284,11 +286,12 @@ export default async function DashboardPage({
               <p className="mt-2 text-xs text-ink-3">{t("historyBuilding")}</p>
             ) : null}
           </CardContent>
-        </Card>
-
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("goals")}</CardTitle>
+            </Card>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("goals")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data.plan.goals.length === 0 ? (
@@ -359,21 +362,23 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("composition")}</CardTitle>
-            <p className="mt-1 text-xs text-ink-3">{t("compositionSubtitle")}</p>
-          </CardHeader>
-          <CardContent>
-            {composition.length === 0 ? (
-              <p className="py-8 text-center text-sm text-ink-3">{t("compositionEmpty")}</p>
-            ) : (
-              <SpendingChart data={composition} currency={currency} />
-            )}
-          </CardContent>
-        </Card>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("composition")}</CardTitle>
+                <p className="mt-1 text-xs text-ink-3">{t("compositionSubtitle")}</p>
+              </CardHeader>
+              <CardContent>
+                {composition.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-ink-3">{t("compositionEmpty")}</p>
+                ) : (
+                  <SpendingChart data={composition} currency={currency} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
 
-        <Card className="mb-2 break-inside-avoid overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35 [column-span:all]">
+        <Card className="w-full overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35">
           <CardHeader>
             <CardTitle>{t("cashflow")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
@@ -405,10 +410,12 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-      <Card className="mb-2 break-inside-avoid border-t-4 border-t-negative">
-        <CardHeader className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>{t("spendingTrend")}</CardTitle>
+        <section className="flex flex-col gap-2 xl:flex-row xl:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Card className="w-full border-t-4 border-t-negative">
+              <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>{t("spendingTrend")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
               {t("spendingComparisonSubtitle", {
                 month: formatMonth(monthly.month, locale),
@@ -449,10 +456,10 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <Card className="mb-2 break-inside-avoid border-t-4 border-t-negative">
-        <CardHeader className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>{t("outflows")}</CardTitle>
+            <Card className="w-full border-t-4 border-t-negative">
+              <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>{t("outflows")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
               {t("outflowsSubtitle", { month: formatMonth(monthly.month, locale) })}
             </p>
@@ -468,11 +475,12 @@ export default async function DashboardPage({
         <CardContent>
           <SpendingChart data={outflows} currency={currency} />
         </CardContent>
-      </Card>
-
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("movement")}</CardTitle>
+            </Card>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("movement")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("movementSubtitle")}</p>
           </CardHeader>
           <CardContent>
@@ -484,9 +492,9 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("contributionPace")}</CardTitle>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("contributionPace")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("contributionSubtitle")}</p>
           </CardHeader>
           <CardContent>
@@ -498,10 +506,10 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="mb-2 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t("thisMonth")}</CardTitle>
-          </CardHeader>
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>{t("thisMonth")}</CardTitle>
+              </CardHeader>
           <CardContent className="grid gap-4 text-sm sm:grid-cols-3 sm:items-center">
             <div className="flex items-center justify-between gap-3 sm:block">
               <span className="text-ink-3">{t("income")}</span>
@@ -522,7 +530,9 @@ export default async function DashboardPage({
               {t("viewSpending")}
             </Link>
           </CardContent>
-        </Card>
+            </Card>
+          </div>
+        </section>
       </div>
     </div>
   );
