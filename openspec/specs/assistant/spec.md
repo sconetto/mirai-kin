@@ -85,22 +85,28 @@ The assistant screen SHALL stream responses, show the provider/model status, and
 - **THEN** an informational, non-advice disclaimer is visible
 
 ### Requirement: Privacy
-The system SHALL document that enabling the assistant sends relevant conversation data to the configured provider and SHALL NOT send data when the assistant is disabled. The documentation SHALL describe the disabled-by-default behavior, retention, and local-model option.
+The system SHALL NOT send user data to an external provider when the assistant is disabled.
 
 #### Scenario: Disabled assistant
 - **WHEN** the assistant is disabled
 - **THEN** no user data is sent to an external provider
+
+### Requirement: Privacy documentation
+The system SHALL document that enabling the assistant sends relevant conversation data to the configured provider and SHALL describe the disabled-by-default behavior, retention, and local-model option.
 
 #### Scenario: Documented data flow
 - **WHEN** a user or operator opens the assistant documentation
 - **THEN** the documentation explains what is sent, when, to whom, and how to disable it
 
 ### Requirement: Advice disclaimer
-The assistant SHALL present its output as informational and SHALL NOT present it as regulated financial, tax, or legal advice.
+The assistant SHALL present its output as informational and SHALL ensure an informational disclaimer is visible.
 
 #### Scenario: Disclaimer shown
 - **WHEN** the assistant answers
 - **THEN** an informational disclaimer is visible
+
+### Requirement: Advice limitation
+The assistant SHALL NOT present its output as regulated financial, tax, or legal advice.
 
 #### Scenario: Advice question
 - **WHEN** the user asks for regulated advice
