@@ -45,13 +45,24 @@ export async function syncRecurringDetections() {
         confidence: candidate.confidence.toFixed(6),
         status: "detected" as const,
       };
+      let created = false;
       try {
-        await db.insert(recurringDetections).values(values);
+        const [row] = await db
+          .insert(recurringDetections)
+          .values(values)
+          .onConflictDoNothing()
+          .returning({ id: recurringDetections.id });
+        created = Boolean(row);
       } catch (error) {
         if (!isForeignKeyError(error)) throw error;
-        await db.insert(recurringDetections).values({ ...values, accountId: null });
+        const [row] = await db
+          .insert(recurringDetections)
+          .values({ ...values, accountId: null })
+          .onConflictDoNothing()
+          .returning({ id: recurringDetections.id });
+        created = Boolean(row);
       }
-      inserted += 1;
+      if (created) inserted += 1;
     } else if (existing.status === "detected") {
       const patch = {
         label: candidate.label,
