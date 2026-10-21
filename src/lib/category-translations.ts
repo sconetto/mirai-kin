@@ -1,6 +1,12 @@
 export type CategoryTranslation = { en: string; pt: string };
 
 export const CATEGORY_TRANSLATIONS: CategoryTranslation[] = [
+  { en: "Advisory", pt: "Consultoria" },
+  { en: "Free Time", pt: "Tempo Livre" },
+  { en: "Financial Investments", pt: "Investimentos Financeiros" },
+  { en: "Maintenance & Repairs", pt: "Manutenção e Reparos" },
+  { en: "Rental Income", pt: "Renda de Aluguel" },
+  { en: "Services", pt: "Serviços" },
   { en: "Pets", pt: "Animais de Estimação" },
   { en: "Subscriptions & Streaming", pt: "Assinaturas e Streaming" },
   { en: "Bars & Cafés", pt: "Bar e Café" },
