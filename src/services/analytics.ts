@@ -62,6 +62,8 @@ export async function overview(limitRecent = 10) {
       id: accounts.id,
       name: accounts.name,
       type: accounts.type,
+      ownershipType: accounts.ownershipType,
+      assetSubtype: accounts.assetSubtype,
       currency: accounts.currency,
       openingBalance: accounts.openingBalance,
       txTotal: sql<string>`coalesce(sum(${transactions.amount}), 0)`,

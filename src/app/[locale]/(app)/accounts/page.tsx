@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { OWNERSHIP_TYPES } from "@/db/schema";
+import { ACCOUNT_TYPES, ASSET_SUBTYPES, OWNERSHIP_TYPES } from "@/db/schema";
+import type { AccountType, AssetSubtype } from "@/db/schema";
 import { BalanceChart } from "@/components/charts/balance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,12 @@ import { overview } from "@/services/analytics";
 import { getBaseCurrency } from "@/services/settings";
 import { setAccountArchivedAction } from "../actions";
 
-type Search = { ownership?: string; account?: string };
+type Search = {
+  ownership?: string;
+  type?: string;
+  assetSubtype?: string;
+  account?: string;
+};
 
 export default async function AccountsPage({
   params,
@@ -41,11 +47,23 @@ export default async function AccountsPage({
     search.ownership === "personal" || search.ownership === "company"
       ? search.ownership
       : undefined;
+  const type = (ACCOUNT_TYPES as readonly string[]).includes(search.type ?? "")
+    ? (search.type as AccountType)
+    : undefined;
+  const subtypeApplicable = !type || type === "investment" || type === "asset";
+  const assetSubtype =
+    subtypeApplicable && (ASSET_SUBTYPES as readonly string[]).includes(search.assetSubtype ?? "")
+      ? (search.assetSubtype as AssetSubtype)
+      : undefined;
+  const matchesFilters = (account: (typeof allAccounts)[number]) =>
+    (!ownership || account.ownershipType === ownership) &&
+    (!type || account.type === type) &&
+    (!assetSubtype || account.assetSubtype === assetSubtype);
   const activeAccounts = allAccounts.filter(
-    (account) => !account.archived && (!ownership || account.ownershipType === ownership),
+    (account) => !account.archived && matchesFilters(account),
   );
   const archivedAccounts = allAccounts.filter(
-    (account) => account.archived && (!ownership || account.ownershipType === ownership),
+    (account) => account.archived && matchesFilters(account),
   );
   const selected = search.account
     ? (allAccounts.find((account) => account.id === search.account) ?? null)
@@ -53,39 +71,34 @@ export default async function AccountsPage({
   const activeIds = new Set(activeAccounts.map((account) => account.id));
   const chartData = analytics.balances
     .filter((account) => activeIds.has(account.id))
-    .sort((a, b) => Math.abs(Number(b.baseBalance)) - Math.abs(Number(a.baseBalance)))
-    .slice(0, 10)
-    .map((account) => ({ name: account.name, total: Number(account.baseBalance) }));
+    .map((account) => ({
+      id: account.id,
+      name: account.name,
+      total: Number(account.baseBalance),
+      type: account.type,
+      ownershipType: account.ownershipType,
+      assetSubtype: account.assetSubtype,
+    }));
   const growthRows = growth.filter((row) => activeIds.has(row.accountId));
+
+  const filterParams = new URLSearchParams();
+  if (ownership) filterParams.set("ownership", ownership);
+  if (type) filterParams.set("type", type);
+  if (assetSubtype) filterParams.set("assetSubtype", assetSubtype);
+  const filterQuery = filterParams.toString();
+  const listHref = `/accounts${filterQuery ? `?${filterQuery}` : ""}`;
 
   const ownershipLabel = (value: string) =>
     value === "company" ? t("ownershipCompany") : t("ownershipPersonal");
-  const editHref = (accountId: string) =>
-    `/accounts?account=${accountId}${ownership ? `&ownership=${ownership}` : ""}`;
+  const editHref = (accountId: string) => {
+    const params = new URLSearchParams(filterQuery);
+    params.set("account", accountId);
+    return `/accounts?${params.toString()}`;
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("title")} subtitle={t("subtitle")}>
-        <form method="get" className="flex items-end gap-2">
-          <label className="text-xs text-ink-3">
-            {t("ownership")}
-            <Select
-              name="ownership"
-              defaultValue={ownership ?? ""}
-              className="mt-1 h-9 w-40"
-            >
-              <option value="">{t("allOwnership")}</option>
-              {OWNERSHIP_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {ownershipLabel(value)}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <Button type="submit" size="sm" variant="secondary">
-            {tc("view")}
-          </Button>
-        </form>
         <Link
           href="/import"
           className="whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
@@ -104,11 +117,7 @@ export default async function AccountsPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <AccountEditForm
-              account={selected}
-              locale={locale}
-              cancelHref={`/accounts${ownership ? `?ownership=${ownership}` : ""}`}
-            />
+            <AccountEditForm account={selected} locale={locale} cancelHref={listHref} />
           </CardContent>
         </Card>
       ) : null}
@@ -116,9 +125,70 @@ export default async function AccountsPage({
       <Card>
         <CardHeader>
           <CardTitle>{t("balanceChart")}</CardTitle>
+          <p className="mt-1 text-xs text-ink-3">
+            {t("chartBaseCurrency", { currency: baseCurrency })}
+          </p>
         </CardHeader>
         <CardContent>
-          <BalanceChart data={chartData} locale={locale} currency={baseCurrency} />
+          <form
+            method="get"
+            className="grid gap-3 border-b border-line/70 pb-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <label className="text-xs text-ink-3">
+              {t("ownership")}
+              <Select name="ownership" defaultValue={ownership ?? ""} className="mt-1">
+                <option value="">{t("allOwnership")}</option>
+                {OWNERSHIP_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {ownershipLabel(value)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="text-xs text-ink-3">
+              {tc("type")}
+              <Select name="type" defaultValue={type ?? ""} className="mt-1">
+                <option value="">{t("allTypes")}</option>
+                {ACCOUNT_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {te(`accountType.${value}`)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="text-xs text-ink-3">
+              {t("assetSubtype")}
+              <Select
+                name="assetSubtype"
+                defaultValue={assetSubtype ?? ""}
+                disabled={!subtypeApplicable}
+                className="mt-1"
+              >
+                <option value="">{t("allSubtypes")}</option>
+                {ASSET_SUBTYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`assetSubtypeLabels.${value}` as never)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <div className="flex items-end gap-3">
+              <Button type="submit" size="sm" variant="secondary">
+                {t("applyFilters")}
+              </Button>
+              {filterQuery ? (
+                <Link
+                  href="/accounts"
+                  className="pb-2 text-sm font-medium text-ink-3 hover:text-ink"
+                >
+                  {t("clearFilters")}
+                </Link>
+              ) : null}
+            </div>
+          </form>
+          <div className="pt-4">
+            <BalanceChart data={chartData} locale={locale} currency={baseCurrency} />
+          </div>
         </CardContent>
       </Card>
 
@@ -154,9 +224,7 @@ export default async function AccountsPage({
                           </p>
                         ) : null}
                       </td>
-                      <td className="py-3 pr-4 text-ink-2">
-                        {te(`accountType.${account.type}`)}
-                      </td>
+                      <td className="py-3 pr-4 text-ink-2">{te(`accountType.${account.type}`)}</td>
                       <td className="py-3 pr-4">
                         <Badge tone={account.ownershipType === "company" ? "warning" : "neutral"}>
                           {ownershipLabel(account.ownershipType)}
@@ -193,11 +261,7 @@ export default async function AccountsPage({
                             {account.creditAvailable !== null ? (
                               <p className="mt-0.5 text-[11px] text-ink-3">
                                 {t("creditAvailable")}:{" "}
-                                {formatCurrency(
-                                  account.creditAvailable,
-                                  account.currency,
-                                  locale,
-                                )}
+                                {formatCurrency(account.creditAvailable, account.currency, locale)}
                               </p>
                             ) : null}
                           </div>
@@ -246,7 +310,8 @@ export default async function AccountsPage({
                     <span className="text-ink-2">
                       {account.name}
                       <span className="ml-2 text-xs text-ink-3">
-                        {te(`accountType.${account.type}`)} · {ownershipLabel(account.ownershipType)} ·{" "}
+                        {te(`accountType.${account.type}`)} ·{" "}
+                        {ownershipLabel(account.ownershipType)} ·{" "}
                         {formatCurrency(account.balance, account.currency, locale)}
                       </span>
                     </span>
@@ -314,9 +379,7 @@ export default async function AccountsPage({
                       >
                         {formatCurrency(row.growth, row.currency, locale)}
                         <span className="block text-xs text-ink-3">
-                          {row.growthPct === null
-                            ? "—"
-                            : `${formatNumber(row.growthPct, locale)}%`}
+                          {row.growthPct === null ? "—" : `${formatNumber(row.growthPct, locale)}%`}
                         </span>
                       </td>
                       <td className="py-2.5 pr-4 text-right text-ink-2">
