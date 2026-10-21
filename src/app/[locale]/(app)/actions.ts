@@ -5,13 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getBaseCurrency, SettingsValidationError, updateSettings } from "@/services/settings";
 import {
-  accountCreateSchema,
+  accountUpdateSchema,
   budgetCreateSchema,
   debtCreateSchema,
   investmentPositionCreateSchema,
   transactionCreateSchema,
 } from "@/lib/schemas";
-import { createAccount, updateAccount } from "@/services/accounts";
+import { updateAccount } from "@/services/accounts";
 import { createBudget } from "@/services/budgets";
 import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
@@ -278,15 +278,44 @@ export async function runBackupAction(formData: FormData) {
   revalidatePath(`/${locale}/settings`);
 }
 
-export async function createAccountAction(formData: FormData) {
+export async function updateAccountAction(formData: FormData) {
   const locale = localeOf(formData);
-  const input = accountCreateSchema.parse({
+  const id = field(formData, "id");
+  if (!id) return;
+
+  const type = field(formData, "type") ?? "checking";
+  const input = accountUpdateSchema.parse({
     name: field(formData, "name"),
-    type: field(formData, "type"),
-    currency: field(formData, "currency") ?? await getBaseCurrency(),
-    openingBalance: field(formData, "openingBalance") ?? "0",
+    type,
+    currency: field(formData, "currency"),
+    openingBalance: field(formData, "openingBalance"),
+    ownershipType: field(formData, "ownershipType") ?? "personal",
+    assetSubtype:
+      type === "investment" || type === "asset"
+        ? (field(formData, "assetSubtype") ?? null)
+        : null,
+    statementCloseDay:
+      type === "credit_card" && field(formData, "statementCloseDay")
+        ? Number(field(formData, "statementCloseDay"))
+        : null,
+    dueDay:
+      type === "credit_card" && field(formData, "dueDay")
+        ? Number(field(formData, "dueDay"))
+        : null,
+    creditLimit:
+      type === "credit_card" ? (field(formData, "creditLimit") ?? null) : null,
   });
-  await createAccount(input);
+
+  await updateAccount(id, input);
+  revalidatePath(`/${locale}/accounts`);
+  revalidatePath(`/${locale}`);
+}
+
+export async function setAccountArchivedAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  await updateAccount(id, { archived: formData.get("archived") === "true" });
   revalidatePath(`/${locale}/accounts`);
   revalidatePath(`/${locale}`);
 }

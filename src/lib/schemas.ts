@@ -1,6 +1,8 @@
 import { z } from "@/lib/zod";
 import {
   ACCOUNT_TYPES,
+  ASSET_SUBTYPES,
+  OWNERSHIP_TYPES,
   AMORTIZATION_METHODS,
   BUDGET_PERIODS,
   CATEGORY_TYPES,
@@ -32,6 +34,8 @@ export const idParam = z.uuid();
 export const accountCreateSchema = z.object({
   name: z.string().min(1),
   type: z.enum(ACCOUNT_TYPES),
+  ownershipType: z.enum(OWNERSHIP_TYPES).optional(),
+  assetSubtype: z.enum(ASSET_SUBTYPES).nullish(),
   currency: currencyCode,
   openingBalance: decimal.optional(),
   statementCloseDay: z.number().int().min(1).max(31).nullish(),

@@ -26,6 +26,20 @@ export const ACCOUNT_TYPES = [
 ] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
+export const OWNERSHIP_TYPES = ["personal", "company"] as const;
+export type OwnershipType = (typeof OWNERSHIP_TYPES)[number];
+
+export const ASSET_SUBTYPES = [
+  "stocks",
+  "fiis",
+  "crypto",
+  "real_estate",
+  "vehicle",
+  "other_appreciating",
+  "other_depreciating",
+] as const;
+export type AssetSubtype = (typeof ASSET_SUBTYPES)[number];
+
 export const CATEGORY_TYPES = ["income", "expense"] as const;
 export type CategoryType = (typeof CATEGORY_TYPES)[number];
 
@@ -109,6 +123,8 @@ export const accounts = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     type: text("type").$type<AccountType>().notNull(),
+    ownershipType: text("ownership_type").$type<OwnershipType>().notNull().default("personal"),
+    assetSubtype: text("asset_subtype").$type<AssetSubtype>(),
     currency: text("currency").notNull(),
     openingBalance: money("opening_balance").notNull().default("0"),
     openingBalanceCaptured: boolean("opening_balance_captured").notNull().default(false),

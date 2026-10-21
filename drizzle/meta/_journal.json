@@ -50,6 +50,13 @@
       "when": 1792592065785,
       "tag": "0006_worried_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792593976972,
+      "tag": "0007_late_master_chief",
+      "breakpoints": true
     }
   ]
 }
