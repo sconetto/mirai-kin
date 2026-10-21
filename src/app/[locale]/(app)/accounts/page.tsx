@@ -5,7 +5,7 @@ import { BalanceChart } from "@/components/charts/balance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select } from "@/components/ui/input";
+import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { AccountEditForm } from "@/components/account-edit-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
@@ -16,11 +16,16 @@ import { getBaseCurrency } from "@/services/settings";
 import { setAccountArchivedAction } from "../actions";
 
 type Search = {
-  ownership?: string;
-  type?: string;
-  assetSubtype?: string;
-  account?: string;
+  ownership?: string | string[];
+  type?: string | string[];
+  assetSubtype?: string | string[];
+  account?: string | string[];
 };
+
+function toArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
 
 export default async function AccountsPage({
   params,
@@ -43,30 +48,34 @@ export default async function AccountsPage({
     getBaseCurrency(),
   ]);
 
-  const ownership =
-    search.ownership === "personal" || search.ownership === "company"
-      ? search.ownership
-      : undefined;
-  const type = (ACCOUNT_TYPES as readonly string[]).includes(search.type ?? "")
-    ? (search.type as AccountType)
-    : undefined;
-  const subtypeApplicable = !type || type === "investment" || type === "asset";
-  const assetSubtype =
-    subtypeApplicable && (ASSET_SUBTYPES as readonly string[]).includes(search.assetSubtype ?? "")
-      ? (search.assetSubtype as AssetSubtype)
-      : undefined;
+  const ownership = toArray(search.ownership).filter(
+    (value): value is (typeof OWNERSHIP_TYPES)[number] =>
+      (OWNERSHIP_TYPES as readonly string[]).includes(value),
+  );
+  const types = toArray(search.type).filter((value): value is AccountType =>
+    (ACCOUNT_TYPES as readonly string[]).includes(value),
+  );
+  const subtypeApplicable =
+    types.length === 0 || types.some((value) => value === "investment" || value === "asset");
+  const assetSubtypes = subtypeApplicable
+    ? toArray(search.assetSubtype).filter((value): value is AssetSubtype =>
+        (ASSET_SUBTYPES as readonly string[]).includes(value),
+      )
+    : [];
   const matchesFilters = (account: (typeof allAccounts)[number]) =>
-    (!ownership || account.ownershipType === ownership) &&
-    (!type || account.type === type) &&
-    (!assetSubtype || account.assetSubtype === assetSubtype);
+    (ownership.length === 0 || ownership.includes(account.ownershipType)) &&
+    (types.length === 0 || types.includes(account.type)) &&
+    (assetSubtypes.length === 0 ||
+      (account.assetSubtype !== null && assetSubtypes.includes(account.assetSubtype)));
   const activeAccounts = allAccounts.filter(
     (account) => !account.archived && matchesFilters(account),
   );
   const archivedAccounts = allAccounts.filter(
     (account) => account.archived && matchesFilters(account),
   );
-  const selected = search.account
-    ? (allAccounts.find((account) => account.id === search.account) ?? null)
+  const accountParam = toArray(search.account)[0];
+  const selected = accountParam
+    ? (allAccounts.find((account) => account.id === accountParam) ?? null)
     : null;
   const activeIds = new Set(activeAccounts.map((account) => account.id));
   const chartData = analytics.balances
@@ -82,9 +91,9 @@ export default async function AccountsPage({
   const growthRows = growth.filter((row) => activeIds.has(row.accountId));
 
   const filterParams = new URLSearchParams();
-  if (ownership) filterParams.set("ownership", ownership);
-  if (type) filterParams.set("type", type);
-  if (assetSubtype) filterParams.set("assetSubtype", assetSubtype);
+  for (const value of ownership) filterParams.append("ownership", value);
+  for (const value of types) filterParams.append("type", value);
+  for (const value of assetSubtypes) filterParams.append("assetSubtype", value);
   const filterQuery = filterParams.toString();
   const listHref = `/accounts${filterQuery ? `?${filterQuery}` : ""}`;
 
@@ -134,44 +143,49 @@ export default async function AccountsPage({
             method="get"
             className="grid gap-3 border-b border-line/70 pb-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            <label className="text-xs text-ink-3">
-              {t("ownership")}
-              <Select name="ownership" defaultValue={ownership ?? ""} className="mt-1">
-                <option value="">{t("allOwnership")}</option>
-                {OWNERSHIP_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {ownershipLabel(value)}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="text-xs text-ink-3">
-              {tc("type")}
-              <Select name="type" defaultValue={type ?? ""} className="mt-1">
-                <option value="">{t("allTypes")}</option>
-                {ACCOUNT_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {te(`accountType.${value}`)}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="text-xs text-ink-3">
-              {t("assetSubtype")}
-              <Select
+            <div className="text-xs text-ink-3">
+              <span className="mb-1 block">{t("ownership")}</span>
+              <MultiSelectFilter
+                key={`ownership:${ownership.join(",")}`}
+                name="ownership"
+                label={t("ownership")}
+                options={OWNERSHIP_TYPES.map((value) => ({
+                  value,
+                  label: ownershipLabel(value),
+                }))}
+                selected={ownership}
+                allLabel={t("allOwnership")}
+              />
+            </div>
+            <div className="text-xs text-ink-3">
+              <span className="mb-1 block">{tc("type")}</span>
+              <MultiSelectFilter
+                key={`type:${types.join(",")}`}
+                name="type"
+                label={tc("type")}
+                options={ACCOUNT_TYPES.map((value) => ({
+                  value,
+                  label: te(`accountType.${value}`),
+                }))}
+                selected={types}
+                allLabel={t("allTypes")}
+              />
+            </div>
+            <div className="text-xs text-ink-3">
+              <span className="mb-1 block">{t("assetSubtype")}</span>
+              <MultiSelectFilter
+                key={`subtype:${assetSubtypes.join(",")}`}
                 name="assetSubtype"
-                defaultValue={assetSubtype ?? ""}
+                label={t("assetSubtype")}
+                options={ASSET_SUBTYPES.map((value) => ({
+                  value,
+                  label: t(`assetSubtypeLabels.${value}` as never),
+                }))}
+                selected={subtypeApplicable ? assetSubtypes : []}
+                allLabel={t("allSubtypes")}
                 disabled={!subtypeApplicable}
-                className="mt-1"
-              >
-                <option value="">{t("allSubtypes")}</option>
-                {ASSET_SUBTYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`assetSubtypeLabels.${value}` as never)}
-                  </option>
-                ))}
-              </Select>
-            </label>
+              />
+            </div>
             <div className="flex items-end gap-3">
               <Button type="submit" size="sm" variant="secondary">
                 {t("applyFilters")}
