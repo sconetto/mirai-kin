@@ -28,6 +28,29 @@ test("shell toggle switches to dark and Settings persists it", async ({ page }) 
   await expect(html).toHaveAttribute("data-theme", "light");
 });
 
+test("dashboard chart tooltip labels stay legible in dark mode", async ({ page }) => {
+  await login(page);
+  const html = page.locator("html");
+
+  try {
+    await page.locator("aside").getByRole("button", { name: "Escuro" }).click();
+    await expect(html).toHaveAttribute("data-theme", "dark");
+    await page.goto("/pt-BR");
+
+    const chart = page.locator(".recharts-wrapper").first();
+    const box = await chart.boundingBox();
+    if (!box) throw new Error("Dashboard chart not found");
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4);
+    const tooltipItem = page.locator(".recharts-tooltip-item").first();
+    await expect(tooltipItem).toBeVisible();
+    const color = await tooltipItem.evaluate((element) => getComputedStyle(element).color);
+    expect(color).not.toBe("rgb(0, 0, 0)");
+  } finally {
+    await page.locator("aside").getByRole("button", { name: "Claro" }).click();
+    await expect(html).toHaveAttribute("data-theme", "light");
+  }
+});
+
 test("system theme follows a dark OS preference", async ({ browser }) => {
   const context = await browser.newContext({ colorScheme: "dark" });
   const page = await context.newPage();

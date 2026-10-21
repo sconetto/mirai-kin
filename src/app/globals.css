@@ -122,6 +122,28 @@ html[data-theme="dark"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Recharts injects its own dark defaults for tooltip text; keep every chart legible in both themes. */
+.recharts-default-tooltip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-line) !important;
+  color: var(--color-ink) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--color-ink) !important;
+}
+
+.recharts-tooltip-item,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-separator,
+.recharts-tooltip-item-value {
+  color: var(--color-ink-2) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--color-ink-2) !important;
+}
+
 /* Fine ledger grid used as the single decorative texture on the sign-in panel. */
 .ledger-grid {
   background-image:
