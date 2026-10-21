@@ -96,88 +96,88 @@
 
 ## 13. Information architecture and navigation
 
-- [ ] 13.1 Reorganize navigation into Track (Overview, Spending, Invest, Forecast, Equity), Services (Brokerage, Tax, Financial Planner, Estate Planning), and Learn
-- [ ] 13.2 Add routes for Spending sub-tabs (Overview, Breakdown & budget, Transactions, Recurring, Reports), Reports, Insights, Equity, Brokerage, Tax, Financial Planner, and Estate Planning
-- [ ] 13.3 Add shared UI primitives for segmented tabs, date ranges, chart toggles, and summary strips
-- [ ] 13.4 Add insight, report, tax, estate, and planner labels and disclaimers to both locales
+- [x] 13.1 Reorganize navigation into Track (Overview, Spending, Invest, Forecast, Equity), Services (Brokerage, Tax, Financial Planner, Estate Planning), and Learn
+- [x] 13.2 Add routes for Spending sub-tabs (Overview, Breakdown & budget, Transactions, Recurring, Reports), Reports, Insights, Equity, Brokerage, Tax, Financial Planner, and Estate Planning
+- [x] 13.3 Add shared UI primitives for segmented tabs, date ranges, chart toggles, and summary strips
+- [x] 13.4 Add insight, report, tax, estate, and planner labels and disclaimers to both locales
 
 ## 14. Import pipeline expansion
 
-- [ ] 14.1 Add `import_batches`, `import_rows`, and `import_profiles` schema plus migration
-- [ ] 14.2 Implement an OFX adapter that parses bank statements into staged rows
-- [ ] 14.3 Implement mapping profiles (save, reuse, edit) per source/account
-- [ ] 14.4 Implement staging, per-row validation, and a review/confirm UI
-- [ ] 14.5 Implement deduplication (fingerprint + fuzzy window) and a duplicate-resolution UI
-- [ ] 14.6 Implement brokerage CSV import (positions, lots, sales, dividends)
-- [ ] 14.7 Implement import history and file-hash/idempotency protection
+- [x] 14.1 Add `import_batches`, `import_rows`, and `import_profiles` schema plus migration
+- [x] 14.2 Implement an OFX adapter that parses bank statements into staged rows
+- [x] 14.3 Implement mapping profiles (save, reuse, edit) per source/account
+- [x] 14.4 Implement staging, per-row validation, and a review/confirm UI
+- [x] 14.5 Implement deduplication (fingerprint + fuzzy window) and a duplicate-resolution UI
+- [x] 14.6 Implement brokerage CSV import (positions, lots, sales, dividends)
+- [x] 14.7 Implement import history and file-hash/idempotency protection
 
 ## 15. Transaction review
 
-- [ ] 15.1 Add `review_status`, `is_deductible`, and `parent_transaction_id` columns plus migration
-- [ ] 15.2 Implement bulk recategorization and mark-reviewed actions
-- [ ] 15.3 Implement duplicate merging
-- [ ] 15.4 Implement splitting a transaction into parts
-- [ ] 15.5 Implement recurring detection, upcoming bills, and subscription review
-- [ ] 15.6 Rebuild the Transactions screen as a review surface with filters and bulk actions
+- [x] 15.1 Add `review_status`, `is_deductible`, and `parent_transaction_id` columns plus migration
+- [x] 15.2 Implement bulk recategorization and mark-reviewed actions
+- [x] 15.3 Implement duplicate merging
+- [x] 15.4 Implement splitting a transaction into parts
+- [x] 15.5 Implement recurring detection, upcoming bills, and subscription review
+- [x] 15.6 Rebuild the Transactions screen as a review surface with filters and bulk actions
 
 ## 16. Reports
 
-- [ ] 16.1 Implement the reports service for cash flow, income, expenses, transfers, and spending breakdown
-- [ ] 16.2 Add budget-vs-actual, net-worth, debt, and investment-performance reports
-- [ ] 16.3 Implement date ranges, filters, grouping, and base-currency aggregation
-- [ ] 16.4 Implement saved reports (create, list, reopen, rename, delete)
-- [ ] 16.5 Implement CSV export
-- [ ] 16.6 Implement period comparison (previous period and prior year)
+- [x] 16.1 Implement the reports service for cash flow, income, expenses, transfers, and spending breakdown
+- [x] 16.2 Add budget-vs-actual, net-worth, debt, and investment-performance reports
+- [x] 16.3 Implement date ranges, filters, grouping, and base-currency aggregation
+- [x] 16.4 Implement saved reports (create, list, reopen, rename, delete)
+- [x] 16.5 Implement CSV export
+- [x] 16.6 Implement period comparison (previous period and prior year)
 - [ ] 16.7 Build the report UI (segmented tabs, range picker, chart toggle, summary strip, period table)
 
 ## 17. Insights
 
-- [ ] 17.1 Define the insight type/severity/data/action contract and the insights service
-- [ ] 17.2 Implement rules for savings rate, budget variance, category spikes, upcoming bills, debt burden, allocation drift, net-worth trend, and cash-flow risk
-- [ ] 17.3 Implement acknowledgement, condition signatures, and resurfacing
-- [ ] 17.4 Build the Insights screen and dashboard insight cards
-- [ ] 17.5 Add localized insight text for both locales
+- [x] 17.1 Define the insight type/severity/data/action contract and the insights service
+- [x] 17.2 Implement rules for savings rate, budget variance, category spikes, upcoming bills, debt burden, allocation drift, net-worth trend, and cash-flow risk
+- [x] 17.3 Implement acknowledgement, condition signatures, and resurfacing
+- [x] 17.4 Build the Insights screen and dashboard insight cards
+- [x] 17.5 Add localized insight text for both locales
 
 ## 18. Equity
 
-- [ ] 18.1 Add `net_worth_snapshots` schema plus migration
-- [ ] 18.2 Implement net-worth computation and composition by type and currency
-- [ ] 18.3 Add a pg-boss job that records net-worth snapshots
-- [ ] 18.4 Build the Equity screen with composition, trend chart, and drill-downs
+- [x] 18.1 Add `net_worth_snapshots` schema plus migration
+- [x] 18.2 Implement net-worth computation and composition by type and currency
+- [x] 18.3 Add a pg-boss job that records net-worth snapshots
+- [x] 18.4 Build the Equity screen with composition, trend chart, and drill-downs
 
 ## 19. Brokerage
 
-- [ ] 19.1 Add `brokerage_lots`, `brokerage_sales`, and `dividends` schema plus migration
-- [ ] 19.2 Implement positions, lots, and average-cost gains
+- [x] 19.1 Add `brokerage_lots`, `brokerage_sales`, and `dividends` schema plus migration
+- [x] 19.2 Implement positions, lots, and average-cost gains
 - [ ] 19.3 Implement allocation by instrument, currency, and account
 - [ ] 19.4 Implement dividends and include them in income reports
-- [ ] 19.5 Implement brokerage CSV import and manual entry
+- [x] 19.5 Implement brokerage CSV import and manual entry
 - [ ] 19.6 Implement brokerage tax export
-- [ ] 19.7 Build the Brokerage screen
+- [x] 19.7 Build the Brokerage screen
 
 ## 20. Financial planner
 
-- [ ] 20.1 Add `goals` and `scenarios` schema plus migration
+- [x] 20.1 Add `goals` and `scenarios` schema plus migration
 - [ ] 20.2 Implement goals CRUD, progress, and priority
-- [ ] 20.3 Implement required monthly contribution and emergency-fund runway
+- [x] 20.3 Implement required monthly contribution and emergency-fund runway
 - [ ] 20.4 Implement base/optimistic/pessimistic scenario comparison over projections
-- [ ] 20.5 Build the Financial Planner screen
+- [x] 20.5 Build the Financial Planner screen
 
 ## 21. Tax
 
-- [ ] 21.1 Add `categories.tax_treatment` and `is_essential` plus migration
-- [ ] 21.2 Implement tax summaries for income, deductible expenses, capital gains, and dividends
-- [ ] 21.3 Implement tax-year selection and base-currency conversion
+- [x] 21.1 Add `categories.tax_treatment` and `is_essential` plus migration
+- [x] 21.2 Implement tax summaries for income, deductible expenses, capital gains, and dividends
+- [x] 21.3 Implement tax-year selection and base-currency conversion
 - [ ] 21.4 Implement CSV export for tax summaries
-- [ ] 21.5 Build the Tax screen with the no-advice disclaimer
+- [x] 21.5 Build the Tax screen with the no-advice disclaimer
 
 ## 22. Estate planning
 
-- [ ] 22.1 Add `estate_assets`, `beneficiaries`, and `estate_documents` schema plus migration
-- [ ] 22.2 Implement the asset/liability inventory and beneficiary shares
+- [x] 22.1 Add `estate_assets`, `beneficiaries`, and `estate_documents` schema plus migration
+- [x] 22.2 Implement the asset/liability inventory and beneficiary shares
 - [ ] 22.3 Implement the document checklist and notes
 - [ ] 22.4 Implement CSV export
-- [ ] 22.5 Build the Estate Planning screen with the no-legal-advice disclaimer
+- [x] 22.5 Build the Estate Planning screen with the no-legal-advice disclaimer
 
 ## 23. Assistant (phase 2)
 
@@ -192,8 +192,8 @@
 
 - [ ] 24.1 Add unit tests for report aggregations
 - [ ] 24.2 Add unit tests for insight rules and acknowledgement resurfacing
-- [ ] 24.3 Add unit tests for required contribution and emergency runway
+- [x] 24.3 Add unit tests for required contribution and emergency runway
 - [ ] 24.4 Add unit tests for brokerage gains and tax classification
 - [ ] 24.5 Add e2e coverage for import -> review -> report -> insight
 - [ ] 24.6 Add e2e coverage for goals/scenarios and the estate inventory
-- [ ] 24.7 Verify Docker build and migrations for the expanded schema
+- [x] 24.7 Verify Docker build and migrations for the expanded schema

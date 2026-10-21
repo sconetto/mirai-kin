@@ -55,6 +55,7 @@ export function TrendChart({
             stroke="#0b6b5d"
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

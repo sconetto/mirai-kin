@@ -8,6 +8,7 @@ import {
   INSTRUMENT_TYPES,
   PAYMENT_TYPES,
   RECURRENCE_FREQUENCIES,
+  REVIEW_STATUSES,
 } from "@/db/schema";
 
 export const decimal = z
@@ -64,6 +65,8 @@ export const transactionCreateSchema = z.object({
   paymentType: z.enum(PAYMENT_TYPES).nullish(),
   counterparty: z.string().nullish(),
   labelIds: z.array(z.uuid()).max(50).optional(),
+  isDeductible: z.boolean().optional(),
+  reviewStatus: z.enum(REVIEW_STATUSES).optional(),
 });
 
 export const transactionUpdateSchema = transactionCreateSchema.partial();
@@ -79,8 +82,33 @@ export const transactionQuerySchema = z.object({
   from: isoDate.optional(),
   to: isoDate.optional(),
   paymentType: z.enum(PAYMENT_TYPES).optional(),
+  reviewStatus: z.enum(REVIEW_STATUSES).optional(),
   limit: z.coerce.number().int().min(1).max(400).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+});
+
+export const transactionBulkSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(200),
+  categoryId: z.uuid().nullish(),
+  markReviewed: z.boolean().optional(),
+});
+
+export const transactionSplitSchema = z.object({
+  parts: z
+    .array(
+      z.object({
+        amount: decimal,
+        categoryId: z.uuid().nullish(),
+        note: z.string().nullish(),
+      }),
+    )
+    .min(2)
+    .max(20),
+});
+
+export const transactionMergeSchema = z.object({
+  primaryId: z.uuid(),
+  duplicateId: z.uuid(),
 });
 
 export const budgetCreateSchema = z.object({
@@ -163,6 +191,9 @@ export type AccountUpdateInput = z.infer<typeof accountUpdateSchema>;
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
 export type LabelCreateInput = z.infer<typeof labelCreateSchema>;
 export type TransactionCreateInput = z.infer<typeof transactionCreateSchema>;
+export type TransactionBulkInput = z.infer<typeof transactionBulkSchema>;
+export type TransactionSplitInput = z.infer<typeof transactionSplitSchema>;
+export type TransactionMergeInput = z.infer<typeof transactionMergeSchema>;
 export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
 export type InvestmentPositionCreateInput = z.infer<typeof investmentPositionCreateSchema>;
 export type DebtCreateInput = z.infer<typeof debtCreateSchema>;

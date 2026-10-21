@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, transactions } from "@/db/schema";
 import type { PaymentType } from "@/db/schema";
@@ -58,6 +58,8 @@ export async function createTransaction(input: TransactionCreateInput) {
       paymentType: input.paymentType ?? null,
       counterparty: input.counterparty ?? null,
       labelIds: input.labelIds ?? [],
+      isDeductible: input.isDeductible ?? false,
+      reviewStatus: input.reviewStatus ?? "pending",
     })
     .returning();
 
@@ -97,6 +99,7 @@ export type TransactionQuery = {
   from?: string;
   to?: string;
   paymentType?: PaymentType;
+  reviewStatus?: "pending" | "reviewed" | "split";
   limit?: number;
   offset?: number;
 };
@@ -108,6 +111,11 @@ export async function listTransactions(query: TransactionQuery) {
   if (query.accountId) conditions.push(eq(transactions.accountId, query.accountId));
   if (query.categoryId) conditions.push(eq(transactions.categoryId, query.categoryId));
   if (query.paymentType) conditions.push(eq(transactions.paymentType, query.paymentType));
+  if (query.reviewStatus) {
+    conditions.push(eq(transactions.reviewStatus, query.reviewStatus));
+  } else {
+    conditions.push(sql`${transactions.reviewStatus} <> 'split'`);
+  }
   if (query.labelId) {
     conditions.push(sql`${transactions.labelIds} @> ${JSON.stringify([query.labelId])}::jsonb`);
   }
@@ -159,6 +167,8 @@ export async function updateTransaction(id: string, input: Partial<TransactionCr
   if (input.paymentType !== undefined) patch.paymentType = input.paymentType;
   if (input.counterparty !== undefined) patch.counterparty = input.counterparty;
   if (input.labelIds !== undefined) patch.labelIds = input.labelIds;
+  if (input.isDeductible !== undefined) patch.isDeductible = input.isDeductible;
+  if (input.reviewStatus !== undefined) patch.reviewStatus = input.reviewStatus;
   if (input.amount !== undefined) {
     amount = String(input.amount);
     patch.amount = amount;
@@ -196,4 +206,112 @@ export async function deleteTransaction(id: string) {
   const db = getDb();
   const [row] = await db.delete(transactions).where(eq(transactions.id, id)).returning();
   return row ?? null;
+}
+
+export async function bulkRecategorize(
+  ids: string[],
+  categoryId: string | null,
+  markReviewed = true,
+) {
+  const db = getDb();
+  await db
+    .update(transactions)
+    .set({
+      categoryId,
+      reviewStatus: markReviewed ? "reviewed" : "pending",
+      updatedAt: new Date(),
+    })
+    .where(inArray(transactions.id, ids));
+  return { updated: ids.length };
+}
+
+export async function markReviewed(ids: string[]) {
+  const db = getDb();
+  await db
+    .update(transactions)
+    .set({ reviewStatus: "reviewed", updatedAt: new Date() })
+    .where(inArray(transactions.id, ids));
+  return { updated: ids.length };
+}
+
+export async function mergeTransactions(primaryId: string, duplicateId: string) {
+  if (primaryId === duplicateId) {
+    throw new TransactionValidationError("Cannot merge a transaction with itself");
+  }
+  const db = getDb();
+  const [primary] = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, primaryId))
+    .limit(1);
+  if (!primary) throw new TransactionValidationError("Primary transaction not found");
+
+  await db.delete(transactions).where(eq(transactions.id, duplicateId));
+  const [row] = await db
+    .update(transactions)
+    .set({ reviewStatus: "reviewed", updatedAt: new Date() })
+    .where(eq(transactions.id, primaryId))
+    .returning();
+  return row ?? null;
+}
+
+export async function splitTransaction(
+  id: string,
+  parts: { amount: string | number; categoryId?: string | null; note?: string | null }[],
+) {
+  const db = getDb();
+  const [original] = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, id))
+    .limit(1);
+  if (!original) throw new TransactionValidationError("Transaction not found");
+  if (original.reviewStatus === "split") {
+    throw new TransactionValidationError("Transaction is already split");
+  }
+
+  const total = parts.reduce((sum, part) => sum + Number(part.amount), 0);
+  if (Math.abs(total - Number(original.amount)) > 0.01) {
+    throw new TransactionValidationError("Split parts must sum to the original amount");
+  }
+
+  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const created = [];
+
+  for (const part of parts) {
+    const amount = String(part.amount);
+    const { baseAmount, fxRateId } = await toBaseAmount(
+      amount,
+      original.currency,
+      baseCurrency,
+      original.recordDate,
+    );
+    const [row] = await db
+      .insert(transactions)
+      .values({
+        accountId: original.accountId,
+        categoryId: part.categoryId ?? null,
+        amount,
+        currency: original.currency,
+        baseCurrency,
+        baseAmount,
+        fxRateId,
+        recordDate: original.recordDate,
+        note: part.note ?? original.note,
+        paymentType: original.paymentType,
+        counterparty: original.counterparty,
+        labelIds: original.labelIds,
+        reviewStatus: "reviewed",
+        parentTransactionId: original.id,
+      })
+      .returning();
+    created.push(row);
+  }
+
+  await db
+    .update(transactions)
+    .set({ amount: "0", baseAmount: "0", reviewStatus: "split", updatedAt: new Date() })
+    .where(eq(transactions.id, id));
+
+  return created;
 }

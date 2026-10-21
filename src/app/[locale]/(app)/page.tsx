@@ -1,16 +1,22 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SpendingChart } from "@/components/charts/spending-chart";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
+import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { insightParams } from "@/lib/insight-params";
 import { overview } from "@/services/analytics";
+import { getInsights } from "@/services/insights";
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("dashboard");
   const tc = await getTranslations("common");
+  const ti = await getTranslations("insights");
   const data = await overview();
+  const insights = (await getInsights()).slice(0, 3);
   const spending = data.spendingByCategory.map((row) => ({
     name: row.name,
     total: Number(row.total),
@@ -22,6 +28,42 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
         <p className="mt-1 text-sm text-ink-3">{t("subtitle")}</p>
       </header>
+
+      {insights.length > 0 ? (
+        <section className="grid gap-2">
+          {insights.map((insight) => (
+            <Card key={`${insight.type}:${insight.signature}`}>
+              <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <div className="flex items-center gap-3">
+                  <Badge
+                    tone={
+                      insight.severity === "critical"
+                        ? "danger"
+                        : insight.severity === "warning"
+                          ? "warning"
+                          : "neutral"
+                    }
+                  >
+                    {ti(`severity.${insight.severity}`)}
+                  </Badge>
+                  <p className="text-sm text-ink-2">
+                    {ti(
+                      insight.type as never,
+                      insightParams(insight, locale, data.baseCurrency) as never,
+                    )}
+                  </p>
+                </div>
+                <Link
+                  href="/insights"
+                  className="text-sm font-medium text-accent hover:underline"
+                >
+                  {tc("view")}
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat

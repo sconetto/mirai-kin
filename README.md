@@ -1,6 +1,15 @@
 # Finance Planner
 
-Self-hosted, multi-lingual (en-US / pt-BR) wealth-planning dashboard. It combines budgeting, investment growth, debt amortization (Price + SAC), multi-currency snapshots, projections, and a small finance knowledge library — with a first-class, agent-integrable REST API.
+Self-hosted, multi-lingual (en-US / pt-BR) finance planner built around **import → review → report → insight → plan**. Statements are imported once, cleaned up in a review queue, and turned into cash-flow reports, deterministic insights, net worth, brokerage, tax summaries, and a financial plan — with a first-class, agent-integrable REST API.
+
+## Product
+
+- **Track** — Overview, Insights, Spending (overview, transaction review, budgets, recurring, reports), Invest, Forecast, Equity.
+- **Services** — Brokerage, Tax (Brazil-first summaries), Financial Planner, Estate Planning.
+- **Learn** — glossary, guides, and articles.
+- **Import** — CSV, OFX, brokerage CSV, and Wallet MCP-assisted imports with staging, deduplication, and review.
+
+An optional in-app assistant (disabled by default) is specified for a later phase; deterministic insights and the REST API work without it.
 
 ## Stack
 
@@ -74,14 +83,15 @@ See `/api/v1/docs` for the full contract. Wallet MCP (BudgetBakers) can be used 
 
 ```
 src/
-  app/[locale]/        localized UI (dashboard, accounts, transactions, …)
+  app/[locale]/        localized UI (overview, spending, reports, insights, equity, …)
   app/api/v1/          versioned REST API + OpenAPI
   db/                  Drizzle schema, connection, seed
-  lib/                 auth, env, OpenAPI, amortization, formatting, jobs
-  services/            domain logic shared by UI and API
+  lib/                 auth, env, OpenAPI, amortization, planner math, formatting, jobs
+  services/            domain logic (accounts, transactions, imports, reports, insights,
+                       equity, recurring, brokerage, tax, planner, estate)
 content/               static MDX knowledge (per locale)
 drizzle/               generated SQL migrations
-openspec/              change proposal, design, specs, tasks
+openspec/              change proposal, design, 21 capability specs, tasks
 ```
 
 ## Spec

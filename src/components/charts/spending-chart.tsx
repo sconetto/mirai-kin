@@ -40,7 +40,13 @@ export function SpendingChart({ data }: { data: { name: string; total: number }[
               color: "#101828",
             }}
           />
-          <Bar dataKey="total" fill="#0b6b5d" radius={[4, 4, 0, 0]} maxBarSize={48} />
+          <Bar
+            dataKey="total"
+            fill="#0b6b5d"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={48}
+            isAnimationActive={false}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

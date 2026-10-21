@@ -58,11 +58,16 @@ export async function deleteBudget(id: string) {
   return row ?? null;
 }
 
+function toDateOnly(value: string | Date): string {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
 function budgetPeriodEnd(budget: Budget): Date | null {
   if (budget.endDate) {
-    return new Date(`${budget.endDate}T23:59:59.999Z`);
+    return new Date(`${toDateOnly(budget.endDate as string | Date)}T23:59:59.999Z`);
   }
-  const start = new Date(`${budget.startDate}T00:00:00.000Z`);
+  const start = new Date(`${toDateOnly(budget.startDate as string | Date)}T00:00:00.000Z`);
   if (budget.periodType === "monthly") {
     return new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0, 23, 59, 59, 999));
   }
@@ -74,7 +79,7 @@ function budgetPeriodEnd(budget: Budget): Date | null {
 
 export async function computeSpend(budget: Budget) {
   const db = getDb();
-  const start = new Date(`${budget.startDate}T00:00:00.000Z`);
+  const start = new Date(`${toDateOnly(budget.startDate as string | Date)}T00:00:00.000Z`);
   const end = budgetPeriodEnd(budget);
 
   const conditions = [gte(transactions.recordDate, start)];
@@ -99,7 +104,10 @@ export async function computeSpend(budget: Budget) {
 
   const expenses = Number(aggregate?.expenses ?? 0);
   const income = Number(aggregate?.income ?? 0);
-  const spend = Math.max(0, expenses - income);
+  // Net income (refunds) only when the budget is scoped to categories/labels.
+  // An unscoped budget counts all expenses, without netting unrelated salary.
+  const scoped = budget.categoryIds.length > 0 || budget.labelIds.length > 0;
+  const spend = scoped ? Math.max(0, expenses - income) : expenses;
   const amount = Number(budget.amount);
 
   return {

@@ -43,7 +43,7 @@ export type PaymentType = (typeof PAYMENT_TYPES)[number];
 export const BUDGET_PERIODS = ["monthly", "annual", "custom"] as const;
 export type BudgetPeriod = (typeof BUDGET_PERIODS)[number];
 
-export const INSTRUMENT_TYPES = ["stock", "etf", "fund", "bond", "crypto"] as const;
+export const INSTRUMENT_TYPES = ["stock", "fii", "etf", "fund", "bond", "crypto"] as const;
 export type InstrumentType = (typeof INSTRUMENT_TYPES)[number];
 
 export const DEBT_TYPES = [
@@ -60,6 +60,21 @@ export type AmortizationMethod = (typeof AMORTIZATION_METHODS)[number];
 
 export const RECURRENCE_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
+
+export const REVIEW_STATUSES = ["pending", "reviewed", "split"] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+export const IMPORT_SOURCES = ["csv", "ofx", "brokerage_csv", "wallet_mcp"] as const;
+export type ImportSource = (typeof IMPORT_SOURCES)[number];
+
+export const IMPORT_ROW_STATUSES = ["pending", "valid", "invalid", "duplicate", "committed"] as const;
+export type ImportRowStatus = (typeof IMPORT_ROW_STATUSES)[number];
+
+export const GOAL_TYPES = ["emergency", "retirement", "home", "custom"] as const;
+export type GoalType = (typeof GOAL_TYPES)[number];
+
+export const TAX_TREATMENTS = ["none", "deductible", "income", "capital_gain", "dividend"] as const;
+export type TaxTreatment = (typeof TAX_TREATMENTS)[number];
 
 const money = (name: string) => numeric(name, { precision: 20, scale: 4 });
 const rate = (name: string) => numeric(name, { precision: 30, scale: 10 });
@@ -100,6 +115,8 @@ export const categories = pgTable(
     color: text("color"),
     icon: text("icon"),
     isSystem: boolean("is_system").notNull().default(false),
+    taxTreatment: text("tax_treatment").$type<TaxTreatment>().notNull().default("none"),
+    isEssential: boolean("is_essential").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("categories_parent_idx").on(t.parentId)],
@@ -149,6 +166,12 @@ export const transactions = pgTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    reviewStatus: text("review_status").$type<ReviewStatus>().notNull().default("pending"),
+    isDeductible: boolean("is_deductible").notNull().default(false),
+    parentTransactionId: uuid("parent_transaction_id").references(
+      (): AnyPgColumn => transactions.id,
+      { onDelete: "cascade" },
+    ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -270,6 +293,184 @@ export const idempotencyKeys = pgTable("idempotency_keys", {
   requestHash: text("request_hash").notNull(),
   statusCode: integer("status_code").notNull(),
   response: jsonb("response").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const importBatches = pgTable("import_batches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  source: text("source").$type<ImportSource>().notNull(),
+  fileName: text("file_name"),
+  fileHash: text("file_hash"),
+  accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("staged"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  committedAt: timestamp("committed_at", { withTimezone: true }),
+});
+
+export const importRows = pgTable(
+  "import_rows",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => importBatches.id, { onDelete: "cascade" }),
+    rowNumber: integer("row_number").notNull(),
+    raw: jsonb("raw").notNull(),
+    normalized: jsonb("normalized"),
+    status: text("status").$type<ImportRowStatus>().notNull().default("pending"),
+    error: text("error"),
+    fingerprint: text("fingerprint"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("import_rows_batch_idx").on(t.batchId)],
+);
+
+export const importProfiles = pgTable("import_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  source: text("source").$type<ImportSource>().notNull(),
+  mapping: jsonb("mapping").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const savedReports = pgTable("saved_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  config: jsonb("config").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insightAcknowledgements = pgTable(
+  "insight_acknowledgements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    insightType: text("insight_type").notNull(),
+    signature: text("signature").notNull(),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("insight_ack_type_signature_idx").on(t.insightType, t.signature)],
+);
+
+export const netWorthSnapshots = pgTable(
+  "net_worth_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    date: date("date").notNull(),
+    assets: money("assets").notNull(),
+    liabilities: money("liabilities").notNull(),
+    net: money("net").notNull(),
+    currency: text("currency").notNull(),
+    breakdown: jsonb("breakdown").notNull().default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("net_worth_snapshots_date_idx").on(t.date)],
+);
+
+export const brokerageLots = pgTable("brokerage_lots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  positionId: uuid("position_id")
+    .notNull()
+    .references(() => investmentPositions.id, { onDelete: "cascade" }),
+  acquiredAt: date("acquired_at").notNull(),
+  quantity: quantity("quantity").notNull(),
+  costPerUnit: money("cost_per_unit").notNull(),
+  fees: money("fees").notNull().default("0"),
+  currency: text("currency").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const brokerageSales = pgTable("brokerage_sales", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  positionId: uuid("position_id")
+    .notNull()
+    .references(() => investmentPositions.id, { onDelete: "cascade" }),
+  soldAt: date("sold_at").notNull(),
+  quantity: quantity("quantity").notNull(),
+  price: money("price").notNull(),
+  fees: money("fees").notNull().default("0"),
+  currency: text("currency").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dividends = pgTable("dividends", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  positionId: uuid("position_id")
+    .notNull()
+    .references(() => investmentPositions.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  amount: money("amount").notNull(),
+  currency: text("currency").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const goals = pgTable("goals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  type: text("type").$type<GoalType>().notNull().default("custom"),
+  targetAmount: money("target_amount").notNull(),
+  targetDate: date("target_date"),
+  currency: text("currency").notNull(),
+  priority: integer("priority").notNull().default(1),
+  accountIds: jsonb("account_ids")
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const scenarios = pgTable("scenarios", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  assumptions: jsonb("assumptions").notNull().default(sql`'{}'::jsonb`),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const estateAssets = pgTable("estate_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  value: money("value").notNull(),
+  currency: text("currency").notNull(),
+  accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const beneficiaries = pgTable("beneficiaries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  relationship: text("relationship"),
+  sharePct: percent("share_pct").notNull().default("0"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const estateDocuments = pgTable("estate_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  category: text("category").notNull().default("other"),
+  status: text("status").notNull().default("missing"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const assistantConversations = pgTable("assistant_conversations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const assistantMessages = pgTable("assistant_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => assistantConversations.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -14,8 +14,25 @@ import { createAccount } from "@/services/accounts";
 import { createBudget } from "@/services/budgets";
 import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
+import { createBeneficiary, createDocument } from "@/services/estate";
+import { recordSnapshot } from "@/services/equity";
+import { createGoal } from "@/services/planner";
+import {
+  commitBatch,
+  deleteProfile,
+  detectMapping,
+  discardBatch,
+  listProfiles,
+  saveProfile,
+  stageImport,
+} from "@/services/imports";
+import type { ImportMapping } from "@/services/imports";
+import { acknowledgeInsight } from "@/services/insights";
 import { createPosition } from "@/services/investments";
-import { createTransaction } from "@/services/transactions";
+import { deleteSavedReport, saveReport } from "@/services/reports";
+import type { ReportConfig } from "@/services/reports";
+import { bulkRecategorize, createTransaction, markReviewed } from "@/services/transactions";
+import type { ImportSource } from "@/db/schema";
 
 function field(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -109,5 +126,157 @@ export async function importCsvAction(formData: FormData) {
   const accountId = field(formData, "accountId");
   await importCsv(csv, { accountId });
   revalidatePath(`/${locale}/transactions`);
-  redirect(`/${locale}/transactions`);
+  redirect(`/${locale}/spending/transactions`);
+}
+
+export async function bulkTransactionAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (ids.length > 0) {
+    const intent = field(formData, "intent");
+    if (intent === "recategorize") {
+      const categoryId = field(formData, "categoryId") ?? null;
+      await bulkRecategorize(ids, categoryId, true);
+    } else {
+      await markReviewed(ids);
+    }
+  }
+  revalidatePath(`/${locale}/spending/transactions`);
+  revalidatePath(`/${locale}`);
+}
+
+export async function saveReportAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const name = field(formData, "name");
+  if (!name) return;
+  const config: ReportConfig = {
+    type: (field(formData, "type") ?? "cashflow") as ReportConfig["type"],
+    from: field(formData, "from") ?? "",
+    to: field(formData, "to") ?? "",
+    comparison: field(formData, "comparison") === "1",
+  };
+  await saveReport(name, config);
+  revalidatePath(`/${locale}/spending/reports`);
+}
+
+export async function deleteReportAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await deleteSavedReport(id);
+  revalidatePath(`/${locale}/spending/reports`);
+}
+
+export async function acknowledgeInsightAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const type = field(formData, "type");
+  const signature = field(formData, "signature");
+  if (type && signature) {
+    await acknowledgeInsight(type as never, signature);
+  }
+  revalidatePath(`/${locale}/insights`);
+  revalidatePath(`/${locale}`);
+}
+
+export async function recordSnapshotAction(formData: FormData) {
+  const locale = localeOf(formData);
+  await recordSnapshot();
+  revalidatePath(`/${locale}/equity`);
+}
+
+export async function stageImportAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const source = (field(formData, "source") ?? "csv") as ImportSource;
+  const accountId = field(formData, "accountId");
+  const file = formData.get("file");
+  let content = field(formData, "content") ?? "";
+  let fileName: string | undefined;
+
+  if (file instanceof File && file.size > 0) {
+    content = await file.text();
+    fileName = file.name;
+  }
+
+  if (!content.trim()) {
+    redirect(`/${locale}/import`);
+  }
+
+  const saveName = field(formData, "saveProfileName");
+  if (saveName && source === "csv") {
+    const headers = content.split(/\r?\n/)[0].split(",").map((header) => header.trim());
+    await saveProfile(saveName, source, detectMapping(headers) as ImportMapping);
+  }
+
+  const profileId = field(formData, "profileId");
+  let mapping: ImportMapping | undefined;
+  if (profileId) {
+    const profiles = await listProfiles();
+    const profile = profiles.find((item) => item.id === profileId);
+    mapping = (profile?.mapping as ImportMapping | undefined) ?? undefined;
+  }
+
+  const result = await stageImport({ source, content, fileName, accountId, mapping });
+  redirect(`/${locale}/import?batch=${result.batch.id}`);
+}
+
+export async function deleteProfileAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await deleteProfile(id);
+  revalidatePath(`/${locale}/import`);
+}
+
+export async function createGoalAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const name = field(formData, "name");
+  if (!name) return;
+  await createGoal({
+    name,
+    type: (field(formData, "type") ?? "custom") as never,
+    targetAmount: field(formData, "targetAmount") ?? "0",
+    targetDate: field(formData, "targetDate") ?? null,
+    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    priority: Number(field(formData, "priority") ?? 1),
+  });
+  revalidatePath(`/${locale}/planner`);
+}
+
+export async function createBeneficiaryAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const name = field(formData, "name");
+  if (!name) return;
+  await createBeneficiary({
+    name,
+    relationship: field(formData, "relationship") ?? null,
+    sharePct: field(formData, "sharePct") ?? "0",
+  });
+  revalidatePath(`/${locale}/estate`);
+}
+
+export async function createDocumentAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const name = field(formData, "name");
+  if (!name) return;
+  await createDocument({
+    name,
+    category: field(formData, "category") ?? "other",
+    status: field(formData, "status") ?? "missing",
+  });
+  revalidatePath(`/${locale}/estate`);
+}
+
+export async function commitImportAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const batchId = field(formData, "batchId");
+  if (!batchId) return;
+  const rowIds = formData.getAll("rowIds").map(String).filter(Boolean);
+  await commitBatch(batchId, rowIds);
+  revalidatePath(`/${locale}/spending/transactions`);
+  redirect(`/${locale}/spending/transactions`);
+}
+
+export async function discardImportAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const batchId = field(formData, "batchId");
+  if (batchId) await discardBatch(batchId);
+  redirect(`/${locale}/import`);
 }
