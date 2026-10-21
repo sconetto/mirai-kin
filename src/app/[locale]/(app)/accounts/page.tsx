@@ -181,9 +181,8 @@ export default async function AccountsPage({
                   value,
                   label: t(`assetSubtypeLabels.${value}` as never),
                 }))}
-                selected={subtypeApplicable ? assetSubtypes : []}
+                selected={assetSubtypes}
                 allLabel={t("allSubtypes")}
-                disabled={!subtypeApplicable}
               />
             </div>
             <div className="flex items-end gap-3">
