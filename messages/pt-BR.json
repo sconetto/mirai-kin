@@ -47,7 +47,8 @@
     "brokerage": "Corretora",
     "tax": "Impostos",
     "planner": "Planejador",
-    "estate": "Sucessão"
+    "estate": "Sucessão",
+    "assistant": "Assistente"
   },
   "login": {
     "title": "Entrar",
@@ -433,5 +434,39 @@
     "totalShare": "Total alocado",
     "export": "Exportar CSV",
     "notes": "Observações"
+  },
+  "assistant": {
+    "title": "Assistente",
+    "subtitle": "Pergunte sobre os seus dados financeiros",
+    "placeholder": "Pergunte sobre gastos, orçamentos, patrimônio...",
+    "send": "Enviar",
+    "newConversation": "Nova conversa",
+    "conversations": "Conversas",
+    "empty": "Nenhuma conversa ainda. Faça a primeira pergunta.",
+    "disabledTitle": "Assistente desativado",
+    "disabledBody": "O assistente é opcional e fica desativado até que um provedor seja configurado. Nenhum dado é enviado.",
+    "setup": "Para ativar, configure ASSISTANT_ENABLED, ASSISTANT_MODEL e ASSISTANT_BASE_URL (e ASSISTANT_API_KEY, exceto para modelos locais).",
+    "disclaimer": "As respostas são informativas e não constituem aconselhamento financeiro, tributário ou jurídico.",
+    "privacy": "Privacidade e dados",
+    "privacyBody": "Quando ativado, a mensagem e o histórico recente da conversa são enviados ao provedor configurado para gerar a resposta. O histórico fica salvo localmente. Desative ASSISTANT_ENABLED para impedir qualquer envio.",
+    "provider": "Provedor",
+    "model": "Modelo",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "pending": "Aguardando confirmação",
+    "confirmed": "Confirmado",
+    "cancelled": "Cancelado",
+    "writeProposal": "Alteração proposta",
+    "notCreated": "Nada foi alterado ainda.",
+    "error": "Não foi possível obter a resposta. Tente novamente.",
+    "you": "Você",
+    "assistantName": "Assistente",
+    "thinking": "Pensando...",
+    "docs": "Documentação",
+    "conversationHint": "O histórico fica salvo localmente.",
+    "actions": "Ações",
+    "confirmSuccess": "Transação criada.",
+    "confirmError": "Não foi possível confirmar a ação.",
+    "emptyAnswer": "Sem resposta."
   }
 }

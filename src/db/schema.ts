@@ -482,10 +482,14 @@ export const estateDocuments = pgTable("estate_documents", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ASSISTANT_ROLES = ["user", "assistant", "system"] as const;
+export type AssistantRole = (typeof ASSISTANT_ROLES)[number];
+
 export const assistantConversations = pgTable("assistant_conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const assistantMessages = pgTable("assistant_messages", {
@@ -493,12 +497,34 @@ export const assistantMessages = pgTable("assistant_messages", {
   conversationId: uuid("conversation_id")
     .notNull()
     .references(() => assistantConversations.id, { onDelete: "cascade" }),
-  role: text("role").notNull(),
+  role: text("role").$type<AssistantRole>().notNull(),
   content: text("content").notNull(),
+  metadata: jsonb("metadata")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ASSISTANT_ACTION_STATUSES = ["pending", "confirmed", "cancelled"] as const;
+export type AssistantActionStatus = (typeof ASSISTANT_ACTION_STATUSES)[number];
+
+export const assistantActions = pgTable("assistant_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => assistantConversations.id, { onDelete: "cascade" }),
+  type: text("type").$type<"create_transaction">().notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  status: text("status").$type<AssistantActionStatus>().notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+});
+
 export type User = typeof users.$inferSelect;
+export type AssistantConversation = typeof assistantConversations.$inferSelect;
+export type AssistantMessage = typeof assistantMessages.$inferSelect;
+export type AssistantAction = typeof assistantActions.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Label = typeof labels.$inferSelect;

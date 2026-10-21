@@ -47,7 +47,8 @@
     "brokerage": "Brokerage",
     "tax": "Tax",
     "planner": "Planner",
-    "estate": "Estate"
+    "estate": "Estate",
+    "assistant": "Assistant"
   },
   "login": {
     "title": "Log in",
@@ -433,5 +434,39 @@
     "totalShare": "Total allocated",
     "export": "Export CSV",
     "notes": "Notes"
+  },
+  "assistant": {
+    "title": "Assistant",
+    "subtitle": "Ask about your financial data",
+    "placeholder": "Ask about spending, budgets, net worth...",
+    "send": "Send",
+    "newConversation": "New conversation",
+    "conversations": "Conversations",
+    "empty": "No conversations yet. Ask the first question.",
+    "disabledTitle": "Assistant disabled",
+    "disabledBody": "The assistant is optional and stays disabled until a provider is configured. No data is sent.",
+    "setup": "To enable it, set ASSISTANT_ENABLED, ASSISTANT_MODEL, and ASSISTANT_BASE_URL (plus ASSISTANT_API_KEY unless the model is local).",
+    "disclaimer": "Answers are informational and are not financial, tax, or legal advice.",
+    "privacy": "Privacy and data",
+    "privacyBody": "When enabled, your message and recent conversation history are sent to the configured provider to generate the answer. History is stored locally. Set ASSISTANT_ENABLED to false to prevent any outbound data.",
+    "provider": "Provider",
+    "model": "Model",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "pending": "Awaiting confirmation",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "writeProposal": "Proposed change",
+    "notCreated": "Nothing has been changed yet.",
+    "error": "The answer could not be generated. Try again.",
+    "you": "You",
+    "assistantName": "Assistant",
+    "thinking": "Thinking...",
+    "docs": "Documentation",
+    "conversationHint": "History is stored locally.",
+    "actions": "Actions",
+    "confirmSuccess": "Transaction created.",
+    "confirmError": "The action could not be confirmed.",
+    "emptyAnswer": "No answer."
   }
 }

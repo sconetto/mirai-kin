@@ -6,6 +6,7 @@ import {
   ChartLine,
   House,
   Landmark,
+  MessageCircle,
   Receipt,
   Scale,
   Sparkles,
@@ -52,7 +53,10 @@ const SECTIONS: NavSection[] = [
   },
   {
     key: "sections.learn",
-    items: [{ href: "/learn", key: "nav.learn", icon: BookOpen }],
+    items: [
+      { href: "/learn", key: "nav.learn", icon: BookOpen },
+      { href: "/assistant", key: "nav.assistant", icon: MessageCircle },
+    ],
   },
 ];
 

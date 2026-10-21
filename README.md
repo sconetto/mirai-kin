@@ -47,6 +47,13 @@ The app container applies Drizzle migrations and seeds the single user + base ca
 | `API_TOKEN` | Bearer token for `/api/v1` | — |
 | `BASE_CURRENCY` | Reporting currency (ISO 4217) | `BRL` |
 | `FX_SOURCE_URL` | FX provider (ECB via Frankfurter) | `https://api.frankfurter.app` |
+| `ASSISTANT_ENABLED` | Enable the optional in-app assistant (must be `true`) | `false` |
+| `ASSISTANT_PROVIDER` | Provider label (OpenAI-compatible adapter) | `openai-compatible` |
+| `ASSISTANT_MODEL` | Model id | — |
+| `ASSISTANT_API_KEY` | Server-only provider key (not needed for local endpoints) | — |
+| `ASSISTANT_BASE_URL` | OpenAI-compatible base URL | OpenAI when provider is `openai` |
+
+The assistant is **disabled by default** and sends no data to any provider until it is enabled and used. See [docs/assistant.md](docs/assistant.md) for the data flow, retention, local-model setup, and privacy notes.
 
 ## Local development
 

@@ -179,14 +179,9 @@
 - [x] 22.4 Implement CSV export
 - [x] 22.5 Build the Estate Planning screen with the no-legal-advice disclaimer
 
-## 23. Assistant (phase 2)
+## 23. Assistant
 
-- [ ] 23.1 Add assistant configuration (provider, model, key, base URL) and a provider adapter
-- [ ] 23.2 Add `assistant_conversations` and `assistant_messages` schema plus migration
-- [ ] 23.3 Implement grounded, read-only tools over the service layer
-- [ ] 23.4 Build the assistant chat UI with streaming and the informational disclaimer
-- [ ] 23.5 Implement the write-confirmation flow
-- [ ] 23.6 Document the privacy/data-flow behavior and disabled-by-default state
+Moved to the dedicated `add-assistant` change.
 
 ## 24. Verification for the revised product
 
