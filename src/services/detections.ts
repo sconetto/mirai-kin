@@ -5,11 +5,10 @@ import type { RecurrenceFrequency } from "@/db/schema";
 import { detectRecurring } from "./recurring";
 
 function isForeignKeyError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: string }).code === "23503"
-  );
+  if (typeof error !== "object" || error === null) return false;
+  if ((error as { code?: string }).code === "23503") return true;
+  if (!("cause" in error)) return false;
+  return isForeignKeyError((error as { cause?: unknown }).cause);
 }
 
 export async function syncRecurringDetections() {
