@@ -1,16 +1,23 @@
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { accounts, brokerageSales, investmentPositions } from "@/db/schema";
+import { brokerageSales, investmentPositions } from "@/db/schema";
+import { createAccount, deleteAccount } from "./accounts";
 import { getTaxSummary } from "./tax";
 
 describe.skipIf(!process.env.DATABASE_URL)("getTaxSummary (database)", () => {
+  let accountId = "";
   let positionId = "";
 
   beforeAll(async () => {
     const db = getDb();
-    const [account] = await db.select().from(accounts).limit(1);
+    const account = await createAccount({
+      name: `TEST tax account ${randomUUID()}`,
+      type: "investment",
+      currency: "BRL",
+    });
+    accountId = account.id;
     const [position] = await db
       .insert(investmentPositions)
       .values({
@@ -36,8 +43,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getTaxSummary (database)", () => {
   });
 
   afterAll(async () => {
-    const db = getDb();
-    await db.delete(investmentPositions).where(eq(investmentPositions.id, positionId));
+    if (accountId) await deleteAccount(accountId);
     await closeDb();
   });
 

@@ -1,8 +1,10 @@
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { accounts, budgets, insightAcknowledgements, transactions } from "@/db/schema";
+import { budgets, insightAcknowledgements, transactions } from "@/db/schema";
+import { createAccount, deleteAccount } from "./accounts";
 import { listBudgetsWithSpend } from "./budgets";
 import { acknowledgeInsight, getInsights } from "./insights";
 
@@ -13,7 +15,11 @@ describe.skipIf(!process.env.DATABASE_URL)("getInsights (database)", () => {
 
   beforeAll(async () => {
     const db = getDb();
-    const [account] = await db.select().from(accounts).limit(1);
+    const account = await createAccount({
+      name: `TEST insights account ${randomUUID()}`,
+      type: "checking",
+      currency: "BRL",
+    });
     accountId = account.id;
     const now = new Date();
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
@@ -51,6 +57,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getInsights (database)", () => {
     const db = getDb();
     await db.delete(transactions).where(eq(transactions.id, transactionId));
     await db.delete(budgets).where(eq(budgets.id, budgetId));
+    if (accountId) await deleteAccount(accountId);
     await closeDb();
   });
 
