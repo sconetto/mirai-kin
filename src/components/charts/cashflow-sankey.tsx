@@ -104,7 +104,7 @@ export function CashflowSankey({
         stroke={`url(#${outgoing ? outflowGradient : inflowGradient})`}
         strokeWidth={props.linkWidth}
         strokeOpacity={0.5}
-        strokeLinecap="round"
+        strokeLinecap="butt"
       />
     );
   };
