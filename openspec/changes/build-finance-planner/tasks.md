@@ -128,7 +128,7 @@
 - [x] 16.4 Implement saved reports (create, list, reopen, rename, delete)
 - [x] 16.5 Implement CSV export
 - [x] 16.6 Implement period comparison (previous period and prior year)
-- [ ] 16.7 Build the report UI (segmented tabs, range picker, chart toggle, summary strip, period table)
+- [x] 16.7 Build the report UI (segmented tabs, range picker, chart toggle, summary strip, period table)
 
 ## 17. Insights
 
