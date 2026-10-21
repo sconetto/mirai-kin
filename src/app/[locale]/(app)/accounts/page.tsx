@@ -1,17 +1,18 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ACCOUNT_TYPES, ASSET_SUBTYPES, OWNERSHIP_TYPES } from "@/db/schema";
+import { OWNERSHIP_TYPES } from "@/db/schema";
 import { BalanceChart } from "@/components/charts/balance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
+import { AccountEditForm } from "@/components/account-edit-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { listAccountBalances, listAccountGrowth } from "@/services/accounts";
 import { overview } from "@/services/analytics";
 import { getBaseCurrency } from "@/services/settings";
-import { setAccountArchivedAction, updateAccountAction } from "../actions";
+import { setAccountArchivedAction } from "../actions";
 
 type Search = { ownership?: string; account?: string };
 
@@ -94,6 +95,23 @@ export default async function AccountsPage({
       </PageHeader>
 
       <p className="text-xs text-ink-3">{t("importHint")}</p>
+
+      {selected ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("editAccount")} · {selected.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AccountEditForm
+              account={selected}
+              locale={locale}
+              cancelHref={`/accounts${ownership ? `?ownership=${ownership}` : ""}`}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -255,139 +273,6 @@ export default async function AccountsPage({
           </details>
         </CardContent>
       </Card>
-
-      {selected ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t("editAccount")} · {selected.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={updateAccountAction}
-              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-            >
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="id" value={selected.id} />
-              <label className="text-xs text-ink-3">
-                {tc("name")}
-                <Input name="name" defaultValue={selected.name} required className="mt-1" />
-              </label>
-              <label className="text-xs text-ink-3">
-                {tc("type")}
-                <Select name="type" defaultValue={selected.type} className="mt-1">
-                  {ACCOUNT_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {te(`accountType.${type}`)}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("ownership")}
-                <Select
-                  name="ownershipType"
-                  defaultValue={selected.ownershipType}
-                  className="mt-1"
-                >
-                  {OWNERSHIP_TYPES.map((value) => (
-                    <option key={value} value={value}>
-                      {ownershipLabel(value)}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("assetSubtype")}
-                <Select name="assetSubtype" defaultValue={selected.assetSubtype ?? ""} className="mt-1">
-                  <option value="">—</option>
-                  {ASSET_SUBTYPES.map((subtype) => (
-                    <option key={subtype} value={subtype}>
-                      {t(`assetSubtypeLabels.${subtype}` as never)}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="text-xs text-ink-3">
-                {tc("currency")}
-                <Input
-                  name="currency"
-                  defaultValue={selected.currency}
-                  maxLength={3}
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("balance")}
-                <Input
-                  name="openingBalance"
-                  defaultValue={selected.openingBalance}
-                  inputMode="decimal"
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("creditLimit")}
-                <Input
-                  name="creditLimit"
-                  defaultValue={selected.creditLimit ?? ""}
-                  inputMode="decimal"
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("closingDay")}
-                <Input
-                  name="statementCloseDay"
-                  type="number"
-                  min={1}
-                  max={31}
-                  defaultValue={selected.statementCloseDay ?? ""}
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("dueDay")}
-                <Input
-                  name="dueDay"
-                  type="number"
-                  min={1}
-                  max={31}
-                  defaultValue={selected.dueDay ?? ""}
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("creditUsed")}
-                <Input
-                  value={
-                    selected.creditUsed
-                      ? formatCurrency(selected.creditUsed, selected.currency, locale)
-                      : "—"
-                  }
-                  readOnly
-                  className="mt-1"
-                />
-              </label>
-              <label className="text-xs text-ink-3">
-                {t("creditUtilization")}
-                <span className="mt-2 block text-sm text-ink-2">
-                  {selected.creditUtilization !== null
-                    ? `${formatNumber(selected.creditUtilization, locale)}%`
-                    : "—"}
-                </span>
-              </label>
-              <p className="text-xs text-ink-3 sm:col-span-2 lg:col-span-4">
-                {t("ownershipHint")}. {t("importHint")}
-              </p>
-              <div className="sm:col-span-2 lg:col-span-4">
-                <Button type="submit">{tc("save")}</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
 
       <Card>
         <CardHeader>
