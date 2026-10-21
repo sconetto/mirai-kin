@@ -32,7 +32,7 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard contract fields", () => {
 
     const goal = await createGoal({
       name: `TEST tracked goal ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "50000",
       targetDate: "2027-12-31",
       currency: "BRL",

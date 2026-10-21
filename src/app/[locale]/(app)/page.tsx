@@ -43,6 +43,25 @@ const COMPOSITION_COLORS = {
   liabilities: "var(--negative)",
 } as const;
 
+function goalTargetKey(type: string) {
+  if (type === "purchase") return "downPayment";
+  if (type === "debt") return "debtBalance";
+  if (type === "income") return "targetIncome";
+  return "target";
+}
+
+function goalProjectedKey(type: string) {
+  if (type === "debt") return "projectedBalance";
+  if (type === "income") return "projectedIncome";
+  return "projected";
+}
+
+function goalRequiredKey(type: string) {
+  if (type === "debt") return "requiredPayment";
+  if (type === "income") return "requiredIncomeIncrease";
+  return "requiredMonthly";
+}
+
 export default async function DashboardPage({
   params,
   searchParams,
@@ -306,25 +325,25 @@ export default async function DashboardPage({
                     ) : (
                       <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                         <div>
-                          <dt className="text-ink-3">{t("projected")}</dt>
+                          <dt className="text-ink-3">{tp(goalProjectedKey(goal.type))}</dt>
                           <dd className="tabular text-ink-2">
                             {formatCurrency(goal.projected.base, currency, locale)}
                           </dd>
                         </div>
                         <div className="text-right">
-                          <dt className="text-ink-3">{t("gap")}</dt>
+                          <dt className="text-ink-3">{tp("gap")}</dt>
                           <dd className="tabular text-ink-2">
                             {formatCurrency(goal.gap, currency, locale)}
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-ink-3">{t("target")}</dt>
+                          <dt className="text-ink-3">{tp(goalTargetKey(goal.type))}</dt>
                           <dd className="tabular text-ink-2">
                             {formatCurrency(goal.target, currency, locale)}
                           </dd>
                         </div>
                         <div className="text-right">
-                          <dt className="text-ink-3">{t("requiredMonthly")}</dt>
+                          <dt className="text-ink-3">{tp(goalRequiredKey(goal.type))}</dt>
                           <dd className="tabular text-ink-2">
                             {goal.requiredMonthly === null
                               ? "—"

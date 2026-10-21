@@ -7,18 +7,30 @@ Track goals, scenarios, required contributions, and emergency runway.
 ## Requirements
 
 ### Requirement: Goals
-The system SHALL manage financial goals (emergency fund, retirement, home, custom) with a target amount, optional target date, currency, priority, notes, a funding mode (linked account allocations or manual amount), planned monthly contribution, expected nominal return, and inflation assumption.
+The system SHALL manage financial goals with one of four kinds — savings, purchase, debt payoff, or income — with a target amount, optional target date, currency, priority, notes, a funding mode where applicable, planned monthly amount, expected nominal return, inflation assumption, down-payment percentage for purchases, and interest rate for debt.
 
-#### Scenario: Create a funded goal
-- **WHEN** a user creates a goal with a target amount, target date, funding source, monthly contribution, return, and inflation
-- **THEN** the system stores it and reports its trajectory status and progress
+#### Scenario: Create a savings goal
+- **WHEN** a user creates a savings goal with a target amount, target date, funding source, monthly contribution, return, and inflation
+- **THEN** the system stores it and reports its projected savings and status
+
+#### Scenario: Create a purchase goal
+- **WHEN** a user creates a purchase goal with a purchase price, down-payment percentage, saved amount, monthly contribution, return, and inflation
+- **THEN** the system reports the down-payment cash target, projected savings, financed amount, and status
+
+#### Scenario: Create a debt payoff goal
+- **WHEN** a user creates a debt payoff goal with a balance, amount paid, monthly payment, interest rate, and target date
+- **THEN** the system reports the projected remaining balance, required payment, and payoff status
+
+#### Scenario: Create an income goal
+- **WHEN** a user creates an income goal with current monthly income, target monthly income, additional monthly income, growth, and target date
+- **THEN** the system reports the projected monthly income, required income increase, and status
 
 #### Scenario: Create a goal without a deadline
 - **WHEN** a user creates a goal without a target date
 - **THEN** the system stores it and reports that trajectory status is unavailable until a date is supplied
 
-#### Scenario: Update funding assumptions
-- **WHEN** a user changes a goal's contribution, return, inflation, or funding source
+#### Scenario: Update assumptions
+- **WHEN** a user changes a goal's kind, amount, contribution, return, inflation, down payment, interest rate, or funding source
 - **THEN** the system recalculates its trajectory using the new assumptions
 
 ### Requirement: Scenarios

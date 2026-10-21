@@ -20,7 +20,7 @@ describe.skipIf(!process.env.DATABASE_URL)("goal trajectory insights", () => {
     accountId = account.id;
     const goal = await createGoal({
       name: `TEST goal insight ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "10000",
       targetDate: "2027-01-01",
       currency: "BRL",

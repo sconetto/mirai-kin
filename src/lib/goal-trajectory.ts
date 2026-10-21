@@ -65,6 +65,54 @@ export function requiredMonthlyContribution(
   return (gap * rate) / (growth - 1);
 }
 
+export function remainingDebt(
+  balance: number,
+  annualRate: number,
+  monthlyPayment: number,
+  months: number,
+): number {
+  if (balance <= 0) return 0;
+  const rate = annualRate / 12;
+  let remaining = balance;
+  for (let month = 0; month < months; month += 1) {
+    remaining = remaining * (1 + rate) - monthlyPayment;
+    if (remaining <= 0) return 0;
+  }
+  return remaining;
+}
+
+export function requiredDebtPayment(
+  balance: number,
+  annualRate: number,
+  months: number,
+): number | null {
+  if (balance <= 0) return 0;
+  if (months <= 0) return null;
+  const rate = annualRate / 12;
+  if (Math.abs(rate) < 1e-12) return balance / months;
+  return (balance * rate) / (1 - Math.pow(1 + rate, -months));
+}
+
+export function projectedMonthlyIncome(
+  currentIncome: number,
+  additionalMonthlyIncome: number,
+  annualGrowth: number,
+  months: number,
+): number {
+  return (currentIncome + additionalMonthlyIncome) * Math.pow(1 + annualGrowth, months / 12);
+}
+
+export function requiredIncomeIncrease(
+  currentIncome: number,
+  additionalMonthlyIncome: number,
+  annualGrowth: number,
+  months: number,
+  target: number,
+): number {
+  const growth = Math.pow(1 + annualGrowth, months / 12);
+  return Math.max(0, target / growth - currentIncome - additionalMonthlyIncome);
+}
+
 export function projectionRange(
   current: number,
   monthlyContribution: number,

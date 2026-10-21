@@ -1,12 +1,17 @@
 import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, categories, goalAllocations, goals, transactions } from "@/db/schema";
+import type { GoalType } from "@/db/schema";
 import type { GoalCreateInput, GoalUpdateInput } from "@/lib/schemas";
 import {
   classifyGoalStatus,
   DEFAULT_INFLATION_RATE,
   monthsBetween,
+  projectedMonthlyIncome,
   projectionRange,
+  remainingDebt,
+  requiredDebtPayment,
+  requiredIncomeIncrease,
   requiredMonthlyContribution,
   RETURN_BAND,
 } from "@/lib/goal-trajectory";
@@ -50,6 +55,18 @@ function validateRates(input: GoalCreateInput | GoalUpdateInput): void {
   }
   if (input.monthlyContribution !== undefined && numberValue(input.monthlyContribution) < 0) {
     throw new GoalValidationError("Monthly contribution cannot be negative");
+  }
+  if (input.downPaymentPct !== undefined && input.downPaymentPct !== null) {
+    const value = numberValue(input.downPaymentPct);
+    if (value < 0 || value > 100) {
+      throw new GoalValidationError("Down payment must be between 0% and 100%");
+    }
+  }
+  if (input.interestRate !== undefined && input.interestRate !== null) {
+    const value = numberValue(input.interestRate);
+    if (value < -0.99 || value > 1) {
+      throw new GoalValidationError("Interest rate must be between -99% and 100%");
+    }
   }
   if (input.expectedReturn !== undefined) {
     const value = numberValue(input.expectedReturn);
@@ -167,6 +184,13 @@ function goalValues(input: GoalCreateInput | GoalUpdateInput) {
   if (input.inflationRate !== undefined) {
     values.inflationRate = input.inflationRate === null ? null : String(input.inflationRate);
   }
+  if (input.downPaymentPct !== undefined) {
+    values.downPaymentPct =
+      input.downPaymentPct === null ? null : String(input.downPaymentPct);
+  }
+  if (input.interestRate !== undefined) {
+    values.interestRate = input.interestRate === null ? null : String(input.interestRate);
+  }
   if (input.notes !== undefined) values.notes = input.notes;
   return values;
 }
@@ -187,8 +211,10 @@ export async function listGoalAllocations(goalIds?: string[]) {
 
 export async function createGoal(input: GoalCreateInput) {
   validateRates(input);
-  const allocations = input.fundingMode === "manual" ? [] : normalizeAllocationInput(input);
-  if (input.fundingMode !== "manual" && allocations.length > 0) {
+  const manualOnly = input.type === "debt" || input.type === "income";
+  const fundingMode = manualOnly ? "manual" : (input.fundingMode ?? "accounts");
+  const allocations = fundingMode === "manual" ? [] : normalizeAllocationInput(input);
+  if (fundingMode !== "manual" && allocations.length > 0) {
     await validateAllocations(null, allocations);
   }
 
@@ -203,7 +229,7 @@ export async function createGoal(input: GoalCreateInput) {
         targetDate: input.targetDate ?? null,
         currency: input.currency.toUpperCase(),
         priority: input.priority ?? 1,
-        fundingMode: input.fundingMode ?? "accounts",
+        fundingMode,
         manualCurrentAmount:
           input.manualCurrentAmount === undefined || input.manualCurrentAmount === null
             ? null
@@ -214,6 +240,14 @@ export async function createGoal(input: GoalCreateInput) {
           input.inflationRate === undefined || input.inflationRate === null
             ? null
             : String(input.inflationRate),
+        downPaymentPct:
+          input.downPaymentPct === undefined || input.downPaymentPct === null
+            ? null
+            : String(input.downPaymentPct),
+        interestRate:
+          input.interestRate === undefined || input.interestRate === null
+            ? null
+            : String(input.interestRate),
         accountIds: allocations.map((allocation) => allocation.accountId),
         notes: input.notes ?? null,
       })
@@ -238,17 +272,22 @@ export async function updateGoal(id: string, input: GoalUpdateInput) {
   const [existing] = await db.select().from(goals).where(eq(goals.id, id)).limit(1);
   if (!existing) return null;
 
-  const nextMode = input.fundingMode ?? existing.fundingMode;
+  const nextType = input.type ?? existing.type;
+  const manualOnly = nextType === "debt" || nextType === "income";
+  const nextMode = manualOnly ? "manual" : (input.fundingMode ?? existing.fundingMode);
   const shouldReplaceAllocations =
+    manualOnly ||
     input.allocations !== undefined ||
     input.accountIds !== undefined ||
-    input.fundingMode !== undefined;
+    input.fundingMode !== undefined ||
+    input.type !== undefined;
   const allocations =
     shouldReplaceAllocations && nextMode !== "manual" ? normalizeAllocationInput(input) : [];
   if (allocations.length > 0) await validateAllocations(id, allocations);
 
   return db.transaction(async (tx) => {
     const values = goalValues(input);
+    if (manualOnly) values.fundingMode = "manual";
     if (shouldReplaceAllocations) {
       values.accountIds = allocations.map((allocation) => allocation.accountId);
     }
@@ -282,7 +321,7 @@ export type PlanGoalStatus = "on_track" | "at_risk" | "off_track" | "insufficien
 export type PlanGoal = {
   id: string;
   name: string;
-  type: string;
+  type: GoalType;
   priority: number;
   status: PlanGoalStatus;
   reason: string | null;
@@ -292,6 +331,11 @@ export type PlanGoal = {
   projected: { conservative: number; base: number; optimistic: number };
   gap: number;
   requiredMonthly: number | null;
+  downPaymentPct: number | null;
+  purchasePrice: number | null;
+  downPayment: number | null;
+  financedAmount: number | null;
+  interestRate: number | null;
   currency: string;
   rateDate: string;
   goalCurrency: string;
@@ -343,9 +387,14 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
       numberValue(goal.monthlyContribution) * (await rateOrOne(goalCurrency, baseCurrency, asOf));
     const expectedReturn = numberValue(goal.expectedReturn);
     const inflationRate = numberValue(goal.inflationRate, DEFAULT_INFLATION_RATE);
+    const interestRate =
+      goal.interestRate === null ? null : numberValue(goal.interestRate);
+    const downPaymentPct =
+      goal.downPaymentPct === null ? null : numberValue(goal.downPaymentPct);
+    const kind = goal.type;
     const storedAllocations = allocationsByGoal.get(goal.id) ?? [];
     const effectiveAllocations =
-      goal.fundingMode === "manual"
+      kind === "debt" || kind === "income" || goal.fundingMode === "manual"
         ? []
         : storedAllocations.length > 0
           ? storedAllocations
@@ -353,7 +402,13 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
 
     let current = 0;
     let fundingMissing = false;
-    if (goal.fundingMode === "manual") {
+    if (kind === "debt" || kind === "income") {
+      current =
+        goal.manualCurrentAmount === null
+          ? 0
+          : numberValue(goal.manualCurrentAmount) *
+            (await rateOrOne(goalCurrency, baseCurrency, asOf));
+    } else if (goal.fundingMode === "manual") {
       if (goal.manualCurrentAmount === null) {
         fundingMissing = true;
       } else {
@@ -378,18 +433,77 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
     const targetDate =
       parsedTargetDate && !Number.isNaN(parsedTargetDate.getTime()) ? parsedTargetDate : null;
     const months = targetDate ? monthsBetween(asOf, targetDate) : 0;
-    const projected = projectionRange(current, monthlyBase, expectedReturn, inflationRate, months);
-    const requiredMonthly = targetDate
-      ? requiredMonthlyContribution(
-          current,
-          targetBase,
-          (1 + expectedReturn) / (1 + inflationRate) - 1,
-          months,
-        )
-      : null;
+    const realReturn = (1 + expectedReturn) / (1 + inflationRate) - 1;
+    const purchasePct = Math.min(100, Math.max(0, downPaymentPct ?? 20));
+    const effectiveTarget =
+      kind === "purchase" ? targetBase * (purchasePct / 100) : targetBase;
+    const outstandingDebt = Math.max(0, targetBase - current);
 
+    let projected: { conservative: number; base: number; optimistic: number };
+    let requiredMonthly: number | null;
+    let progress: number;
+    let gap: number;
     let status: PlanGoalStatus;
     let reason: string | null = null;
+
+    if (kind === "debt") {
+      const debtRate = interestRate ?? 0;
+      projected = {
+        conservative: remainingDebt(
+          outstandingDebt,
+          Math.max(-0.99, debtRate + RETURN_BAND),
+          monthlyBase,
+          months,
+        ),
+        base: remainingDebt(outstandingDebt, debtRate, monthlyBase, months),
+        optimistic: remainingDebt(
+          outstandingDebt,
+          debtRate - RETURN_BAND,
+          monthlyBase,
+          months,
+        ),
+      };
+      requiredMonthly = targetDate
+        ? requiredDebtPayment(outstandingDebt, debtRate, months)
+        : null;
+      progress = targetBase > 0 ? Math.min(100, (current / targetBase) * 100) : 0;
+      gap = Math.max(0, projected.base);
+    } else if (kind === "income") {
+      projected = {
+        conservative: projectedMonthlyIncome(
+          current,
+          monthlyBase,
+          expectedReturn - RETURN_BAND,
+          months,
+        ),
+        base: projectedMonthlyIncome(current, monthlyBase, expectedReturn, months),
+        optimistic: projectedMonthlyIncome(
+          current,
+          monthlyBase,
+          expectedReturn + RETURN_BAND,
+          months,
+        ),
+      };
+      requiredMonthly = targetDate
+        ? requiredIncomeIncrease(current, monthlyBase, expectedReturn, months, targetBase)
+        : null;
+      progress = targetBase > 0 ? Math.min(100, (current / targetBase) * 100) : 0;
+      gap = Math.max(0, targetBase - projected.conservative);
+    } else {
+      projected = projectionRange(
+        current,
+        monthlyBase,
+        expectedReturn,
+        inflationRate,
+        months,
+      );
+      requiredMonthly = targetDate
+        ? requiredMonthlyContribution(current, effectiveTarget, realReturn, months)
+        : null;
+      progress = effectiveTarget > 0 ? Math.min(100, (current / effectiveTarget) * 100) : 0;
+      gap = Math.max(0, effectiveTarget - projected.conservative);
+    }
+
     if (numberValue(goal.targetAmount) <= 0) {
       status = "insufficient_data";
       reason = "missing_target";
@@ -399,8 +513,18 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
     } else if (fundingMissing) {
       status = "insufficient_data";
       reason = "missing_funding";
+    } else if (kind === "debt") {
+      if (projected.conservative <= 0) {
+        status = "on_track";
+      } else if (projected.base <= 0) {
+        status = "at_risk";
+        reason = "only_base_case_reaches_target";
+      } else {
+        status = "off_track";
+        reason = "base_case_misses_target";
+      }
     } else {
-      const classified = classifyGoalStatus(targetBase, projected);
+      const classified = classifyGoalStatus(effectiveTarget, projected);
       status = classified.status;
       reason = classified.reason;
     }
@@ -413,15 +537,21 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
       status,
       reason,
       current: round4(current),
-      target: round4(targetBase),
-      progress: targetBase > 0 ? round4(Math.min(100, (current / targetBase) * 100)) : 0,
+      target: round4(effectiveTarget),
+      progress: round4(progress),
       projected: {
         conservative: round4(projected.conservative),
         base: round4(projected.base),
         optimistic: round4(projected.optimistic),
       },
-      gap: round4(Math.max(0, targetBase - projected.conservative)),
+      gap: round4(gap),
       requiredMonthly: requiredMonthly === null ? null : round4(requiredMonthly),
+      downPaymentPct: kind === "purchase" ? purchasePct : null,
+      purchasePrice: kind === "purchase" ? round4(targetBase) : null,
+      downPayment: kind === "purchase" ? round4(effectiveTarget) : null,
+      financedAmount:
+        kind === "purchase" ? round4(Math.max(0, targetBase - effectiveTarget)) : null,
+      interestRate: kind === "debt" ? interestRate : null,
       currency: baseCurrency,
       rateDate: asOf.toISOString().slice(0, 10),
       goalCurrency,

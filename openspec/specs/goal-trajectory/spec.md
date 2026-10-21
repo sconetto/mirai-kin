@@ -21,6 +21,25 @@ The system SHALL store a funding model for every goal using either linked accoun
 - **WHEN** an existing goal has no allocation, manual amount, or contribution
 - **THEN** the system preserves the goal and reports why its trajectory is unavailable
 
+### Requirement: Goal kinds
+The system SHALL calculate savings, purchase, debt payoff, and income goals using kind-specific projections while preserving the common target date, currency, and status model.
+
+#### Scenario: Savings projection
+- **WHEN** a savings goal has a current amount, monthly contribution, return, inflation, target amount, and target date
+- **THEN** the system projects the accumulated value and compares it with the target
+
+#### Scenario: Purchase projection
+- **WHEN** a purchase goal has a purchase price and down-payment percentage
+- **THEN** the system uses the down-payment cash requirement as the savings target and reports the purchase price and financed amount
+
+#### Scenario: Debt payoff projection
+- **WHEN** a debt goal has a balance, amount already paid, monthly payment, interest rate, and target date
+- **THEN** the system projects the remaining balance and reports the payment required to clear it by the target date
+
+#### Scenario: Income projection
+- **WHEN** an income goal has current monthly income, additional monthly income, growth, target monthly income, and target date
+- **THEN** the system projects monthly income and reports the required income increase
+
 ### Requirement: Funding allocation validation
 The system SHALL prevent allocations from assigning more than 100% of any account across goals and SHALL allow a goal to share an account with another goal through percentages.
 

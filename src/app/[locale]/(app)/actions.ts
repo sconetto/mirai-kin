@@ -637,10 +637,12 @@ function goalFormValues(formData: FormData) {
   }));
   const expectedReturn = field(formData, "expectedReturnPct");
   const inflationRate = field(formData, "inflationRatePct");
+  const downPaymentPct = field(formData, "downPaymentPct");
+  const interestRate = field(formData, "interestRatePct");
 
   return {
     name: field(formData, "name"),
-    type: field(formData, "type") ?? "custom",
+    type: field(formData, "type") ?? "savings",
     targetAmount: field(formData, "targetAmount") ?? "0",
     targetDate: field(formData, "targetDate") ?? null,
     currency: field(formData, "currency"),
@@ -650,6 +652,8 @@ function goalFormValues(formData: FormData) {
     monthlyContribution: field(formData, "monthlyContribution") ?? "0",
     expectedReturn: expectedReturn ? Number(expectedReturn) / 100 : 0,
     inflationRate: inflationRate ? Number(inflationRate) / 100 : null,
+    downPaymentPct: downPaymentPct ? Number(downPaymentPct) : null,
+    interestRate: interestRate ? Number(interestRate) / 100 : null,
     allocations,
     notes: field(formData, "notes") ?? null,
   };

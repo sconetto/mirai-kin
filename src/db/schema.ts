@@ -84,7 +84,7 @@ export type ImportSource = (typeof IMPORT_SOURCES)[number];
 export const IMPORT_ROW_STATUSES = ["pending", "valid", "invalid", "duplicate", "committed"] as const;
 export type ImportRowStatus = (typeof IMPORT_ROW_STATUSES)[number];
 
-export const GOAL_TYPES = ["emergency", "retirement", "home", "custom"] as const;
+export const GOAL_TYPES = ["savings", "purchase", "debt", "income"] as const;
 export type GoalType = (typeof GOAL_TYPES)[number];
 
 export const GOAL_FUNDING_MODES = ["accounts", "manual"] as const;
@@ -554,7 +554,7 @@ export const dividends = pgTable("dividends", {
 export const goals = pgTable("goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  type: text("type").$type<GoalType>().notNull().default("custom"),
+  type: text("type").$type<GoalType>().notNull().default("savings"),
   targetAmount: money("target_amount").notNull(),
   targetDate: date("target_date"),
   currency: text("currency").notNull(),
@@ -564,6 +564,8 @@ export const goals = pgTable("goals", {
   monthlyContribution: money("monthly_contribution").notNull().default("0"),
   expectedReturn: rate("expected_return").notNull().default("0"),
   inflationRate: rate("inflation_rate"),
+  downPaymentPct: percent("down_payment_pct"),
+  interestRate: rate("interest_rate"),
   accountIds: jsonb("account_ids")
     .$type<string[]>()
     .notNull()

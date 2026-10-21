@@ -25,6 +25,31 @@ const STATUS_TONE = {
   insufficient_data: "neutral",
 } as const;
 
+function currentLabelKey(type: string) {
+  if (type === "debt") return "paid";
+  if (type === "income") return "currentIncome";
+  return "current";
+}
+
+function targetLabelKey(type: string) {
+  if (type === "purchase") return "downPayment";
+  if (type === "debt") return "debtBalance";
+  if (type === "income") return "targetIncome";
+  return "target";
+}
+
+function projectedLabelKey(type: string) {
+  if (type === "debt") return "projectedBalance";
+  if (type === "income") return "projectedIncome";
+  return "projected";
+}
+
+function requiredLabelKey(type: string) {
+  if (type === "debt") return "requiredPayment";
+  if (type === "income") return "requiredIncomeIncrease";
+  return "requiredMonthly";
+}
+
 async function AllocationFields({
   accounts,
   selected,
@@ -95,6 +120,8 @@ async function GoalFields({
     monthlyContributionOriginal: number;
     expectedReturn: number;
     inflationRate: number;
+    downPaymentPct: number | null;
+    interestRate: number | null;
     allocations: { accountId: string; sharePct: number }[];
   };
   accounts: PlannerAccount[];
@@ -114,7 +141,7 @@ async function GoalFields({
       </label>
       <label className="text-xs text-ink-3">
         {t("type")}
-        <Select name="type" defaultValue={goal?.type ?? "custom"} className="mt-1">
+        <Select name="type" defaultValue={goal?.type ?? "savings"} className="mt-1">
           {GOAL_TYPES.map((type) => (
             <option key={type} value={type}>
               {t(type as never)}
@@ -208,6 +235,29 @@ async function GoalFields({
           className="mt-1"
         />
       </label>
+      <label className="text-xs text-ink-3">
+        {t("downPaymentPct")}
+        <Input
+          name="downPaymentPct"
+          type="number"
+          min={0}
+          max={100}
+          step="1"
+          defaultValue={goal?.downPaymentPct ?? 20}
+          className="mt-1"
+        />
+      </label>
+      <label className="text-xs text-ink-3">
+        {t("interestRate")}
+        <Input
+          name="interestRatePct"
+          type="number"
+          step="0.1"
+          defaultValue={goal?.interestRate !== null && goal?.interestRate !== undefined ? goal.interestRate * 100 : 0}
+          className="mt-1"
+        />
+      </label>
+      <p className="text-xs text-ink-3 sm:col-span-2 lg:col-span-5">{t("goalTypesHint")}</p>
       <div className="sm:col-span-2 lg:col-span-5">
         <AllocationFields accounts={accounts} selected={selected} locale={locale} />
       </div>
@@ -305,25 +355,25 @@ export default async function PlannerPage({
               <CardContent className="space-y-4">
                 <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                   <div>
-                    <dt className="text-xs text-ink-3">{t("current")}</dt>
+                    <dt className="text-xs text-ink-3">{t(currentLabelKey(goal.type))}</dt>
                     <dd className="tabular mt-0.5 font-medium text-ink">
                       {formatCurrency(goal.current, currency, locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-ink-3">{t("target")}</dt>
+                    <dt className="text-xs text-ink-3">{t(targetLabelKey(goal.type))}</dt>
                     <dd className="tabular mt-0.5 font-medium text-ink">
                       {formatCurrency(goal.target, currency, locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-ink-3">{t("projected")}</dt>
+                    <dt className="text-xs text-ink-3">{t(projectedLabelKey(goal.type))}</dt>
                     <dd className="tabular mt-0.5 font-medium text-ink">
                       {formatCurrency(goal.projected.base, currency, locale)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-ink-3">{t("requiredMonthly")}</dt>
+                    <dt className="text-xs text-ink-3">{t(requiredLabelKey(goal.type))}</dt>
                     <dd className="tabular mt-0.5 font-medium text-ink">
                       {goal.requiredMonthly === null
                         ? "—"
@@ -331,6 +381,22 @@ export default async function PlannerPage({
                     </dd>
                   </div>
                 </dl>
+                {goal.type === "purchase" ? (
+                  <p className="text-xs text-ink-3">
+                    {t("purchaseBreakdown", {
+                      price: formatCurrency(goal.purchasePrice ?? 0, currency, locale),
+                      downPayment: formatCurrency(goal.downPayment ?? 0, currency, locale),
+                      financed: formatCurrency(goal.financedAmount ?? 0, currency, locale),
+                    })}
+                  </p>
+                ) : null}
+                {goal.type === "debt" && goal.interestRate !== null ? (
+                  <p className="text-xs text-ink-3">
+                    {t("interestLine", {
+                      rate: formatNumber(goal.interestRate * 100, locale),
+                    })}
+                  </p>
+                ) : null}
 
                 {goal.status === "insufficient_data" ? (
                   <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">

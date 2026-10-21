@@ -178,6 +178,8 @@ export const goalCreateSchema = z.object({
   monthlyContribution: decimal.optional(),
   expectedReturn: decimal.optional(),
   inflationRate: decimal.nullish(),
+  downPaymentPct: decimal.nullish(),
+  interestRate: decimal.nullish(),
   accountIds: z.array(z.uuid()).max(50).optional(),
   allocations: z.array(goalAllocationInputSchema).max(50).optional(),
   notes: z.string().nullish(),

@@ -4,7 +4,11 @@ import {
   futureValue,
   monthsBetween,
   projectionRange,
+  projectedMonthlyIncome,
   realAnnualReturn,
+  remainingDebt,
+  requiredDebtPayment,
+  requiredIncomeIncrease,
   requiredMonthlyContribution,
 } from "./goal-trajectory";
 
@@ -56,5 +60,22 @@ describe("goal trajectory math", () => {
   it("classifies off track when the base case misses", () => {
     const projections = projectionRange(1000, 0, 0.1, 0, 12);
     expect(classifyGoalStatus(1200, projections).status).toBe("off_track");
+  });
+
+  it("projects a debt balance and required payment", () => {
+    const remaining = remainingDebt(10_000, 0.12, 500, 12);
+    expect(remaining).toBeGreaterThan(0);
+    expect(remaining).toBeLessThan(10_000);
+    const payment = requiredDebtPayment(10_000, 0.12, 12);
+    expect(payment).not.toBeNull();
+    expect(remainingDebt(10_000, 0.12, payment ?? 0, 12)).toBeCloseTo(0, 6);
+  });
+
+  it("projects income growth and required income increase", () => {
+    const projected = projectedMonthlyIncome(5_000, 500, 0.06, 24);
+    expect(projected).toBeGreaterThan(5_500);
+    const required = requiredIncomeIncrease(5_000, 500, 0.06, 24, 8_000);
+    expect(required).toBeGreaterThan(0);
+    expect(projectedMonthlyIncome(5_000, 500 + required, 0.06, 24)).toBeCloseTo(8_000, 4);
   });
 });

@@ -44,7 +44,7 @@ describe.skipIf(!process.env.DATABASE_URL)("goal plan status", () => {
   it("supports shared account allocations", async () => {
     const first = await createGoal({
       name: `TEST shared goal A ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "10000",
       targetDate: "2027-01-01",
       currency: "BRL",
@@ -54,7 +54,7 @@ describe.skipIf(!process.env.DATABASE_URL)("goal plan status", () => {
     goalA = first.id;
     const second = await createGoal({
       name: `TEST shared goal B ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "10000",
       targetDate: "2027-01-01",
       currency: "BRL",
@@ -72,7 +72,7 @@ describe.skipIf(!process.env.DATABASE_URL)("goal plan status", () => {
     await expect(
       createGoal({
         name: `TEST over allocated ${randomUUID()}`,
-        type: "custom",
+        type: "savings",
         targetAmount: "10000",
         targetDate: "2027-01-01",
         currency: "BRL",
@@ -85,7 +85,7 @@ describe.skipIf(!process.env.DATABASE_URL)("goal plan status", () => {
   it("converts a multi-currency goal into the base currency", async () => {
     const goal = await createGoal({
       name: `TEST multi currency ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "2000",
       targetDate: "2027-01-01",
       currency: "USD",
@@ -105,10 +105,74 @@ describe.skipIf(!process.env.DATABASE_URL)("goal plan status", () => {
     expect(status?.current).toBeCloseTo(expected, 2);
   });
 
+  it("evaluates purchase, debt, and income goal kinds", async () => {
+    const ids: string[] = [];
+    try {
+      const purchase = await createGoal({
+        name: `TEST purchase ${randomUUID()}`,
+        type: "purchase",
+        targetAmount: "500000",
+        targetDate: "2028-01-01",
+        currency: "BRL",
+        fundingMode: "manual",
+        manualCurrentAmount: "100000",
+        monthlyContribution: "5000",
+        expectedReturn: "0.06",
+        inflationRate: "0.04",
+        downPaymentPct: "20",
+      });
+      ids.push(purchase.id);
+      const debt = await createGoal({
+        name: `TEST debt ${randomUUID()}`,
+        type: "debt",
+        targetAmount: "20000",
+        targetDate: "2027-01-01",
+        currency: "BRL",
+        manualCurrentAmount: "5000",
+        monthlyContribution: "1000",
+        interestRate: "0.12",
+      });
+      ids.push(debt.id);
+      const income = await createGoal({
+        name: `TEST income ${randomUUID()}`,
+        type: "income",
+        targetAmount: "15000",
+        targetDate: "2028-01-01",
+        currency: "BRL",
+        manualCurrentAmount: "10000",
+        monthlyContribution: "1000",
+        expectedReturn: "0.05",
+      });
+      ids.push(income.id);
+
+      const plan = await getPlanStatus();
+      const purchaseGoal = plan.goals.find((goal) => goal.id === purchase.id);
+      const debtGoal = plan.goals.find((goal) => goal.id === debt.id);
+      const incomeGoal = plan.goals.find((goal) => goal.id === income.id);
+
+      expect(purchaseGoal?.target).toBe(100000);
+      expect(purchaseGoal?.purchasePrice).toBe(500000);
+      expect(purchaseGoal?.financedAmount).toBe(400000);
+      expect(purchaseGoal?.status).toBe("on_track");
+
+      expect(debtGoal?.current).toBe(5000);
+      expect(debtGoal?.target).toBe(20000);
+      expect(debtGoal?.requiredMonthly).toBeGreaterThan(0);
+      expect(debtGoal?.projected.base).toBeGreaterThan(0);
+
+      expect(incomeGoal?.current).toBe(10000);
+      expect(incomeGoal?.target).toBe(15000);
+      expect(incomeGoal?.projected.base).toBeGreaterThan(10000);
+      expect(incomeGoal?.status).not.toBe("insufficient_data");
+    } finally {
+      for (const id of ids) await deleteGoal(id);
+    }
+  });
+
   it("reports insufficient data without a target date", async () => {
     const goal = await createGoal({
       name: `TEST no date ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "10000",
       currency: "BRL",
       fundingMode: "accounts",

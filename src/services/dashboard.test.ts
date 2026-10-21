@@ -11,7 +11,7 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard view model", () => {
   beforeAll(async () => {
     const goal = await createGoal({
       name: `TEST dashboard goal ${randomUUID()}`,
-      type: "custom",
+      type: "savings",
       targetAmount: "10000",
       currency: "BRL",
       fundingMode: "manual",
