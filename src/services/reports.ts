@@ -26,6 +26,8 @@ export type ReportConfig = {
 export type ReportRow = {
   key: string;
   label: string;
+  labelEn?: string | null;
+  labelPt?: string | null;
   income: number;
   expenses: number;
   transfers: number;
@@ -150,13 +152,15 @@ async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
   const rows = await db
     .select({
       key: sql<string>`coalesce(${categories.name}, 'Uncategorized')`,
+      labelEn: categories.nameEn,
+      labelPt: categories.namePt,
       expenses: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end), 0)`,
       income: sql<string>`coalesce(sum(case when ${transactions.amount} > 0 then ${transactions.baseAmount} else 0 end), 0)`,
     })
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
     .where(and(...conditions))
-    .groupBy(categories.name)
+    .groupBy(categories.name, categories.nameEn, categories.namePt)
     .orderBy(sql`sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end) desc`);
 
   return rows.map((row) => {
@@ -165,6 +169,8 @@ async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
     return {
       key: row.key,
       label: row.key,
+      labelEn: row.labelEn,
+      labelPt: row.labelPt,
       income,
       expenses,
       transfers: 0,

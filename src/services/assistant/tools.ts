@@ -10,6 +10,7 @@ import { forecast } from "@/services/projections";
 import { getReport } from "@/services/reports";
 import type { ReportType } from "@/services/reports";
 import { listTransactions } from "@/services/transactions";
+import { localizedCategoryName } from "@/lib/category-name";
 import { transactionCreateSchema } from "@/lib/schemas";
 import { createPendingAction } from "@/services/assistant";
 
@@ -38,7 +39,11 @@ async function resolveAccount(name: string) {
 async function resolveCategory(name: string) {
   const categories = await listCategories();
   const needle = name.trim().toLowerCase();
-  const matches = categories.filter((category) => category.name.toLowerCase().includes(needle));
+  const matches = categories.filter((category) =>
+    [category.name, category.nameEn, category.namePt]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(needle)),
+  );
   return { category: matches[0] ?? null, categories, matches };
 }
 
@@ -127,7 +132,7 @@ export function buildAssistantTools(conversationId: string) {
           if (!resolved.category) {
             return {
               error: `Category "${input.categoryName}" was not found.`,
-              availableCategories: resolved.categories.map((category) => category.name),
+              availableCategories: resolved.categories.map((category) => localizedCategoryName(category, "en")),
             };
           }
           categoryId = resolved.category.id;
@@ -139,7 +144,9 @@ export function buildAssistantTools(conversationId: string) {
           listTransactions({ from, to, accountId, categoryId, limit: 100 }),
         ]);
         const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
-        const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+        const categoryNames = new Map(
+    categories.map((category) => [category.id, localizedCategoryName(category, "en")]),
+  );
         const needle = input.query?.trim().toLowerCase();
 
         const transactions = result.transactions
@@ -275,11 +282,11 @@ export function buildAssistantTools(conversationId: string) {
           if (!resolvedCategory.category) {
             return {
               error: `Category "${input.categoryName}" was not found.`,
-              availableCategories: resolvedCategory.categories.map((category) => category.name),
+              availableCategories: resolvedCategory.categories.map((category) => localizedCategoryName(category, "en")),
             };
           }
           categoryId = resolvedCategory.category.id;
-          categoryName = resolvedCategory.category.name;
+          categoryName = localizedCategoryName(resolvedCategory.category, "en");
         }
 
         const currency = (input.currency ?? resolvedAccount.account.currency).toUpperCase();

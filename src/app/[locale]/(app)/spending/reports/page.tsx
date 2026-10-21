@@ -62,8 +62,10 @@ export default async function ReportsPage({
           ? "transfers"
           : "net";
 
+  const rowLabel = (row: (typeof report.rows)[number]) =>
+    locale === "en" ? (row.labelEn ?? row.label) : (row.labelPt ?? row.label);
   const chartData = report.rows.map((row) => ({
-    name: type === "breakdown" ? row.label : formatMonth(row.key, locale),
+    name: type === "breakdown" ? rowLabel(row) : formatMonth(row.key, locale),
     total: row[metric as "income" | "expenses" | "transfers" | "net"],
   }));
 
@@ -196,7 +198,7 @@ export default async function ReportsPage({
                     {report.rows.map((row) => (
                       <tr key={row.key} className="hover:bg-paper">
                         <td className="py-2.5 pr-4 text-ink-2">
-                          {type === "breakdown" ? row.label : formatMonth(row.key, locale)}
+                          {type === "breakdown" ? rowLabel(row) : formatMonth(row.key, locale)}
                         </td>
                         <td className="hidden py-2.5 pr-4 text-right text-positive sm:table-cell">
                           {formatCurrency(String(row.income), report.currency, locale)}

@@ -43,6 +43,13 @@
       "when": 1792585133328,
       "tag": "0005_nostalgic_jack_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792592065785,
+      "tag": "0006_worried_rocket_racer",
+      "breakpoints": true
     }
   ]
 }

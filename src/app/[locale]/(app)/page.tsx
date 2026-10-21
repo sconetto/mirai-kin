@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Money } from "@/components/ui/money";
 import { Link } from "@/i18n/navigation";
+import { localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { insightParams } from "@/lib/insight-params";
 import { overview } from "@/services/analytics";
@@ -23,7 +24,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     .sort((a, b) => Math.abs(Number(b.baseBalance)) - Math.abs(Number(a.baseBalance)))
     .slice(0, 8);
   const spending = data.spendingByCategory.map((row) => ({
-    name: row.name,
+    name: localizedCategoryName(row, locale),
     total: Number(row.total),
     color: row.color,
     icon: row.icon,

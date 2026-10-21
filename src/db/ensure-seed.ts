@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { categoryTranslation } from "@/lib/category-translations";
 import { getEnv } from "@/lib/env";
 import { getDb } from "./index";
 import { accounts, categories, users } from "./schema";
@@ -46,12 +47,33 @@ export async function ensureSeed(): Promise<void> {
       .where(eq(categories.name, category.name))
       .limit(1);
     if (found.length === 0) {
+      const translation = categoryTranslation(category.name);
       await db.insert(categories).values({
         name: category.name,
+        nameEn: translation?.en ?? null,
+        namePt: translation?.pt ?? null,
         type: category.type,
         isSystem: false,
       });
     }
+  }
+
+  const existingCategories = await db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      nameEn: categories.nameEn,
+      namePt: categories.namePt,
+    })
+    .from(categories);
+  for (const category of existingCategories) {
+    const translation = categoryTranslation(category.name);
+    if (!translation) continue;
+    if (category.nameEn === translation.en && category.namePt === translation.pt) continue;
+    await db
+      .update(categories)
+      .set({ nameEn: translation.en, namePt: translation.pt })
+      .where(eq(categories.id, category.id));
   }
 
   const anyAccount = await db.select({ id: accounts.id }).from(accounts).limit(1);

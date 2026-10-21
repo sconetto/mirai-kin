@@ -152,6 +152,8 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     .select({
       categoryId: categories.id,
       name: categories.name,
+      nameEn: categories.nameEn,
+      namePt: categories.namePt,
       month: sql<string>`to_char(${transactions.recordDate} at time zone 'UTC', 'YYYY-MM')`,
       total: sql<string>`coalesce(sum(-${transactions.baseAmount}), 0)`,
     })
@@ -165,13 +167,24 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         sql`${transactions.reviewStatus} <> 'split'`,
       ),
     )
-    .groupBy(categories.id, categories.name, sql`to_char(${transactions.recordDate} at time zone 'UTC', 'YYYY-MM')`);
+    .groupBy(
+      categories.id,
+      categories.name,
+      categories.nameEn,
+      categories.namePt,
+      sql`to_char(${transactions.recordDate} at time zone 'UTC', 'YYYY-MM')`,
+    );
 
-  const byCategory = new Map<string, { name: string; current: number; trailing: number[] }>();
+  const byCategory = new Map<
+    string,
+    { name: string; nameEn: string | null; namePt: string | null; current: number; trailing: number[] }
+  >();
   for (const row of categoryRows) {
     if (!row.categoryId) continue;
     const entry = byCategory.get(row.categoryId) ?? {
       name: row.name ?? "",
+      nameEn: row.nameEn,
+      namePt: row.namePt,
       current: 0,
       trailing: [],
     };
@@ -192,6 +205,8 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         data: {
           categoryId,
           name: entry.name,
+          nameEn: entry.nameEn,
+          namePt: entry.namePt,
           current: Number(entry.current.toFixed(2)),
           average: Number(average.toFixed(2)),
           ratio: Number((entry.current / average).toFixed(2)),

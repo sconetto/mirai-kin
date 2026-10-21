@@ -48,10 +48,25 @@ test("language applies immediately and can be switched back", async ({ page }) =
   await expect(page).toHaveURL(/\/en\/settings/);
   await expect(page.getByRole("heading", { name: "Settings", exact: true, level: 1 })).toBeVisible();
 
+  await page.goto("/en/spending/transactions");
+  const englishCategories = await page
+    .locator('select[name="categoryId"] option')
+    .allTextContents();
+  expect(englishCategories).toContain("Groceries");
+  expect(englishCategories).toContain("Home");
+
+  await page.goto("/en/settings?section=localization");
   await page.locator('select[name="defaultLocale"]').selectOption("pt-BR");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/pt-BR\/settings/);
   await expect(
     page.getByRole("heading", { name: "Configurações", exact: true, level: 1 }),
   ).toBeVisible();
+
+  await page.goto("/pt-BR/spending/transactions");
+  const portugueseCategories = await page
+    .locator('select[name="categoryId"] option')
+    .allTextContents();
+  expect(portugueseCategories).toContain("Mercado");
+  expect(portugueseCategories).toContain("Casa");
 });

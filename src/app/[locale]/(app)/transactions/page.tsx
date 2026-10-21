@@ -3,6 +3,7 @@ import { PAYMENT_TYPES } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
+import { localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { listAccounts } from "@/services/accounts";
 import { listCategories } from "@/services/categories";
@@ -58,7 +59,7 @@ export default async function TransactionsPage({
                 <option value="">{tc("none")}</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.name}
+                    {localizedCategoryName(category, locale)}
                   </option>
                 ))}
               </Select>

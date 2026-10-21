@@ -446,9 +446,12 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
   const selected = rowIds ? new Set(rowIds) : null;
 
   const categoryRows = await db.select().from(categories);
-  const categoryByName = new Map(
-    categoryRows.map((category) => [category.name.toLowerCase(), category.id]),
-  );
+  const categoryByName = new Map<string, string>();
+  for (const category of categoryRows) {
+    categoryByName.set(category.name.toLowerCase(), category.id);
+    if (category.nameEn) categoryByName.set(category.nameEn.toLowerCase(), category.id);
+    if (category.namePt) categoryByName.set(category.namePt.toLowerCase(), category.id);
+  }
   const rules = await listRules();
 
   const results: { row: number; success: boolean; id?: string; error?: string }[] = [];

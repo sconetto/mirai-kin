@@ -21,7 +21,10 @@ export function insightParams(
     case "budget_near":
       return { name: String(data.name), percent: formatNumber(String(data.percent), locale) };
     case "category_spike":
-      return { name: String(data.name), ratio: formatNumber(String(data.ratio), locale) };
+      return {
+        name: String(locale === "en" ? (data.nameEn ?? data.name) : (data.namePt ?? data.name)),
+        ratio: formatNumber(String(data.ratio), locale),
+      };
     case "upcoming_bill":
       return {
         label: String(data.label),

@@ -33,6 +33,8 @@ export async function overview(limitRecent = 10) {
     .select({
       categoryId: categories.id,
       name: categories.name,
+      nameEn: categories.nameEn,
+      namePt: categories.namePt,
       color: categories.color,
       icon: categories.icon,
       total: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end), 0)`,
@@ -40,7 +42,14 @@ export async function overview(limitRecent = 10) {
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
     .where(and(...monthConditions))
-    .groupBy(categories.id, categories.name, categories.color, categories.icon);
+    .groupBy(
+      categories.id,
+      categories.name,
+      categories.nameEn,
+      categories.namePt,
+      categories.color,
+      categories.icon,
+    );
 
   const recent = await db
     .select()
@@ -92,6 +101,8 @@ export async function overview(limitRecent = 10) {
       .map((row) => ({
         categoryId: row.categoryId,
         name: row.name ?? "—",
+        nameEn: row.nameEn,
+        namePt: row.namePt,
         total: row.total,
         color: row.color,
         icon: row.icon,

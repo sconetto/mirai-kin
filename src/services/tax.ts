@@ -18,6 +18,8 @@ export async function getTaxSummary(year: number) {
   const incomeRows = await db
     .select({
       category: sql<string>`coalesce(${categories.name}, 'Uncategorized')`,
+      nameEn: categories.nameEn,
+      namePt: categories.namePt,
       total: sql<string>`coalesce(sum(${transactions.baseAmount}), 0)`,
     })
     .from(transactions)
@@ -30,7 +32,7 @@ export async function getTaxSummary(year: number) {
         sql`${transactions.reviewStatus} <> 'split'`,
       ),
     )
-    .groupBy(categories.name)
+    .groupBy(categories.name, categories.nameEn, categories.namePt)
     .orderBy(sql`sum(${transactions.baseAmount}) desc`);
 
   const [deductible] = await db
@@ -73,7 +75,12 @@ export async function getTaxSummary(year: number) {
 
   return {
     year,
-    income: incomeRows.map((row) => ({ category: row.category, total: Number(row.total) })),
+    income: incomeRows.map((row) => ({
+      category: row.category,
+      nameEn: row.nameEn,
+      namePt: row.namePt,
+      total: Number(row.total),
+    })),
     deductible: Number(deductible?.total ?? 0),
     capitalGains: Number(capitalGains.toFixed(4)),
     dividends: Number(dividendTotal?.total ?? 0),

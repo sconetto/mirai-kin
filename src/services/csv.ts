@@ -25,9 +25,12 @@ export async function importCsv(csv: string, options: { accountId?: string } = {
   }
 
   const categoryRows = await db.select().from(categories);
-  const categoryByName = new Map(
-    categoryRows.map((category) => [category.name.toLowerCase(), category.id]),
-  );
+  const categoryByName = new Map<string, string>();
+  for (const category of categoryRows) {
+    categoryByName.set(category.name.toLowerCase(), category.id);
+    if (category.nameEn) categoryByName.set(category.nameEn.toLowerCase(), category.id);
+    if (category.namePt) categoryByName.set(category.namePt.toLowerCase(), category.id);
+  }
 
   const results: CsvImportResult[] = errors.map((error) => ({
     row: error.rowNumber,

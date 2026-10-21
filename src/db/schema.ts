@@ -145,6 +145,8 @@ export const categories = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
+    nameEn: text("name_en"),
+    namePt: text("name_pt"),
     type: text("type").$type<CategoryType>().notNull(),
     parentId: uuid("parent_id").references((): AnyPgColumn => categories.id, {
       onDelete: "set null",

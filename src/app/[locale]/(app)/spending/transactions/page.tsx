@@ -7,6 +7,7 @@ import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { PAYMENT_TYPES } from "@/db/schema";
+import { localizedCategoryCompare, localizedCategoryName } from "@/lib/category-name";
 import { listAccounts } from "@/services/accounts";
 import { listCategories } from "@/services/categories";
 import { listTransactions } from "@/services/transactions";
@@ -79,9 +80,11 @@ export default async function SpendingTransactionsPage({
               </Select>
               <Select name="categoryId" defaultValue="">
                 <option value="">{tc("none")}</option>
-                {categories.map((category) => (
+                {[...categories]
+                  .sort((a, b) => localizedCategoryCompare(a, b, locale))
+                  .map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.name}
+                    {localizedCategoryName(category, locale)}
                   </option>
                 ))}
               </Select>
@@ -114,7 +117,14 @@ export default async function SpendingTransactionsPage({
           </div>
           <TransactionReview
             rows={rows}
-            categories={categories.map(({ id, name, icon, color }) => ({ id, name, icon, color }))}
+            categories={[...categories]
+              .sort((a, b) => localizedCategoryCompare(a, b, locale))
+              .map(({ id, name, nameEn, namePt, icon, color }) => ({
+                id,
+                name: localizedCategoryName({ name, nameEn, namePt }, locale),
+                icon,
+                color,
+              }))}
             locale={locale}
           />
         </CardContent>

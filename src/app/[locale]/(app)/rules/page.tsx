@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { localizedCategoryCompare, localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { listCategories } from "@/services/categories";
 import { listRules, previewRules } from "@/services/rules";
@@ -17,9 +18,13 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 
   const t = await getTranslations("rules");
   const tc = await getTranslations("common");
-  const categories = await listCategories();
+  const categories = [...(await listCategories())].sort((a, b) =>
+    localizedCategoryCompare(a, b, locale),
+  );
   const rules = await listRules();
-  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, localizedCategoryName(category, locale)]),
+  );
 
   const today = await getToday();
   const from = new Date(new Date(`${today}T00:00:00.000Z`).getTime() - 90 * 86_400_000)
@@ -45,7 +50,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
               <option value="">{t("noCategory")}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.name}
+                  {localizedCategoryName(category, locale)}
                 </option>
               ))}
             </Select>

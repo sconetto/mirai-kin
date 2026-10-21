@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { getBaseCurrency } from "@/services/settings";
+import { localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency } from "@/lib/format";
 import { getTaxSummary } from "@/services/tax";
 
@@ -85,7 +86,7 @@ export default async function TaxPage({
                 <tbody className="divide-y divide-line/70">
                   {summary.income.map((row) => (
                     <tr key={row.category}>
-                      <td className="py-2.5 pr-4 text-ink-2">{row.category}</td>
+                      <td className="py-2.5 pr-4 text-ink-2">{localizedCategoryName({ name: row.category, nameEn: row.nameEn, namePt: row.namePt }, locale)}</td>
                       <td className="py-2.5 text-right font-medium text-ink">
                         {formatCurrency(row.total, currency, locale)}
                       </td>

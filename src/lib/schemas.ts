@@ -44,6 +44,8 @@ export const accountUpdateSchema = accountCreateSchema.partial();
 
 export const categoryCreateSchema = z.object({
   name: z.string().min(1),
+  nameEn: z.string().min(1).nullish(),
+  namePt: z.string().min(1).nullish(),
   type: z.enum(CATEGORY_TYPES),
   parentId: z.uuid().optional(),
   color: z.string().optional(),
