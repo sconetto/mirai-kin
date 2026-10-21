@@ -60,5 +60,5 @@ FROM (VALUES
 ) AS v(key, en, pt)
 WHERE lower("categories"."name") = v.key;
 
-UPDATE "categories" SET "name_en" = Insurance, "name_pt" = Seguros WHERE lower("categories"."name") = insurances;
-UPDATE "categories" SET "name_en" = Flights, "name_pt" = Voos WHERE lower("categories"."name") IN (vôos, voos);
+UPDATE "categories" SET "name_en" = 'Insurance', "name_pt" = 'Seguros' WHERE lower("categories"."name") = 'insurances';
+UPDATE "categories" SET "name_en" = 'Flights', "name_pt" = 'Voos' WHERE lower("categories"."name") IN ('vôos', 'voos');
