@@ -61,11 +61,19 @@ The system SHALL project net worth over a configurable multi-year horizon using 
 - **THEN** the trajectory reports them as debt service without subtracting principal from projected net worth
 
 ### Requirement: Trajectory assumptions
-The system SHALL apply conservative, base, and optimistic assumptions to the net-worth trajectory and SHALL return the return, inflation, contribution, and horizon assumptions with the result.
+The system SHALL apply conservative, base, and optimistic assumptions to the net-worth trajectory, SHALL allow the selected scenario to override return, inflation, contribution, and horizon, and SHALL return the effective assumptions with the result.
 
 #### Scenario: Assumption transparency
 - **WHEN** a trajectory response is produced
-- **THEN** it includes the return, inflation, contribution, and horizon used for each scenario
+- **THEN** it includes the effective return, inflation, contribution, and horizon used for each scenario
+
+#### Scenario: Scenario override
+- **WHEN** a saved scenario is selected for the trajectory
+- **THEN** the projection uses the scenario's overrides and inherits unset values from the base plan
+
+#### Scenario: No scenario selected
+- **WHEN** no scenario is selected
+- **THEN** the projection uses the base plan assumptions
 
 ### Requirement: Deterministic trajectory
 The system SHALL produce identical trajectory figures when run twice with identical inputs and assumptions.
