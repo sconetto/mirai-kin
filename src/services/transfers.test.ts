@@ -2,7 +2,8 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { accounts, transactions, transfers } from "@/db/schema";
+import { transactions, transfers } from "@/db/schema";
+import { createAccount, deleteAccount } from "./accounts";
 import { createTransaction } from "./transactions";
 import { createTransfer, pairTransactions, unpairTransfer } from "./transfers";
 
@@ -12,12 +13,12 @@ describe.skipIf(!process.env.DATABASE_URL)("transfers (database)", () => {
   let usdId = "";
 
   beforeAll(async () => {
-    const db = getDb();
-    const rows = await db.select().from(accounts);
-    const brl = rows.filter((account) => account.currency === "BRL" && !account.archived);
-    brlId = brl[0]?.id ?? "";
-    brl2Id = brl[1]?.id ?? "";
-    usdId = rows.find((account) => account.currency === "USD" && !account.archived)?.id ?? "";
+    const brl = await createAccount({ name: "TEST transfer BRL 1", type: "checking", currency: "BRL", openingBalance: "0" });
+    const brl2 = await createAccount({ name: "TEST transfer BRL 2", type: "checking", currency: "BRL", openingBalance: "0" });
+    const usd = await createAccount({ name: "TEST transfer USD", type: "checking", currency: "USD", openingBalance: "0" });
+    brlId = brl.id;
+    brl2Id = brl2.id;
+    usdId = usd.id;
   });
 
   afterAll(async () => {
@@ -26,6 +27,9 @@ describe.skipIf(!process.env.DATABASE_URL)("transfers (database)", () => {
     await db.delete(transactions).where(eq(transactions.note, "TEST pair"));
     await db.delete(transfers).where(eq(transfers.note, "TEST transfer"));
     await db.delete(transfers).where(eq(transfers.note, "TEST pair"));
+    await deleteAccount(brlId);
+    await deleteAccount(brl2Id);
+    await deleteAccount(usdId);
     await closeDb();
   });
 

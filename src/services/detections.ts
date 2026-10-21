@@ -4,6 +4,14 @@ import { accounts, recurringDetections, recurringTransactions } from "@/db/schem
 import type { RecurrenceFrequency } from "@/db/schema";
 import { detectRecurring } from "./recurring";
 
+function isForeignKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: string }).code === "23503"
+  );
+}
+
 export async function syncRecurringDetections() {
   const db = getDb();
   const candidates = await detectRecurring();
@@ -26,7 +34,7 @@ export async function syncRecurringDetections() {
       .limit(1);
 
     if (!existing) {
-      await db.insert(recurringDetections).values({
+      const values = {
         key: candidate.key,
         label: candidate.label,
         accountId,
@@ -36,24 +44,39 @@ export async function syncRecurringDetections() {
         lastDate: candidate.lastDate,
         nextExpected: candidate.nextExpected,
         confidence: candidate.confidence.toFixed(6),
-        status: "detected",
-      });
+        status: "detected" as const,
+      };
+      try {
+        await db.insert(recurringDetections).values(values);
+      } catch (error) {
+        if (!isForeignKeyError(error)) throw error;
+        await db.insert(recurringDetections).values({ ...values, accountId: null });
+      }
       inserted += 1;
     } else if (existing.status === "detected") {
-      await db
-        .update(recurringDetections)
-        .set({
-          label: candidate.label,
-          accountId,
-          cadence: candidate.cadence,
-          averageAmount: candidate.averageAmount.toFixed(4),
-          currency: candidate.currency,
-          lastDate: candidate.lastDate,
-          nextExpected: candidate.nextExpected,
-          confidence: candidate.confidence.toFixed(6),
-          updatedAt: new Date(),
-        })
-        .where(eq(recurringDetections.id, existing.id));
+      const patch = {
+        label: candidate.label,
+        accountId,
+        cadence: candidate.cadence,
+        averageAmount: candidate.averageAmount.toFixed(4),
+        currency: candidate.currency,
+        lastDate: candidate.lastDate,
+        nextExpected: candidate.nextExpected,
+        confidence: candidate.confidence.toFixed(6),
+        updatedAt: new Date(),
+      };
+      try {
+        await db
+          .update(recurringDetections)
+          .set(patch)
+          .where(eq(recurringDetections.id, existing.id));
+      } catch (error) {
+        if (!isForeignKeyError(error)) throw error;
+        await db
+          .update(recurringDetections)
+          .set({ ...patch, accountId: null })
+          .where(eq(recurringDetections.id, existing.id));
+      }
       updated += 1;
     }
   }

@@ -2,7 +2,8 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { assistantConversations, accounts, transactions } from "@/db/schema";
+import { createAccount, deleteAccount } from "./accounts";
+import { assistantConversations, transactions } from "@/db/schema";
 import {
   addMessage,
   cancelAssistantAction,
@@ -21,8 +22,12 @@ describe.skipIf(!process.env.DATABASE_URL)("assistant persistence", () => {
   let conversationId = "";
 
   beforeAll(async () => {
-    const db = getDb();
-    const [account] = await db.select().from(accounts).limit(1);
+    const account = await createAccount({
+      name: "TEST assistant account",
+      type: "checking",
+      currency: "BRL",
+      openingBalance: "0",
+    });
     accountId = account.id;
     currency = account.currency;
     const conversation = await createConversation("TEST assistant conversation");
@@ -37,6 +42,7 @@ describe.skipIf(!process.env.DATABASE_URL)("assistant persistence", () => {
         .delete(assistantConversations)
         .where(eq(assistantConversations.id, conversationId));
     }
+    await deleteAccount(accountId);
     await closeDb();
   });
 
