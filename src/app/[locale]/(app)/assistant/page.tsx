@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
-import { getAssistantConfig } from "@/lib/assistant";
+import { resolveAssistantConfig } from "@/services/settings";
 import { formatDate } from "@/lib/format";
 import {
   getConversation,
@@ -30,7 +30,7 @@ export default async function AssistantPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("assistant");
-  const config = getAssistantConfig();
+  const config = await resolveAssistantConfig();
 
   if (!config) {
     return (

@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency, SettingsValidationError, updateSettings } from "@/services/settings";
 import {
   accountCreateSchema,
   budgetCreateSchema,
@@ -10,7 +11,7 @@ import {
   investmentPositionCreateSchema,
   transactionCreateSchema,
 } from "@/lib/schemas";
-import { createAccount } from "@/services/accounts";
+import { createAccount, updateAccount } from "@/services/accounts";
 import { createBudget } from "@/services/budgets";
 import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
@@ -32,7 +33,16 @@ import { createPosition } from "@/services/investments";
 import { deleteSavedReport, saveReport } from "@/services/reports";
 import type { ReportConfig } from "@/services/reports";
 import { bulkRecategorize, createTransaction, markReviewed } from "@/services/transactions";
-import { pairTransactions } from "@/services/transfers";
+import { pairTransactions, unpairTransfer } from "@/services/transfers";
+import { reconcileAccount, setOpeningBalance } from "@/services/reconciliation";
+import { applyRules, createRule, deleteRule } from "@/services/rules";
+import type { RuleActions, RuleConditions } from "@/services/rules";
+import {
+  confirmDetection,
+  ignoreDetection,
+  updateDetection,
+} from "@/services/detections";
+import { runBackup } from "@/services/backups";
 import type { ImportSource } from "@/db/schema";
 
 function field(formData: FormData, key: string): string | undefined {
@@ -46,12 +56,231 @@ function localeOf(formData: FormData): string {
   return field(formData, "locale") ?? "pt-BR";
 }
 
+const SETTINGS_SECTIONS = ["general", "localization", "appearance", "fx", "assistant", "data"] as const;
+
+export async function saveSettingsAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const requested = field(formData, "section") ?? "general";
+  const section = (SETTINGS_SECTIONS as readonly string[]).includes(requested)
+    ? requested
+    : "general";
+
+  let error: string | null = null;
+  try {
+    if (section === "general") {
+      await updateSettings({
+        baseCurrency: field(formData, "baseCurrency") ?? "",
+        timezone: field(formData, "timezone") ?? "",
+        firstDayOfMonth: Number(field(formData, "firstDayOfMonth") ?? 1),
+      });
+    } else if (section === "localization") {
+      const defaultLocale = field(formData, "defaultLocale") === "en" ? "en" : "pt-BR";
+      await updateSettings({ defaultLocale });
+      const store = await cookies();
+      store.set("NEXT_LOCALE", defaultLocale, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: "lax",
+      });
+    } else if (section === "appearance") {
+      await updateSettings({
+        theme: field(formData, "theme") === "light" ? "light" : "system",
+      });
+    } else if (section === "fx") {
+      await updateSettings({ fxProvider: field(formData, "fxProvider") ?? "" });
+    } else if (section === "assistant") {
+      await updateSettings({
+        assistant: {
+          enabled: formData.get("assistantEnabled") === "on",
+          provider: field(formData, "assistantProvider") ?? "openai-compatible",
+          model: field(formData, "assistantModel") ?? "",
+          baseUrl: field(formData, "assistantBaseUrl") ?? "",
+        },
+      });
+    } else {
+      await updateSettings({
+        backup: {
+          enabled: formData.get("backupEnabled") === "on",
+          schedule: field(formData, "backupSchedule") ?? "0 3 * * *",
+          retentionDays: Number(field(formData, "backupRetentionDays") ?? 14),
+        },
+      });
+    }
+  } catch (caught) {
+    error =
+      caught instanceof SettingsValidationError
+        ? caught.message
+        : "The settings could not be saved.";
+  }
+
+  if (error) {
+    redirect(`/${locale}/settings?section=${section}&error=${encodeURIComponent(error)}`);
+  }
+
+  revalidatePath(`/${locale}/settings`);
+  redirect(`/${locale}/settings?section=${section}&saved=1`);
+}
+
+export async function setOpeningBalanceAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const accountId = field(formData, "accountId");
+  const openingBalance = field(formData, "openingBalance");
+  if (accountId && openingBalance) {
+    await setOpeningBalance(accountId, openingBalance);
+  }
+  revalidatePath(`/${locale}/accounts`);
+  revalidatePath(`/${locale}/data-quality`);
+}
+
+export async function reconcileAccountAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const accountId = field(formData, "accountId");
+  const date = field(formData, "date");
+  const statementBalance = field(formData, "statementBalance");
+  if (accountId && date && statementBalance) {
+    await reconcileAccount({
+      accountId,
+      date,
+      statementBalance,
+      note: field(formData, "note") ?? null,
+    });
+  }
+  revalidatePath(`/${locale}/accounts`);
+  revalidatePath(`/${locale}/reconciliation`);
+  revalidatePath(`/${locale}/data-quality`);
+}
+
+export async function pairTransferAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const firstId = field(formData, "firstId");
+  const secondId = field(formData, "secondId");
+  if (firstId && secondId) {
+    await pairTransactions(firstId, secondId);
+  }
+  revalidatePath(`/${locale}/spending/transactions`);
+  revalidatePath(`/${locale}/data-quality`);
+}
+
+export async function unpairTransferAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const transferId = field(formData, "transferId");
+  if (transferId) {
+    await unpairTransfer(transferId);
+  }
+  revalidatePath(`/${locale}/spending/transactions`);
+  revalidatePath(`/${locale}/data-quality`);
+}
+
+export async function updateCreditCardAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const accountId = field(formData, "accountId");
+  if (!accountId) return;
+
+  const closeDay = Number(field(formData, "statementCloseDay") ?? 0);
+  const dueDay = Number(field(formData, "dueDay") ?? 0);
+  const creditLimit = field(formData, "creditLimit");
+
+  await updateAccount(accountId, {
+    statementCloseDay: closeDay >= 1 && closeDay <= 31 ? closeDay : null,
+    dueDay: dueDay >= 1 && dueDay <= 31 ? dueDay : null,
+    creditLimit: creditLimit ?? null,
+  });
+
+  revalidatePath(`/${locale}/reconciliation`);
+  revalidatePath(`/${locale}/accounts`);
+}
+
+export async function createRuleAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const name = field(formData, "name");
+  if (!name) return;
+
+  const conditions: RuleConditions = {};
+  const counterparty = field(formData, "counterparty");
+  if (counterparty) conditions.counterparty = { operator: "contains", value: counterparty };
+  const amountMin = field(formData, "amountMin");
+  const amountMax = field(formData, "amountMax");
+  if (amountMin) conditions.amountMin = Number(amountMin);
+  if (amountMax) conditions.amountMax = Number(amountMax);
+  const accountId = field(formData, "conditionAccountId");
+  if (accountId) conditions.accountId = accountId;
+
+  const actions: RuleActions = {};
+  const categoryId = field(formData, "categoryId");
+  if (categoryId) actions.categoryId = categoryId;
+  if (formData.get("markReviewed") === "on") actions.markReviewed = true;
+  if (formData.get("isDeductible") === "on") actions.isDeductible = true;
+
+  await createRule({
+    name,
+    priority: Number(field(formData, "priority") ?? 100),
+    conditions,
+    actions,
+  });
+  revalidatePath(`/${locale}/rules`);
+}
+
+export async function deleteRuleAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await deleteRule(id);
+  revalidatePath(`/${locale}/rules`);
+}
+
+export async function applyRulesAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const from = field(formData, "from");
+  const to = field(formData, "to");
+  if (from && to) {
+    await applyRules({ from, to });
+  }
+  revalidatePath(`/${locale}/rules`);
+  revalidatePath(`/${locale}/spending/transactions`);
+}
+
+export async function confirmDetectionAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await confirmDetection(id);
+  revalidatePath(`/${locale}/spending/recurring`);
+}
+
+export async function ignoreDetectionAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await ignoreDetection(id);
+  revalidatePath(`/${locale}/spending/recurring`);
+}
+
+export async function updateDetectionAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+
+  const nextExpected = field(formData, "nextExpected");
+  const averageAmount = field(formData, "averageAmount");
+  const cadence = field(formData, "cadence");
+
+  await updateDetection(id, {
+    ...(nextExpected ? { nextExpected } : {}),
+    ...(averageAmount ? { averageAmount: Number(averageAmount) } : {}),
+    ...(cadence ? { cadence: cadence as "weekly" | "monthly" | "yearly" } : {}),
+  });
+  revalidatePath(`/${locale}/spending/recurring`);
+}
+
+export async function runBackupAction(formData: FormData) {
+  const locale = localeOf(formData);
+  await runBackup();
+  revalidatePath(`/${locale}/settings`);
+}
+
 export async function createAccountAction(formData: FormData) {
   const locale = localeOf(formData);
   const input = accountCreateSchema.parse({
     name: field(formData, "name"),
     type: field(formData, "type"),
-    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    currency: field(formData, "currency") ?? await getBaseCurrency(),
     openingBalance: field(formData, "openingBalance") ?? "0",
   });
   await createAccount(input);
@@ -83,7 +312,7 @@ export async function createBudgetAction(formData: FormData) {
     periodType: field(formData, "periodType") ?? "monthly",
     startDate: field(formData, "startDate"),
     amount: field(formData, "amount"),
-    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    currency: field(formData, "currency") ?? await getBaseCurrency(),
   });
   await createBudget(input);
   revalidatePath(`/${locale}/budgets`);
@@ -98,7 +327,7 @@ export async function createPositionAction(formData: FormData) {
     instrumentType: field(formData, "instrumentType"),
     quantity: field(formData, "quantity"),
     avgCost: field(formData, "avgCost"),
-    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    currency: field(formData, "currency") ?? await getBaseCurrency(),
   });
   await createPosition(input);
   revalidatePath(`/${locale}/investments`);
@@ -114,7 +343,7 @@ export async function createDebtAction(formData: FormData) {
     term: field(formData, "term"),
     startDate: field(formData, "startDate"),
     amortizationMethod: field(formData, "amortizationMethod"),
-    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    currency: field(formData, "currency") ?? await getBaseCurrency(),
     accountId: field(formData, "accountId") ?? null,
   });
   await createDebt(input);
@@ -219,7 +448,15 @@ export async function stageImportAction(formData: FormData) {
     mapping = (profile?.mapping as ImportMapping | undefined) ?? undefined;
   }
 
-  const result = await stageImport({ source, content, fileName, accountId, mapping });
+  const result = await stageImport({
+    source,
+    content,
+    fileName,
+    accountId,
+    mapping,
+    openingBalance: field(formData, "openingBalance"),
+    currentBalance: field(formData, "currentBalance"),
+  });
   redirect(`/${locale}/import?batch=${result.batch.id}`);
 }
 
@@ -239,7 +476,7 @@ export async function createGoalAction(formData: FormData) {
     type: (field(formData, "type") ?? "custom") as never,
     targetAmount: field(formData, "targetAmount") ?? "0",
     targetDate: field(formData, "targetDate") ?? null,
-    currency: field(formData, "currency") ?? getEnv().BASE_CURRENCY,
+    currency: field(formData, "currency") ?? await getBaseCurrency(),
     priority: Number(field(formData, "priority") ?? 1),
   });
   revalidatePath(`/${locale}/planner`);

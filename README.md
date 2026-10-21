@@ -55,6 +55,8 @@ The app container applies Drizzle migrations and seeds the single user + base ca
 | `ASSISTANT_API_KEY` | Server-only provider key (not needed for local endpoints) | — |
 | `ASSISTANT_BASE_URL` | OpenAI-compatible base URL | OpenAI when provider is `openai` |
 
+Backup and restore: [docs/backup.md](docs/backup.md).
+
 The assistant is **disabled by default** and sends no data to any provider until it is enabled and used. See [docs/assistant.md](docs/assistant.md) for the data flow, retention, local-model setup, and privacy notes.
 
 ## Local development

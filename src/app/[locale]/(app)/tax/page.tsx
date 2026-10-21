@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { formatCurrency } from "@/lib/format";
 import { getTaxSummary } from "@/services/tax";
 
@@ -25,7 +25,7 @@ export default async function TaxPage({
   const now = new Date();
   const year = Number(search.year ?? now.getUTCFullYear());
   const summary = await getTaxSummary(year);
-  const currency = getEnv().BASE_CURRENCY;
+  const currency = await getBaseCurrency();
   const incomeTotal = summary.income.reduce((sum, row) => sum + row.total, 0);
   const years = Array.from({ length: 5 }, (_, index) => now.getUTCFullYear() - index);
 

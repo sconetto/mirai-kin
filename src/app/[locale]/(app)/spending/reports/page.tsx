@@ -12,6 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
 import { getReport, listSavedReports } from "@/services/reports";
 import type { ReportType } from "@/services/reports";
+import { getSettings, todayInTimeZone } from "@/services/settings";
 import { deleteReportAction, saveReportAction } from "../../actions";
 
 type Search = { type?: string; from?: string; to?: string; comparison?: string };
@@ -32,11 +33,16 @@ export default async function ReportsPage({
   const t = await getTranslations("reports");
   const ts = await getTranslations("spending");
   const tn = await getTranslations("nav");
-  const now = new Date();
-  const defaultFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  const appSettings = await getSettings();
+  const defaultTo = todayInTimeZone(appSettings.timezone);
+  const [year, month] = defaultTo.split("-").map(Number);
+  const todayDay = Number(defaultTo.slice(8, 10));
+  const monthOffset = todayDay >= appSettings.firstDayOfMonth ? 0 : -1;
+  const defaultFrom = new Date(
+    Date.UTC(year, month - 1 + monthOffset, appSettings.firstDayOfMonth),
+  )
     .toISOString()
     .slice(0, 10);
-  const defaultTo = now.toISOString().slice(0, 10);
 
   const type = (search.type ?? "cashflow") as ReportType;
   const from = search.from ?? defaultFrom;

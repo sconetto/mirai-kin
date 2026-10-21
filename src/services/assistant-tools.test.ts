@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
 import { assistantActions, assistantConversations, transactions } from "@/db/schema";
-import { listAccounts } from "./accounts";
+import { createAccount, deleteAccount } from "./accounts";
 import { createConversation } from "./assistant";
 import { buildAssistantTools } from "./assistant/tools";
 
@@ -11,10 +11,17 @@ const NOTE = "TEST tool proposal";
 
 describe.skipIf(!process.env.DATABASE_URL)("assistant tools", () => {
   let conversationId = "";
+  let accountId = "";
   let accountName = "";
 
   beforeAll(async () => {
-    const [account] = await listAccounts();
+    const account = await createAccount({
+      name: "TEST assistant tools account",
+      type: "checking",
+      currency: "BRL",
+      openingBalance: "0",
+    });
+    accountId = account.id;
     accountName = account.name;
     const conversation = await createConversation("TEST tools conversation");
     conversationId = conversation.id;
@@ -23,6 +30,7 @@ describe.skipIf(!process.env.DATABASE_URL)("assistant tools", () => {
   afterAll(async () => {
     const db = getDb();
     await db.delete(assistantConversations).where(eq(assistantConversations.id, conversationId));
+    await deleteAccount(accountId);
     await closeDb();
   });
 

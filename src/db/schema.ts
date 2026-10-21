@@ -79,6 +79,18 @@ export type TaxTreatment = (typeof TAX_TREATMENTS)[number];
 export const TRANSFER_STATUSES = ["paired", "unpaired"] as const;
 export type TransferStatus = (typeof TRANSFER_STATUSES)[number];
 
+export const RECONCILIATION_STATUSES = ["open", "reconciled", "discrepancy"] as const;
+export type ReconciliationStatus = (typeof RECONCILIATION_STATUSES)[number];
+
+export const RECURRING_DETECTION_STATUSES = ["detected", "confirmed", "ignored"] as const;
+export type RecurringDetectionStatus = (typeof RECURRING_DETECTION_STATUSES)[number];
+
+export const RECURRING_SOURCES = ["manual", "detected"] as const;
+export type RecurringSource = (typeof RECURRING_SOURCES)[number];
+
+export const BACKUP_STATUSES = ["success", "failed"] as const;
+export type BackupStatus = (typeof BACKUP_STATUSES)[number];
+
 const money = (name: string) => numeric(name, { precision: 20, scale: 4 });
 const rate = (name: string) => numeric(name, { precision: 30, scale: 10 });
 const quantity = (name: string) => numeric(name, { precision: 30, scale: 8 });
@@ -99,11 +111,33 @@ export const accounts = pgTable(
     type: text("type").$type<AccountType>().notNull(),
     currency: text("currency").notNull(),
     openingBalance: money("opening_balance").notNull().default("0"),
+    openingBalanceCaptured: boolean("opening_balance_captured").notNull().default(false),
+    statementCloseDay: integer("statement_close_day"),
+    dueDay: integer("due_day"),
+    creditLimit: money("credit_limit"),
     archived: boolean("archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("accounts_currency_idx").on(t.currency)],
+);
+
+export const accountReconciliations = pgTable(
+  "account_reconciliations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    statementBalance: money("statement_balance").notNull(),
+    computedBalance: money("computed_balance").notNull(),
+    difference: money("difference").notNull(),
+    status: text("status").$type<ReconciliationStatus>().notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("account_reconciliations_account_idx").on(t.accountId, t.date)],
 );
 
 export const categories = pgTable(
@@ -168,6 +202,23 @@ export const transfers = pgTable("transfers", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const transactionRules = pgTable("transaction_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  priority: integer("priority").notNull().default(100),
+  enabled: boolean("enabled").notNull().default(true),
+  conditions: jsonb("conditions")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  actions: jsonb("actions")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const transactions = pgTable(
   "transactions",
   {
@@ -196,6 +247,9 @@ export const transactions = pgTable(
       { onDelete: "cascade" },
     ),
     transferId: uuid("transfer_id").references(() => transfers.id, { onDelete: "set null" }),
+    appliedRuleId: uuid("applied_rule_id").references(() => transactionRules.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -295,6 +349,23 @@ export const debtSchedule = pgTable(
   (t) => [uniqueIndex("debt_schedule_debt_period_idx").on(t.debtId, t.periodNumber)],
 );
 
+export const recurringDetections = pgTable("recurring_detections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  label: text("label").notNull(),
+  accountId: uuid("account_id").references(() => accounts.id, { onDelete: "cascade" }),
+  cadence: text("cadence").$type<RecurrenceFrequency>().notNull(),
+  averageAmount: money("average_amount").notNull(),
+  currency: text("currency").notNull(),
+  lastDate: date("last_date").notNull(),
+  nextExpected: date("next_expected").notNull(),
+  confidence: percent("confidence").notNull().default("0"),
+  status: text("status").$type<RecurringDetectionStatus>().notNull().default("detected"),
+  recurringTransactionId: uuid("recurring_transaction_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const recurringTransactions = pgTable("recurring_transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   accountId: uuid("account_id")
@@ -308,6 +379,10 @@ export const recurringTransactions = pgTable("recurring_transactions", {
   endDate: date("end_date"),
   note: text("note"),
   paymentType: text("payment_type").$type<PaymentType>(),
+  detectionId: uuid("detection_id").references(() => recurringDetections.id, {
+    onDelete: "set null",
+  }),
+  source: text("source").$type<RecurringSource>().notNull().default("manual"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -327,6 +402,8 @@ export const importBatches = pgTable("import_batches", {
   fileHash: text("file_hash"),
   accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
   status: text("status").notNull().default("staged"),
+  openingBalance: money("opening_balance"),
+  currentBalance: money("current_balance"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   committedAt: timestamp("committed_at", { withTimezone: true }),
 });
@@ -521,10 +598,30 @@ export const assistantActions = pgTable("assistant_actions", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
 
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const backups = pgTable("backups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  filename: text("filename").notNull(),
+  sizeBytes: integer("size_bytes").notNull().default(0),
+  status: text("status").$type<BackupStatus>().notNull().default("success"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type AssistantConversation = typeof assistantConversations.$inferSelect;
 export type AssistantMessage = typeof assistantMessages.$inferSelect;
 export type AssistantAction = typeof assistantActions.$inferSelect;
+export type AccountReconciliation = typeof accountReconciliations.$inferSelect;
+export type TransactionRule = typeof transactionRules.$inferSelect;
+export type RecurringDetection = typeof recurringDetections.$inferSelect;
+export type Setting = typeof settings.$inferSelect;
+export type Backup = typeof backups.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Label = typeof labels.$inferSelect;

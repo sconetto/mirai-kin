@@ -2,7 +2,7 @@ import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { budgets, transactions } from "@/db/schema";
 import type { Budget } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import type { BudgetCreateInput } from "@/lib/schemas";
 
 export async function createBudget(input: BudgetCreateInput) {
@@ -15,7 +15,7 @@ export async function createBudget(input: BudgetCreateInput) {
       startDate: input.startDate.slice(0, 10),
       endDate: input.endDate ? input.endDate.slice(0, 10) : null,
       amount: String(input.amount),
-      currency: (input.currency ?? getEnv().BASE_CURRENCY).toUpperCase(),
+      currency: (input.currency ?? await getBaseCurrency()).toUpperCase(),
       accountIds: input.accountIds ?? [],
       categoryIds: input.categoryIds ?? [],
       labelIds: input.labelIds ?? [],

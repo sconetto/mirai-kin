@@ -4,7 +4,7 @@ import { PortfolioChart } from "@/components/charts/portfolio-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { listAccounts } from "@/services/accounts";
 import { listPositionsWithValue, getPortfolioHistory } from "@/services/investments";
@@ -18,7 +18,7 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
   const accounts = await listAccounts();
   const positions = await listPositionsWithValue();
   const history = await getPortfolioHistory();
-  const baseCurrency = getEnv().BASE_CURRENCY;
+  const baseCurrency = await getBaseCurrency();
 
   return (
     <div className="space-y-6">

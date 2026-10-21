@@ -34,6 +34,9 @@ export const accountCreateSchema = z.object({
   type: z.enum(ACCOUNT_TYPES),
   currency: currencyCode,
   openingBalance: decimal.optional(),
+  statementCloseDay: z.number().int().min(1).max(31).nullish(),
+  dueDay: z.number().int().min(1).max(31).nullish(),
+  creditLimit: decimal.nullish(),
   archived: z.boolean().optional(),
 });
 

@@ -3,7 +3,7 @@ import { AMORTIZATION_METHODS, DEBT_TYPES } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getDebtWithSchedule, listDebts } from "@/services/debts";
 import { createDebtAction } from "../actions";
@@ -19,7 +19,7 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
   const detailed = (
     await Promise.all(debts.map((debt) => getDebtWithSchedule(debt.id)))
   ).filter((debt): debt is NonNullable<typeof debt> => debt !== null);
-  const baseCurrency = getEnv().BASE_CURRENCY;
+  const baseCurrency = await getBaseCurrency();
 
   return (
     <div className="space-y-6">

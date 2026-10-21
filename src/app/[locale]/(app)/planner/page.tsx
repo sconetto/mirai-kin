@@ -5,7 +5,7 @@ import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { GOAL_TYPES } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getPlanner } from "@/services/planner";
 import { createGoalAction, deleteGoalAction, updateGoalAction } from "../actions";
@@ -16,7 +16,7 @@ export default async function PlannerPage({ params }: { params: Promise<{ locale
   const t = await getTranslations("planner");
   const tc = await getTranslations("common");
   const planner = await getPlanner();
-  const currency = getEnv().BASE_CURRENCY;
+  const currency = await getBaseCurrency();
 
   return (
     <div className="space-y-6">

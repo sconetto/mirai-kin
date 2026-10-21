@@ -7,7 +7,7 @@ import {
   savedReports,
   transactions,
 } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import { resolveRate } from "./fx";
 
 export type ReportType = "cashflow" | "income" | "expenses" | "transfers" | "breakdown";
@@ -199,7 +199,7 @@ async function mergeDividendIncome(
 
   if (dividendRows.length === 0) return rows;
 
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const byMonth = new Map<string, number>();
   for (const dividend of dividendRows) {
     let amount = Number(dividend.amount);
@@ -245,7 +245,7 @@ async function buildReport(config: ReportConfig): Promise<Report> {
     type: config.type,
     from: config.from,
     to: config.to,
-    currency: getEnv().BASE_CURRENCY,
+    currency: await getBaseCurrency(),
     summary: summarize(periodRows, months),
     rows: periodRows,
   };

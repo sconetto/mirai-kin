@@ -17,6 +17,8 @@ import {
 import type { ImportSource } from "@/db/schema";
 import { createTransaction } from "./transactions";
 import { backfillTransfers } from "./transfers";
+import { applyImportBalance } from "./reconciliation";
+import { firstMatch, listRules } from "./rules";
 
 export type ImportField =
   | "date"
@@ -49,6 +51,13 @@ export type NormalizedTransaction = {
   paymentType?: string;
   counterparty?: string;
   externalId?: string;
+  rule?: {
+    id: string;
+    name: string;
+    categoryId?: string | null;
+    markReviewed?: boolean;
+    isDeductible?: boolean;
+  };
 };
 
 export type NormalizedBrokerage = {
@@ -199,6 +208,8 @@ export async function stageImport(input: {
   fileName?: string;
   accountId?: string;
   mapping?: ImportMapping;
+  openingBalance?: string;
+  currentBalance?: string;
 }) {
   const db = getDb();
   const fileHash = hash(input.content);
@@ -225,6 +236,8 @@ export async function stageImport(input: {
       fileHash,
       accountId: accountId ?? null,
       status: "staged",
+      openingBalance: input.openingBalance ?? null,
+      currentBalance: input.currentBalance ?? null,
     })
     .returning();
 
@@ -235,6 +248,7 @@ export async function stageImport(input: {
         ? parseBrokerageCsv(input.content)
         : parseCsv(input.content, input.mapping);
 
+  const rules = await listRules();
   const inserted = [];
 
   for (let index = 0; index < normalizedRows.length; index += 1) {
@@ -264,6 +278,29 @@ export async function stageImport(input: {
     }
 
     if (error) status = "invalid";
+
+    if (normalized.kind === "transaction" && status !== "invalid" && accountId) {
+      const match = firstMatch(
+        {
+          accountId,
+          amount: normalized.amount,
+          counterparty: normalized.counterparty,
+          note: normalized.note,
+          paymentType: normalized.paymentType,
+          categoryId: null,
+        },
+        rules,
+      );
+      if (match) {
+        normalized.rule = {
+          id: match.ruleId,
+          name: match.ruleName,
+          categoryId: match.actions.categoryId ?? null,
+          markReviewed: match.actions.markReviewed,
+          isDeductible: match.actions.isDeductible,
+        };
+      }
+    }
 
     const fingerprint =
       normalized.kind === "transaction"
@@ -412,9 +449,11 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
   const categoryByName = new Map(
     categoryRows.map((category) => [category.name.toLowerCase(), category.id]),
   );
+  const rules = await listRules();
 
   const results: { row: number; success: boolean; id?: string; error?: string }[] = [];
   const createdTransactionIds: string[] = [];
+  let importedTotal = 0;
 
   for (const row of rows) {
     if (row.status === "committed") continue;
@@ -425,6 +464,24 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
     try {
       if (normalized.kind === "transaction") {
         if (!batch.accountId) throw new Error("No account selected");
+        const baseCategoryId = normalized.categoryName
+          ? (categoryByName.get(normalized.categoryName.toLowerCase()) ?? null)
+          : null;
+        const match = firstMatch(
+          {
+            accountId: batch.accountId,
+            amount: normalized.amount,
+            counterparty: normalized.counterparty,
+            note: normalized.note,
+            paymentType: normalized.paymentType,
+            categoryId: baseCategoryId,
+          },
+          rules,
+        );
+        const categoryId =
+          match && match.actions.categoryId !== undefined
+            ? match.actions.categoryId
+            : baseCategoryId;
         const transaction = await createTransaction({
           accountId: batch.accountId,
           amount: normalized.amount,
@@ -433,11 +490,19 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
           note: normalized.note ?? null,
           paymentType: (normalized.paymentType as never) ?? null,
           counterparty: normalized.counterparty ?? null,
-          categoryId: normalized.categoryName
-            ? (categoryByName.get(normalized.categoryName.toLowerCase()) ?? null)
-            : null,
+          categoryId,
+          labelIds: match?.actions.labelIds ?? [],
+          isDeductible: match?.actions.isDeductible,
+          reviewStatus: match?.actions.markReviewed ? "reviewed" : "pending",
         });
+        if (match) {
+          await db
+            .update(transactions)
+            .set({ appliedRuleId: match.ruleId })
+            .where(eq(transactions.id, transaction.id));
+        }
         createdTransactionIds.push(transaction.id);
+        importedTotal += Number(normalized.amount);
         results.push({ row: row.rowNumber, success: true, id: transaction.id });
       } else {
         const positionId = await commitBrokerageRow(normalized, batch.accountId);
@@ -454,6 +519,15 @@ export async function commitBatch(batchId: string, rowIds?: string[]) {
 
   if (createdTransactionIds.length > 0) {
     await backfillTransfers(createdTransactionIds);
+  }
+
+  if (batch.accountId && (batch.openingBalance !== null || batch.currentBalance !== null)) {
+    await applyImportBalance({
+      accountId: batch.accountId,
+      openingBalance: batch.openingBalance,
+      currentBalance: batch.currentBalance,
+      importedTotal,
+    });
   }
 
   await db

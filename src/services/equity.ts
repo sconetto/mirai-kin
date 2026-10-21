@@ -7,7 +7,7 @@ import {
   transactions,
 } from "@/db/schema";
 import type { AccountType } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import { resolveRate } from "./fx";
 import { listPositionsWithValue } from "./investments";
 
@@ -43,7 +43,7 @@ async function rateOrOne(from: string, to: string, date: Date): Promise<number> 
 
 export async function getEquity(asOf = new Date()): Promise<Equity> {
   const db = getDb();
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const components: EquityComponent[] = [];
 
   const accountRows = await db

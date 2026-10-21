@@ -32,6 +32,7 @@ services:
       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
       API_TOKEN: ${API_TOKEN:-dev-api-token}
       BASE_CURRENCY: ${BASE_CURRENCY:-BRL}
+      BACKUP_DIR: /backups
       FX_SOURCE_URL: ${FX_SOURCE_URL:-https://api.frankfurter.app}
       ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-false}
       ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-openai-compatible}
@@ -40,7 +41,10 @@ services:
       ASSISTANT_BASE_URL: ${ASSISTANT_BASE_URL:-}
     ports:
       - "3100:3000"
+    volumes:
+      - backups_data:/backups
 
 volumes:
   db_data:
     name: fin-planner_db_data
+  backups_data:

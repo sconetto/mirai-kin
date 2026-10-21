@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { transactions, transfers } from "@/db/schema";
 import type { Transaction } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import { getAccount } from "./accounts";
 import { toBaseAmount } from "./fx";
 
@@ -63,7 +63,7 @@ export async function createTransfer(input: TransferInput) {
   }
 
   const rate = currency === counterCurrency ? 1 : counterAmount / amount;
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
 
   const outBase = await toBaseAmount(String(-amount), currency, baseCurrency, date);
   const inBase = await toBaseAmount(String(counterAmount), counterCurrency, baseCurrency, date);

@@ -9,7 +9,10 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const localeMatch = pathname.match(/^\/(pt-BR|en)(?:\/|$)/);
-  const locale = localeMatch?.[1] ?? routing.defaultLocale;
+  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  const locale =
+    localeMatch?.[1] ??
+    (cookieLocale === "en" || cookieLocale === "pt-BR" ? cookieLocale : routing.defaultLocale);
   const isLogin = /^\/(pt-BR|en)\/login\/?$/.test(pathname);
 
   if (!isLogin) {

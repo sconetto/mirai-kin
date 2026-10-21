@@ -2,9 +2,12 @@ import { PgBoss } from "pg-boss";
 import { getEnv } from "./env";
 import { recordSnapshot } from "@/services/equity";
 import { fetchAndStoreRates } from "@/services/fx";
+import { runBackupAndPrune } from "@/services/backups";
+import { getSettings } from "@/services/settings";
 
 export const FX_JOB_NAME = "fx-daily";
 export const NET_WORTH_JOB_NAME = "net-worth-snapshot";
+export const BACKUP_JOB_NAME = "backup-daily";
 
 let bossPromise: Promise<PgBoss> | null = null;
 
@@ -38,6 +41,12 @@ export async function getBoss(): Promise<PgBoss> {
         retryBackoff: true,
         retryDelayMax: 3600,
       });
+      await boss.createQueue(BACKUP_JOB_NAME, {
+        retryLimit: 3,
+        retryDelay: 300,
+        retryBackoff: true,
+        retryDelayMax: 3600,
+      });
 
       await boss.work(FX_JOB_NAME, async () => {
         const stored = await fetchAndStoreRates();
@@ -49,9 +58,24 @@ export async function getBoss(): Promise<PgBoss> {
         console.log(`[equity] snapshot ${snapshot?.date ?? "skipped"}`);
       });
 
+      await boss.work(BACKUP_JOB_NAME, async () => {
+        const backup = await runBackupAndPrune();
+        console.log(`[backup] ${backup?.status ?? "skipped"} ${backup?.filename ?? ""}`);
+      });
+
       // Daily at 06:00 and 06:30 server time.
       await boss.schedule(FX_JOB_NAME, "0 6 * * *", {});
       await boss.schedule(NET_WORTH_JOB_NAME, "30 6 * * *", {});
+
+      const settings = await getSettings();
+      if (settings.backup.enabled) {
+        try {
+          await boss.schedule(BACKUP_JOB_NAME, settings.backup.schedule, {});
+        } catch (error) {
+          console.error("[backup] invalid schedule, using default", error);
+          await boss.schedule(BACKUP_JOB_NAME, "0 3 * * *", {});
+        }
+      }
 
       return boss;
     })();
@@ -63,7 +87,7 @@ export async function getBoss(): Promise<PgBoss> {
 export async function startWorkers(): Promise<void> {
   try {
     await getBoss();
-    console.log("[jobs] pg-boss started (fx-daily + net-worth-snapshot scheduled)");
+    console.log("[jobs] pg-boss started (fx-daily + net-worth-snapshot + backup-daily scheduled)");
   } catch (error) {
     console.error("[jobs] failed to start pg-boss", error);
   }

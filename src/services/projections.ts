@@ -2,7 +2,7 @@ import { getDb } from "@/db";
 import { debts, debtSchedule, recurringTransactions } from "@/db/schema";
 import type { RecurrenceFrequency } from "@/db/schema";
 import { addMonths } from "@/lib/amortization";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import type { RecurringTransactionCreateInput } from "@/lib/schemas";
 import { resolveRate } from "./fx";
 
@@ -18,7 +18,7 @@ export async function createRecurring(input: RecurringTransactionCreateInput) {
       accountId: input.accountId,
       categoryId: input.categoryId ?? null,
       amount: String(input.amount),
-      currency: (input.currency ?? getEnv().BASE_CURRENCY).toUpperCase(),
+      currency: (input.currency ?? await getBaseCurrency()).toUpperCase(),
       frequency: input.frequency,
       startDate: input.startDate.slice(0, 10),
       endDate: input.endDate ? input.endDate.slice(0, 10) : null,
@@ -85,7 +85,7 @@ type MonthBucket = {
 
 export async function forecast(horizonMonths = 12) {
   const db = getDb();
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const now = new Date();
   const horizonStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const horizonEnd = new Date(

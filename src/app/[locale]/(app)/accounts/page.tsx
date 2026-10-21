@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { BalanceChart } from "@/components/charts/balance-chart";
 import { formatCurrency } from "@/lib/format";
 import { listAccountBalances } from "@/services/accounts";
@@ -18,7 +18,7 @@ export default async function AccountsPage({ params }: { params: Promise<{ local
   const tc = await getTranslations("common");
   const te = await getTranslations("enums");
   const [accounts, analytics] = await Promise.all([listAccountBalances(), overview()]);
-  const baseCurrency = getEnv().BASE_CURRENCY;
+  const baseCurrency = await getBaseCurrency();
   const chartData = [...analytics.balances]
     .sort((a, b) => Math.abs(Number(b.baseBalance)) - Math.abs(Number(a.baseBalance)))
     .slice(0, 10)

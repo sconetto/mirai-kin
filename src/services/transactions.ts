@@ -2,7 +2,7 @@ import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, transactions } from "@/db/schema";
 import type { PaymentType } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import type { TransactionCreateInput } from "@/lib/schemas";
 import { toBaseAmount } from "./fx";
 
@@ -34,7 +34,7 @@ export async function createTransaction(input: TransactionCreateInput) {
   }
 
   const currency = (input.currency ?? account.currency).toUpperCase();
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const recordDate = parseDate(input.recordDate);
   const { baseAmount, fxRateId } = await toBaseAmount(
     String(input.amount),
@@ -186,7 +186,7 @@ export async function updateTransaction(id: string, input: Partial<TransactionCr
     input.amount !== undefined || input.currency !== undefined || input.recordDate !== undefined;
 
   if (snapshotAffected) {
-    const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+    const baseCurrency = await getBaseCurrency();
     const { baseAmount, fxRateId } = await toBaseAmount(
       amount,
       currency,
@@ -275,7 +275,7 @@ export async function splitTransaction(
     throw new TransactionValidationError("Split parts must sum to the original amount");
   }
 
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const created = [];
 
   for (const part of parts) {

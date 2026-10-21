@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getAssistantConfig } from "@/lib/assistant";
+import { resolveAssistantConfig } from "@/services/settings";
 
 export async function GET() {
   const session = await getSession();
@@ -7,7 +7,7 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const config = getAssistantConfig();
+  const config = await resolveAssistantConfig();
   return Response.json({
     enabled: config !== null,
     provider: config?.provider ?? null,

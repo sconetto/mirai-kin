@@ -8,12 +8,16 @@ import {
   Landmark,
   MessageCircle,
   Receipt,
+  RefreshCw,
   Scale,
+  Settings,
+  ShieldCheck,
   Sparkles,
   Target,
   TrendingUp,
   Upload,
   Wallet,
+  Wand2,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -49,6 +53,9 @@ const SECTIONS: NavSection[] = [
       { href: "/tax", key: "nav.tax", icon: Receipt },
       { href: "/planner", key: "nav.planner", icon: Target },
       { href: "/estate", key: "nav.estate", icon: Landmark },
+      { href: "/rules", key: "nav.rules", icon: Wand2 },
+      { href: "/reconciliation", key: "nav.reconciliation", icon: RefreshCw },
+      { href: "/data-quality", key: "nav.dataQuality", icon: ShieldCheck },
     ],
   },
   {
@@ -56,6 +63,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/learn", key: "nav.learn", icon: BookOpen },
       { href: "/assistant", key: "nav.assistant", icon: MessageCircle },
+      { href: "/settings", key: "nav.settings", icon: Settings },
     ],
   },
 ];

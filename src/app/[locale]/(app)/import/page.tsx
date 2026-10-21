@@ -29,7 +29,14 @@ function rowSummary(normalized: unknown): string {
   if (!normalized || typeof normalized !== "object") return "—";
   const row = normalized as Record<string, unknown>;
   if (row.kind === "transaction") {
-    return [row.recordDate, row.amount, row.note ?? row.counterparty ?? ""]
+    const rule =
+      row.rule && typeof row.rule === "object" ? (row.rule as { name?: string }) : null;
+    return [
+      row.recordDate,
+      row.amount,
+      row.note ?? row.counterparty ?? "",
+      rule?.name ? `rule: ${rule.name}` : "",
+    ]
       .filter(Boolean)
       .join(" · ");
   }
@@ -90,6 +97,18 @@ export default async function ImportPage({
                 </Select>
               </label>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-xs text-ink-3">
+                {t("openingBalance")}
+                <Input name="openingBalance" inputMode="decimal" className="mt-1" />
+              </label>
+              <label className="text-xs text-ink-3">
+                {t("currentBalance")}
+                <Input name="currentBalance" inputMode="decimal" className="mt-1" />
+              </label>
+            </div>
+            <p className="text-xs text-ink-3">{t("balanceHint")}</p>
 
             <label className="text-xs text-ink-3">
               {t("file")}

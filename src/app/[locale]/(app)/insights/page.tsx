@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "@/services/settings";
 import { insightParams } from "@/lib/insight-params";
 import { getInsights } from "@/services/insights";
 import { acknowledgeInsightAction } from "../actions";
@@ -14,7 +14,7 @@ export default async function InsightsPage({ params }: { params: Promise<{ local
   setRequestLocale(locale);
   const t = await getTranslations("insights");
   const tc = await getTranslations("common");
-  const baseCurrency = getEnv().BASE_CURRENCY;
+  const baseCurrency = await getBaseCurrency();
   const insights = await getInsights();
 
   const tone = {

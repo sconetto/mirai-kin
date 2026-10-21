@@ -1,12 +1,12 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, categories, transactions } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import { resolveRate } from "@/services/fx";
 
 export async function overview(limitRecent = 10) {
   const db = getDb();
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const monthEnd = new Date(

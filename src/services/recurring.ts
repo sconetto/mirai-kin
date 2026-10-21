@@ -1,13 +1,15 @@
-import { sql } from "drizzle-orm";
+import { and, gte, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { transactions } from "@/db/schema";
+import { recurringDetections, transactions } from "@/db/schema";
 
 export type RecurringCadence = "weekly" | "monthly" | "yearly";
 
 export type RecurringCandidate = {
   key: string;
   label: string;
+  accountId: string | null;
   averageAmount: number;
+  currency: string;
   cadence: RecurringCadence;
   lastDate: string;
   nextExpected: string;
@@ -18,6 +20,7 @@ export type RecurringCandidate = {
 const DAY = 86_400_000;
 
 type TxnRow = {
+  accountId: string;
   recordDate: Date;
   amount: string;
   currency: string;
@@ -33,6 +36,7 @@ export async function detectRecurring(): Promise<RecurringCandidate[]> {
   const db = getDb();
   const rows = (await db
     .select({
+      accountId: transactions.accountId,
       recordDate: transactions.recordDate,
       amount: transactions.amount,
       currency: transactions.currency,
@@ -93,6 +97,8 @@ export async function detectRecurring(): Promise<RecurringCandidate[]> {
     candidates.push({
       key,
       label,
+      accountId: group.rows[group.rows.length - 1]?.accountId ?? null,
+      currency: group.rows[group.rows.length - 1]?.currency ?? "BRL",
       averageAmount: Number(averageAmount.toFixed(4)),
       cadence,
       lastDate: lastDate.toISOString().slice(0, 10),
@@ -109,7 +115,29 @@ export async function getUpcomingBills(withinDays = 30) {
   const now = new Date();
   const horizon = new Date(now.getTime() + withinDays * DAY).toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
-  return (await detectRecurring()).filter(
-    (candidate) => candidate.nextExpected >= today && candidate.nextExpected <= horizon,
-  );
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(recurringDetections)
+    .where(
+      and(
+        ne(recurringDetections.status, "ignored"),
+        gte(recurringDetections.nextExpected, today),
+        lte(recurringDetections.nextExpected, horizon),
+      ),
+    )
+    .orderBy(recurringDetections.nextExpected);
+
+  return rows.map((row) => ({
+    key: row.key,
+    label: row.label,
+    accountId: row.accountId,
+    averageAmount: Number(row.averageAmount),
+    currency: row.currency,
+    cadence: row.cadence as RecurringCadence,
+    lastDate: row.lastDate,
+    nextExpected: row.nextExpected,
+    occurrences: 0,
+    confidence: Number(row.confidence),
+  }));
 }

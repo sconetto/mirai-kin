@@ -1,6 +1,6 @@
 import { createTextStreamResponse, stepCountIs, streamText, toTextStream } from "ai";
 import { getSession } from "@/lib/auth";
-import { getAssistantConfig } from "@/lib/assistant";
+import { resolveAssistantConfig } from "@/services/settings";
 import { z } from "@/lib/zod";
 import {
   addMessage,
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const config = getAssistantConfig();
+  const config = await resolveAssistantConfig();
   if (!config) {
     return Response.json({ error: "Assistant is disabled." }, { status: 503 });
   }

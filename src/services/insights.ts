@@ -8,13 +8,13 @@ import {
   insightAcknowledgements,
   transactions,
 } from "@/db/schema";
-import { getEnv } from "@/lib/env";
+import { getBaseCurrency } from "./settings";
 import { listBudgetsWithSpend } from "./budgets";
 import { getNetWorthSeries } from "./equity";
 import { resolveRate } from "./fx";
 import { listPositionsWithValue } from "./investments";
 import { forecast } from "./projections";
-import { detectRecurring } from "./recurring";
+import { listRecurringDetections, syncRecurringDetections } from "./detections";
 
 export type InsightSeverity = "info" | "warning" | "critical";
 
@@ -69,7 +69,7 @@ async function rateOrOne(from: string, to: string, date: Date): Promise<number> 
 
 export async function getInsights(now = new Date()): Promise<Insight[]> {
   const db = getDb();
-  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const baseCurrency = await getBaseCurrency();
   const { start, end, startDate, endDate, key: monthKey } = monthBounds(now);
   const insights: Insight[] = [];
 
@@ -205,7 +205,9 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
   // Upcoming recurring bills.
   const today = now.toISOString().slice(0, 10);
   const horizon = new Date(now.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
-  for (const candidate of await detectRecurring()) {
+  await syncRecurringDetections();
+  for (const candidate of await listRecurringDetections()) {
+    if (candidate.status === "ignored") continue;
     if (candidate.nextExpected < today || candidate.nextExpected > horizon) continue;
     insights.push({
       type: "upcoming_bill",
@@ -213,7 +215,7 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
       signature: signature("upcoming_bill", `${candidate.key}:${candidate.nextExpected}`),
       data: {
         label: candidate.label,
-        amount: candidate.averageAmount,
+        amount: Number(candidate.averageAmount),
         cadence: candidate.cadence,
         nextExpected: candidate.nextExpected,
       },

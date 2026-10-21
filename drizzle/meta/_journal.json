@@ -29,6 +29,20 @@
       "when": 1792582526344,
       "tag": "0003_mean_ultimatum",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792584475035,
+      "tag": "0004_cold_the_fallen",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792585133328,
+      "tag": "0005_nostalgic_jack_murdock",
+      "breakpoints": true
     }
   ]
 }

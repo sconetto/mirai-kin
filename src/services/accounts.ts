@@ -27,6 +27,12 @@ export async function createAccount(input: AccountCreateInput) {
       type: input.type,
       currency: input.currency.toUpperCase(),
       openingBalance: input.openingBalance !== undefined ? String(input.openingBalance) : "0",
+      openingBalanceCaptured: input.openingBalance !== undefined,
+      statementCloseDay: input.statementCloseDay ?? null,
+      dueDay: input.dueDay ?? null,
+      creditLimit: input.creditLimit !== undefined && input.creditLimit !== null
+        ? String(input.creditLimit)
+        : null,
       archived: input.archived ?? false,
     })
     .returning();
@@ -40,6 +46,11 @@ export async function updateAccount(id: string, input: AccountUpdateInput) {
   if (input.type !== undefined) patch.type = input.type;
   if (input.currency !== undefined) patch.currency = input.currency.toUpperCase();
   if (input.openingBalance !== undefined) patch.openingBalance = String(input.openingBalance);
+  if (input.statementCloseDay !== undefined) patch.statementCloseDay = input.statementCloseDay;
+  if (input.dueDay !== undefined) patch.dueDay = input.dueDay;
+  if (input.creditLimit !== undefined) {
+    patch.creditLimit = input.creditLimit === null ? null : String(input.creditLimit);
+  }
   if (input.archived !== undefined) patch.archived = input.archived;
 
   const [row] = await db.update(accounts).set(patch).where(eq(accounts.id, id)).returning();

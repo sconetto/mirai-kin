@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
+import { getSettings } from "@/services/settings";
 import "../globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -40,9 +41,10 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
   const messages = await getMessages();
+  const appSettings = await getSettings();
 
   return (
-    <html lang={locale} className={`${sans.variable} ${mono.variable}`}>
+    <html lang={locale} data-theme={appSettings.theme} className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen bg-paper text-ink antialiased">
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>
