@@ -62,7 +62,8 @@ export async function createTransaction(input: TransactionCreateInput) {
       conditions.push(
         sql`lower(coalesce(${transactions.counterparty}, '')) = ${input.counterparty.toLowerCase()}`,
       );
-    } else if (input.note) {
+    }
+    if (input.note) {
       conditions.push(sql`lower(coalesce(${transactions.note}, '')) = ${input.note.toLowerCase()}`);
     }
 
