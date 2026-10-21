@@ -148,3 +148,42 @@ export async function forecast(horizonMonths = 12) {
 
   return { baseCurrency, horizonMonths, months };
 }
+
+export type ScenarioKey = "base" | "optimistic" | "pessimistic";
+
+const SCENARIOS: {
+  key: ScenarioKey;
+  incomeMultiplier: number;
+  expenseMultiplier: number;
+}[] = [
+  { key: "base", incomeMultiplier: 1, expenseMultiplier: 1 },
+  { key: "optimistic", incomeMultiplier: 1.1, expenseMultiplier: 0.95 },
+  { key: "pessimistic", incomeMultiplier: 0.9, expenseMultiplier: 1.1 },
+];
+
+export async function compareScenarios(horizonMonths = 12) {
+  const base = await forecast(horizonMonths);
+
+  const scenarios = SCENARIOS.map((scenario) => {
+    let cumulative = 0;
+    const months = base.months.map((month) => {
+      const net =
+        month.income * scenario.incomeMultiplier -
+        month.expenses * scenario.expenseMultiplier -
+        month.debtPayments;
+      cumulative += net;
+      return {
+        month: month.month,
+        net: round4(net),
+        cumulative: round4(cumulative),
+      };
+    });
+    return {
+      key: scenario.key,
+      totalNet: round4(cumulative),
+      months,
+    };
+  });
+
+  return { baseCurrency: base.baseCurrency, horizonMonths, scenarios };
+}

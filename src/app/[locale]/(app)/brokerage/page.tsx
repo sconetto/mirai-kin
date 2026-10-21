@@ -1,21 +1,30 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatNumber } from "@/lib/format";
-import { listPositionsWithValue } from "@/services/investments";
+import { getBrokerageSummary } from "@/services/brokerage";
 
 export default async function BrokeragePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("brokerage");
   const tc = await getTranslations("common");
-  const positions = await listPositionsWithValue();
+  const summary = await getBrokerageSummary();
+  const positions = summary.positions;
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader title={t("title")} subtitle={t("subtitle")}>
+        <a
+          href="/api/brokerage/export"
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+        >
+          {t("export")}
+        </a>
+      </PageHeader>
 
       <Card>
         <CardContent className="py-4">
@@ -72,6 +81,45 @@ export default async function BrokeragePage({ params }: { params: Promise<{ loca
               {tc("view")}
             </Link>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("allocation")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-6 sm:grid-cols-3">
+          {(
+            [
+              ["byInstrument", t("byInstrument"), summary.allocation.byInstrument],
+              ["byCurrency", t("byCurrency"), summary.allocation.byCurrency],
+              ["byAccount", t("byAccount"), summary.allocation.byAccount],
+            ] as const
+          ).map(([key, label, items]) => (
+            <div key={key}>
+              <p className="text-xs font-medium text-ink-3">{label}</p>
+              {items.length === 0 ? (
+                <p className="mt-2 text-sm text-ink-3">—</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {items.map((item) => (
+                    <li key={item.key}>
+                      <div className="flex justify-between gap-2 text-sm">
+                        <span className="truncate text-ink-2">{item.key}</span>
+                        <span className="text-ink-3">{item.share}%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 rounded-full bg-paper">
+                        <div
+                          className="h-full rounded-full bg-accent"
+                          style={{ width: `${item.share}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

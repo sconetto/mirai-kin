@@ -63,6 +63,49 @@ export async function listPositionsWithValue() {
   return result;
 }
 
+export async function getPortfolioHistory() {
+  const db = getDb();
+  const positions = await db
+    .select()
+    .from(investmentPositions)
+    .where(eq(investmentPositions.closed, false));
+  if (positions.length === 0) return [];
+
+  const positionById = new Map(positions.map((position) => [position.id, position]));
+  const prices = await db
+    .select({
+      positionId: investmentPrices.positionId,
+      date: investmentPrices.date,
+      price: investmentPrices.price,
+    })
+    .from(investmentPrices)
+    .orderBy(investmentPrices.date);
+
+  const pricesByDate = new Map<string, Map<string, number>>();
+  for (const row of prices) {
+    if (!positionById.has(row.positionId)) continue;
+    const bucket = pricesByDate.get(row.date) ?? new Map<string, number>();
+    bucket.set(row.positionId, Number(row.price));
+    pricesByDate.set(row.date, bucket);
+  }
+
+  const lastPrice = new Map<string, number>();
+  const series: { date: string; value: number }[] = [];
+  for (const date of [...pricesByDate.keys()].sort()) {
+    for (const [positionId, price] of pricesByDate.get(date) ?? []) {
+      lastPrice.set(positionId, price);
+    }
+    let total = 0;
+    for (const [positionId, price] of lastPrice) {
+      const position = positionById.get(positionId);
+      if (position) total += Number(position.quantity) * price;
+    }
+    series.push({ date, value: Number(total.toFixed(2)) });
+  }
+
+  return series;
+}
+
 export async function getPosition(id: string) {
   const db = getDb();
   const [row] = await db

@@ -42,7 +42,7 @@
 - [x] 5.4 Implement transactions endpoints (CRUD + batch with idempotency)
 - [x] 5.5 Implement budgets, investments, debts, and projections endpoints
 - [x] 5.6 Implement the consistent error envelope and 401 handling
-- [ ] 5.7 Emit typed API client via openapi-typescript and add a contract test
+- [x] 5.7 Emit typed API client via openapi-typescript and add a contract test
 
 ## 6. FX rates and background job
 
@@ -56,10 +56,10 @@
 - [x] 7.1 Implement the responsive app shell and navigation
 - [x] 7.2 Implement accounts and transactions views
 - [x] 7.3 Implement budgets view with spend versus budget
-- [ ] 7.4 Implement investments view with growth charts
+- [x] 7.4 Implement investments view with growth charts
 - [x] 7.5 Implement debts view with amortization schedule
 - [x] 7.6 Implement projections/cash-flow view
-- [ ] 7.7 Add charts (Recharts) for spending, balance, and growth
+- [x] 7.7 Add charts (Recharts) for spending, balance, and growth
 
 ## 8. Data import
 
@@ -149,18 +149,18 @@
 
 - [x] 19.1 Add `brokerage_lots`, `brokerage_sales`, and `dividends` schema plus migration
 - [x] 19.2 Implement positions, lots, and average-cost gains
-- [ ] 19.3 Implement allocation by instrument, currency, and account
-- [ ] 19.4 Implement dividends and include them in income reports
+- [x] 19.3 Implement allocation by instrument, currency, and account
+- [x] 19.4 Implement dividends and include them in income reports
 - [x] 19.5 Implement brokerage CSV import and manual entry
-- [ ] 19.6 Implement brokerage tax export
+- [x] 19.6 Implement brokerage tax export
 - [x] 19.7 Build the Brokerage screen
 
 ## 20. Financial planner
 
 - [x] 20.1 Add `goals` and `scenarios` schema plus migration
-- [ ] 20.2 Implement goals CRUD, progress, and priority
+- [x] 20.2 Implement goals CRUD, progress, and priority
 - [x] 20.3 Implement required monthly contribution and emergency-fund runway
-- [ ] 20.4 Implement base/optimistic/pessimistic scenario comparison over projections
+- [x] 20.4 Implement base/optimistic/pessimistic scenario comparison over projections
 - [x] 20.5 Build the Financial Planner screen
 
 ## 21. Tax
@@ -168,15 +168,15 @@
 - [x] 21.1 Add `categories.tax_treatment` and `is_essential` plus migration
 - [x] 21.2 Implement tax summaries for income, deductible expenses, capital gains, and dividends
 - [x] 21.3 Implement tax-year selection and base-currency conversion
-- [ ] 21.4 Implement CSV export for tax summaries
+- [x] 21.4 Implement CSV export for tax summaries
 - [x] 21.5 Build the Tax screen with the no-advice disclaimer
 
 ## 22. Estate planning
 
 - [x] 22.1 Add `estate_assets`, `beneficiaries`, and `estate_documents` schema plus migration
 - [x] 22.2 Implement the asset/liability inventory and beneficiary shares
-- [ ] 22.3 Implement the document checklist and notes
-- [ ] 22.4 Implement CSV export
+- [x] 22.3 Implement the document checklist and notes
+- [x] 22.4 Implement CSV export
 - [x] 22.5 Build the Estate Planning screen with the no-legal-advice disclaimer
 
 ## 23. Assistant (phase 2)
@@ -190,10 +190,10 @@
 
 ## 24. Verification for the revised product
 
-- [ ] 24.1 Add unit tests for report aggregations
-- [ ] 24.2 Add unit tests for insight rules and acknowledgement resurfacing
+- [x] 24.1 Add unit tests for report aggregations
+- [x] 24.2 Add unit tests for insight rules and acknowledgement resurfacing
 - [x] 24.3 Add unit tests for required contribution and emergency runway
-- [ ] 24.4 Add unit tests for brokerage gains and tax classification
-- [ ] 24.5 Add e2e coverage for import -> review -> report -> insight
-- [ ] 24.6 Add e2e coverage for goals/scenarios and the estate inventory
+- [x] 24.4 Add unit tests for brokerage gains and tax classification
+- [x] 24.5 Add e2e coverage for import -> review -> report -> insight
+- [x] 24.6 Add e2e coverage for goals/scenarios and the estate inventory
 - [x] 24.7 Verify Docker build and migrations for the expanded schema

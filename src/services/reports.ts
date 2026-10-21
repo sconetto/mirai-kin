@@ -1,7 +1,14 @@
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { categories, savedReports, transactions } from "@/db/schema";
+import {
+  categories,
+  dividends,
+  investmentPositions,
+  savedReports,
+  transactions,
+} from "@/db/schema";
 import { getEnv } from "@/lib/env";
+import { resolveRate } from "./fx";
 
 export type ReportType = "cashflow" | "income" | "expenses" | "transfers" | "breakdown";
 
@@ -94,10 +101,10 @@ function baseConditions(config: ReportConfig) {
     sql`${transactions.reviewStatus} <> 'split'`,
   ];
   if (config.accountIds?.length) {
-    conditions.push(sql`${transactions.accountId} = any(${config.accountIds})`);
+    conditions.push(inArray(transactions.accountId, config.accountIds));
   }
   if (config.categoryIds?.length) {
-    conditions.push(sql`${transactions.categoryId} = any(${config.categoryIds})`);
+    conditions.push(inArray(transactions.categoryId, config.categoryIds));
   }
   return conditions;
 }
@@ -166,8 +173,73 @@ async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
   });
 }
 
+async function mergeDividendIncome(
+  rows: ReportRow[],
+  config: ReportConfig,
+): Promise<ReportRow[]> {
+  if (config.type !== "income" || config.categoryIds?.length) return rows;
+
+  const conditions = [
+    gte(dividends.date, config.from.slice(0, 10)),
+    lte(dividends.date, config.to.slice(0, 10)),
+  ];
+  if (config.accountIds?.length) {
+    conditions.push(inArray(investmentPositions.accountId, config.accountIds));
+  }
+
+  const dividendRows = await getDb()
+    .select({
+      date: dividends.date,
+      amount: dividends.amount,
+      currency: dividends.currency,
+    })
+    .from(dividends)
+    .innerJoin(investmentPositions, eq(dividends.positionId, investmentPositions.id))
+    .where(and(...conditions));
+
+  if (dividendRows.length === 0) return rows;
+
+  const baseCurrency = getEnv().BASE_CURRENCY.toUpperCase();
+  const byMonth = new Map<string, number>();
+  for (const dividend of dividendRows) {
+    let amount = Number(dividend.amount);
+    const currency = dividend.currency.toUpperCase();
+    if (currency !== baseCurrency) {
+      try {
+        const { rate } = await resolveRate(
+          currency,
+          baseCurrency,
+          new Date(`${dividend.date}T00:00:00.000Z`),
+        );
+        amount *= Number(rate);
+      } catch {
+        // Without an FX rate we keep the original amount rather than dropping income.
+      }
+    }
+    const month = dividend.date.slice(0, 7);
+    byMonth.set(month, (byMonth.get(month) ?? 0) + amount);
+  }
+
+  const merged = new Map(rows.map((row) => [row.key, { ...row }]));
+  for (const [month, amount] of byMonth) {
+    const row =
+      merged.get(month) ??
+      { key: month, label: month, income: 0, expenses: 0, transfers: 0, net: 0 };
+    const income = Number((row.income + amount).toFixed(4));
+    merged.set(month, {
+      ...row,
+      income,
+      net: Number((income - row.expenses).toFixed(4)),
+    });
+  }
+
+  return [...merged.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
 async function buildReport(config: ReportConfig): Promise<Report> {
-  const periodRows = config.type === "breakdown" ? await getCategoryRows(config) : await getPeriodRows(config);
+  const baseRows =
+    config.type === "breakdown" ? await getCategoryRows(config) : await getPeriodRows(config);
+  const periodRows = await mergeDividendIncome(baseRows, config);
   const months = config.type === "breakdown" ? 1 : monthsBetween(config.from, config.to);
   return {
     type: config.type,

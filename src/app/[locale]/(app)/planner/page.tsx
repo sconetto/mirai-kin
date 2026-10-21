@@ -8,7 +8,7 @@ import { GOAL_TYPES } from "@/db/schema";
 import { getEnv } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getPlanner } from "@/services/planner";
-import { createGoalAction } from "../actions";
+import { createGoalAction, deleteGoalAction, updateGoalAction } from "../actions";
 
 export default async function PlannerPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -54,7 +54,15 @@ export default async function PlannerPage({ params }: { params: Promise<{ locale
             <Input name="targetAmount" placeholder={t("target")} inputMode="decimal" required />
             <Input name="targetDate" type="date" />
             <div className="flex gap-2">
-              <Input name="currency" defaultValue={currency} maxLength={3} />
+              <Input name="currency" defaultValue={currency} maxLength={3} className="w-20" />
+              <Input
+                name="priority"
+                type="number"
+                min={1}
+                defaultValue={1}
+                aria-label={t("priority")}
+                className="w-20"
+              />
               <Button type="submit">{tc("add")}</Button>
             </div>
           </form>
@@ -76,19 +84,81 @@ export default async function PlannerPage({ params }: { params: Promise<{ locale
                     <th className="pb-3 pr-4">{t("name")}</th>
                     <th className="pb-3 pr-4">{tc("type")}</th>
                     <th className="pb-3 pr-4 text-right">{t("target")}</th>
-                    <th className="pb-3">{t("date")}</th>
+                    <th className="pb-3 pr-4">{t("date")}</th>
+                    <th className="pb-3 pr-4 text-center">{t("priority")}</th>
+                    <th className="pb-3 pr-4">{t("progress")}</th>
+                    <th className="pb-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/70">
                   {planner.goals.map((goal) => (
-                    <tr key={goal.id} className="hover:bg-paper">
+                    <tr key={goal.id} className="align-top hover:bg-paper">
                       <td className="py-2.5 pr-4 font-medium text-ink">{goal.name}</td>
                       <td className="py-2.5 pr-4 text-ink-3">{t(goal.type)}</td>
                       <td className="py-2.5 pr-4 text-right text-ink-2">
                         {formatCurrency(goal.targetAmount, goal.currency, locale)}
                       </td>
-                      <td className="py-2.5 text-ink-3">
+                      <td className="py-2.5 pr-4 text-ink-3">
                         {goal.targetDate ? formatDate(goal.targetDate, locale) : "—"}
+                      </td>
+                      <td className="py-2.5 pr-4 text-center text-ink-3">{goal.priority}</td>
+                      <td className="py-2.5 pr-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-24 rounded-full bg-paper">
+                            <div
+                              className="h-full rounded-full bg-accent"
+                              style={{ width: `${goal.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-ink-3">{goal.progress}%</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <form action={deleteGoalAction}>
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="id" value={goal.id} />
+                          <Button type="submit" size="sm" variant="ghost">
+                            {tc("delete")}
+                          </Button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                  {planner.goals.map((goal) => (
+                    <tr key={`${goal.id}-edit`} className="border-0">
+                      <td colSpan={7} className="pb-3 pt-0">
+                        <form
+                          action={updateGoalAction}
+                          className="flex flex-wrap items-end gap-2"
+                        >
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="id" value={goal.id} />
+                          <Input
+                            name="targetAmount"
+                            defaultValue={goal.targetAmount}
+                            inputMode="decimal"
+                            aria-label={t("target")}
+                            className="h-8 w-32"
+                          />
+                          <Input
+                            name="targetDate"
+                            type="date"
+                            defaultValue={goal.targetDate ?? ""}
+                            aria-label={t("date")}
+                            className="h-8 w-40"
+                          />
+                          <Input
+                            name="priority"
+                            type="number"
+                            min={1}
+                            defaultValue={goal.priority}
+                            aria-label={t("priority")}
+                            className="h-8 w-20"
+                          />
+                          <Button type="submit" size="sm" variant="secondary">
+                            {tc("save")}
+                          </Button>
+                        </form>
                       </td>
                     </tr>
                   ))}

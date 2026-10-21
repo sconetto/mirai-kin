@@ -14,9 +14,9 @@ import { createAccount } from "@/services/accounts";
 import { createBudget } from "@/services/budgets";
 import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
-import { createBeneficiary, createDocument } from "@/services/estate";
+import { createBeneficiary, createDocument, updateDocumentStatus } from "@/services/estate";
 import { recordSnapshot } from "@/services/equity";
-import { createGoal } from "@/services/planner";
+import { createGoal, deleteGoal, updateGoal } from "@/services/planner";
 import {
   commitBatch,
   deleteProfile,
@@ -245,6 +245,27 @@ export async function createGoalAction(formData: FormData) {
   revalidatePath(`/${locale}/planner`);
 }
 
+export async function updateGoalAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  const targetAmount = field(formData, "targetAmount");
+  const priority = field(formData, "priority");
+  await updateGoal(id, {
+    targetAmount: targetAmount ?? undefined,
+    targetDate: field(formData, "targetDate") ?? null,
+    priority: priority ? Number(priority) : undefined,
+  });
+  revalidatePath(`/${locale}/planner`);
+}
+
+export async function deleteGoalAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await deleteGoal(id);
+  revalidatePath(`/${locale}/planner`);
+}
+
 export async function createBeneficiaryAction(formData: FormData) {
   const locale = localeOf(formData);
   const name = field(formData, "name");
@@ -253,6 +274,7 @@ export async function createBeneficiaryAction(formData: FormData) {
     name,
     relationship: field(formData, "relationship") ?? null,
     sharePct: field(formData, "sharePct") ?? "0",
+    notes: field(formData, "notes") ?? null,
   });
   revalidatePath(`/${locale}/estate`);
 }
@@ -265,7 +287,16 @@ export async function createDocumentAction(formData: FormData) {
     name,
     category: field(formData, "category") ?? "other",
     status: field(formData, "status") ?? "missing",
+    notes: field(formData, "notes") ?? null,
   });
+  revalidatePath(`/${locale}/estate`);
+}
+
+export async function updateDocumentStatusAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  const status = field(formData, "status");
+  if (id && status) await updateDocumentStatus(id, status);
   revalidatePath(`/${locale}/estate`);
 }
 

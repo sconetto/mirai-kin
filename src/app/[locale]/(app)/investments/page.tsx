@@ -1,12 +1,13 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { INSTRUMENT_TYPES } from "@/db/schema";
+import { PortfolioChart } from "@/components/charts/portfolio-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { getEnv } from "@/lib/env";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { listAccounts } from "@/services/accounts";
-import { listPositionsWithValue } from "@/services/investments";
+import { listPositionsWithValue, getPortfolioHistory } from "@/services/investments";
 import { createPositionAction } from "../actions";
 
 export default async function InvestmentsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -16,6 +17,7 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
   const tc = await getTranslations("common");
   const accounts = await listAccounts();
   const positions = await listPositionsWithValue();
+  const history = await getPortfolioHistory();
   const baseCurrency = getEnv().BASE_CURRENCY;
 
   return (
@@ -24,6 +26,15 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
         <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
         <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("growth")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PortfolioChart data={history} locale={locale} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

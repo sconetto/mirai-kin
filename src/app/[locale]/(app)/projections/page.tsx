@@ -1,8 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { ScenarioChart } from "@/components/charts/scenario-chart";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatMonth } from "@/lib/format";
-import { forecast } from "@/services/projections";
+import { compareScenarios, forecast } from "@/services/projections";
 
 export default async function ProjectionsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -10,6 +11,14 @@ export default async function ProjectionsPage({ params }: { params: Promise<{ lo
   const t = await getTranslations("projections");
   const tc = await getTranslations("common");
   const data = await forecast(12);
+  const comparison = await compareScenarios(12);
+  const [baseScenario, optimisticScenario, pessimisticScenario] = comparison.scenarios;
+  const scenarioChart = baseScenario.months.map((month, index) => ({
+    month: formatMonth(month.month, locale),
+    base: month.cumulative,
+    optimistic: optimisticScenario.months[index]?.cumulative ?? 0,
+    pessimistic: pessimisticScenario.months[index]?.cumulative ?? 0,
+  }));
 
   const chartData = data.months.map((month) => ({
     month: formatMonth(month.month, locale),
@@ -24,6 +33,36 @@ export default async function ProjectionsPage({ params }: { params: Promise<{ lo
         <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
         <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("scenarios")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ScenarioChart
+            data={scenarioChart}
+            labels={{
+              base: t("base"),
+              optimistic: t("optimistic"),
+              pessimistic: t("pessimistic"),
+            }}
+          />
+          <div className="grid gap-3 sm:grid-cols-3">
+            {comparison.scenarios.map((scenario) => (
+              <div key={scenario.key} className="rounded-lg border border-line bg-surface p-3">
+                <p className="text-xs font-medium text-ink-3">{t(scenario.key)}</p>
+                <p
+                  className={`mt-1 text-lg font-semibold ${
+                    scenario.totalNet >= 0 ? "text-positive" : "text-negative"
+                  }`}
+                >
+                  {formatCurrency(scenario.totalNet, comparison.baseCurrency, locale)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

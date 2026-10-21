@@ -47,6 +47,12 @@ export default async function TaxPage({
             {t("year")}
           </Button>
         </form>
+        <a
+          href={`/api/tax/export?year=${year}`}
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+        >
+          {t("export")}
+        </a>
       </PageHeader>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

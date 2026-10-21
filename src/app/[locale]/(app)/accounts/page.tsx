@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { getEnv } from "@/lib/env";
+import { BalanceChart } from "@/components/charts/balance-chart";
 import { formatCurrency } from "@/lib/format";
 import { listAccountBalances } from "@/services/accounts";
+import { overview } from "@/services/analytics";
 import { createAccountAction } from "../actions";
 
 export default async function AccountsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -15,8 +17,12 @@ export default async function AccountsPage({ params }: { params: Promise<{ local
   const t = await getTranslations("accounts");
   const tc = await getTranslations("common");
   const te = await getTranslations("enums");
-  const accounts = await listAccountBalances();
+  const [accounts, analytics] = await Promise.all([listAccountBalances(), overview()]);
   const baseCurrency = getEnv().BASE_CURRENCY;
+  const chartData = [...analytics.balances]
+    .sort((a, b) => Math.abs(Number(b.baseBalance)) - Math.abs(Number(a.baseBalance)))
+    .slice(0, 10)
+    .map((account) => ({ name: account.name, total: Number(account.baseBalance) }));
 
   return (
     <div className="space-y-6">
@@ -44,6 +50,15 @@ export default async function AccountsPage({ params }: { params: Promise<{ local
             <Input name="openingBalance" defaultValue="0" inputMode="decimal" />
             <Button type="submit">{tc("add")}</Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("balanceChart")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BalanceChart data={chartData} locale={locale} />
         </CardContent>
       </Card>
 

@@ -80,7 +80,8 @@
     "balance": "Balance",
     "archived": "Archived",
     "empty": "No accounts yet",
-    "created": "Account created"
+    "created": "Account created",
+    "balanceChart": "Balance by account"
   },
   "transactions": {
     "title": "Transactions",
@@ -136,7 +137,8 @@
     "empty": "No positions yet",
     "latestPrice": "Latest price",
     "addPrice": "Record price",
-    "price": "Price"
+    "price": "Price",
+    "growth": "Portfolio growth"
   },
   "debts": {
     "title": "Debts",
@@ -163,7 +165,11 @@
     "expenses": "Expenses",
     "debtPayments": "Debt payments",
     "net": "Net",
-    "empty": "Not enough data to project"
+    "empty": "Not enough data to project",
+    "scenarios": "Scenarios",
+    "base": "Base",
+    "optimistic": "Optimistic",
+    "pessimistic": "Pessimistic"
   },
   "import": {
     "title": "Import",
@@ -359,10 +365,15 @@
     "title": "Brokerage",
     "subtitle": "Positions, cost, and performance",
     "empty": "No brokerage positions",
-    "note": "Lots, allocation, dividends, and brokerage import arrive in the next phase.",
+    "note": "Allocation is calculated from open positions; the export includes positions, sales, and dividends.",
     "symbol": "Symbol",
     "value": "Value",
-    "gain": "Gain"
+    "gain": "Gain",
+    "export": "Export CSV",
+    "allocation": "Allocation",
+    "byInstrument": "By instrument",
+    "byCurrency": "By currency",
+    "byAccount": "By account"
   },
   "tax": {
     "title": "Tax",
@@ -375,7 +386,8 @@
     "disclaimer": "This app does not calculate or file taxes and is not a substitute for professional advice.",
     "noData": "No data for the selected year",
     "category": "Category",
-    "total": "Total"
+    "total": "Total",
+    "export": "Export CSV"
   },
   "planner": {
     "title": "Planner",
@@ -395,7 +407,9 @@
     "emergency": "Emergency fund",
     "retirement": "Retirement",
     "home": "Home",
-    "custom": "Custom"
+    "custom": "Custom",
+    "progress": "Progress",
+    "priority": "Priority"
   },
   "estate": {
     "title": "Estate",
@@ -416,6 +430,8 @@
     "missing": "Missing",
     "draft": "Draft",
     "final": "Final",
-    "totalShare": "Total allocated"
+    "totalShare": "Total allocated",
+    "export": "Export CSV",
+    "notes": "Notes"
   }
 }

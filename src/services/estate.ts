@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { beneficiaries, estateAssets, estateDocuments } from "@/db/schema";
 import { listAccountBalances } from "./accounts";
@@ -45,6 +46,7 @@ export async function createDocument(input: {
   name: string;
   category?: string;
   status?: string;
+  notes?: string | null;
 }) {
   const db = getDb();
   const [row] = await db
@@ -53,7 +55,18 @@ export async function createDocument(input: {
       name: input.name,
       category: input.category ?? "other",
       status: input.status ?? "missing",
+      notes: input.notes ?? null,
     })
     .returning();
   return row;
+}
+
+export async function updateDocumentStatus(id: string, status: string) {
+  const db = getDb();
+  const [row] = await db
+    .update(estateDocuments)
+    .set({ status })
+    .where(eq(estateDocuments.id, id))
+    .returning();
+  return row ?? null;
 }

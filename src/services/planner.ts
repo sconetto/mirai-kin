@@ -35,6 +35,34 @@ export async function createGoal(input: {
   return row;
 }
 
+export async function updateGoal(
+  id: string,
+  input: {
+    targetAmount?: string | number;
+    targetDate?: string | null;
+    priority?: number;
+    notes?: string | null;
+  },
+) {
+  const db = getDb();
+  const [row] = await db
+    .update(goals)
+    .set({
+      ...(input.targetAmount !== undefined ? { targetAmount: String(input.targetAmount) } : {}),
+      ...(input.targetDate !== undefined ? { targetDate: input.targetDate } : {}),
+      ...(input.priority !== undefined ? { priority: input.priority } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    })
+    .where(eq(goals.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteGoal(id: string) {
+  const db = getDb();
+  await db.delete(goals).where(eq(goals.id, id));
+}
+
 export async function getPlanner() {
   const db = getDb();
   const now = new Date();
@@ -60,8 +88,22 @@ export async function getPlanner() {
     .reduce((sum, account) => sum + Number(account.balance), 0);
   const runwayMonths = emergencyRunway(liquid, essentialMonthly);
 
+  const goalsWithProgress = (await listGoals()).map((goal) => {
+    const accountIds = Array.isArray(goal.accountIds) ? (goal.accountIds as string[]) : [];
+    const current = balances
+      .filter((account) => accountIds.includes(account.id))
+      .reduce((sum, account) => sum + Number(account.balance), 0);
+    const target = Number(goal.targetAmount);
+    return {
+      ...goal,
+      current: Number(current.toFixed(4)),
+      progress:
+        target > 0 ? Math.min(100, Number(((current / target) * 100).toFixed(1))) : 0,
+    };
+  });
+
   return {
-    goals: await listGoals(),
+    goals: goalsWithProgress,
     liquid: Number(liquid.toFixed(4)),
     essentialMonthly: Number(essentialMonthly.toFixed(4)),
     runwayMonths: Number(runwayMonths.toFixed(1)),

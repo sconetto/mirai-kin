@@ -80,7 +80,8 @@
     "balance": "Saldo",
     "archived": "Arquivada",
     "empty": "Nenhuma conta cadastrada",
-    "created": "Conta criada"
+    "created": "Conta criada",
+    "balanceChart": "Saldo por conta"
   },
   "transactions": {
     "title": "Transações",
@@ -136,7 +137,8 @@
     "empty": "Nenhuma posição cadastrada",
     "latestPrice": "Último preço",
     "addPrice": "Registrar preço",
-    "price": "Preço"
+    "price": "Preço",
+    "growth": "Evolução do portfólio"
   },
   "debts": {
     "title": "Dívidas",
@@ -163,7 +165,11 @@
     "expenses": "Despesas",
     "debtPayments": "Parcelas de dívidas",
     "net": "Saldo",
-    "empty": "Sem dados suficientes para projetar"
+    "empty": "Sem dados suficientes para projetar",
+    "scenarios": "Cenários",
+    "base": "Base",
+    "optimistic": "Otimista",
+    "pessimistic": "Pessimista"
   },
   "import": {
     "title": "Importar",
@@ -359,10 +365,15 @@
     "title": "Corretora",
     "subtitle": "Posições, custo e resultado",
     "empty": "Nenhuma posição de corretagem",
-    "note": "Lotes, alocação, proventos e importação de corretora chegam na próxima fase.",
+    "note": "Alocação é calculada a partir das posições abertas; a exportação inclui posições, vendas e proventos.",
     "symbol": "Ativo",
     "value": "Valor",
-    "gain": "Resultado"
+    "gain": "Resultado",
+    "export": "Exportar CSV",
+    "allocation": "Alocação",
+    "byInstrument": "Por ativo",
+    "byCurrency": "Por moeda",
+    "byAccount": "Por conta"
   },
   "tax": {
     "title": "Impostos",
@@ -375,7 +386,8 @@
     "disclaimer": "Este app não calcula nem declara impostos e não substitui orientação profissional.",
     "noData": "Sem dados para o ano selecionado",
     "category": "Categoria",
-    "total": "Total"
+    "total": "Total",
+    "export": "Exportar CSV"
   },
   "planner": {
     "title": "Planejador",
@@ -395,7 +407,9 @@
     "emergency": "Reserva de emergência",
     "retirement": "Aposentadoria",
     "home": "Casa própria",
-    "custom": "Personalizada"
+    "custom": "Personalizada",
+    "progress": "Progresso",
+    "priority": "Prioridade"
   },
   "estate": {
     "title": "Sucessão",
@@ -416,6 +430,8 @@
     "missing": "Pendente",
     "draft": "Rascunho",
     "final": "Concluído",
-    "totalShare": "Total alocado"
+    "totalShare": "Total alocado",
+    "export": "Exportar CSV",
+    "notes": "Observações"
   }
 }
