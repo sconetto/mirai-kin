@@ -321,7 +321,8 @@
     "custom": "Custom",
     "chartBar": "Bars",
     "chartLine": "Lines",
-    "reset": "Reset"
+    "reset": "Reset",
+    "breakdownSubtitle": "Distribution of expenses by category"
   },
   "insights": {
     "title": "Insights",

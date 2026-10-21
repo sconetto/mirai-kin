@@ -1,6 +1,7 @@
 import { ArrowDown, BookOpen, SlidersHorizontal, Upload } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ReportChart } from "@/components/charts/report-chart";
+import { SpendingChart } from "@/components/charts/spending-chart";
 import { SpendingNav } from "@/components/spending-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -160,12 +161,19 @@ export default async function ReportsPage({
                 </div>
               </form>
 
-              <ReportChart
-                data={chartData}
-                label={t(type)}
-                locale={locale}
-                currency={report.currency}
-              />
+              {type === "breakdown" ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-ink-3">{t("breakdownSubtitle")}</p>
+                  <SpendingChart data={chartData} currency={report.currency} />
+                </div>
+              ) : (
+                <ReportChart
+                  data={chartData}
+                  label={t(type)}
+                  locale={locale}
+                  currency={report.currency}
+                />
+              )}
 
               <SummaryStrip items={summaryItems} />
 

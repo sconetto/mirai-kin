@@ -321,7 +321,8 @@
     "custom": "Personalizado",
     "chartBar": "Barras",
     "chartLine": "Linhas",
-    "reset": "Redefinir"
+    "reset": "Redefinir",
+    "breakdownSubtitle": "Distribuição das despesas por categoria"
   },
   "insights": {
     "title": "Insights",
