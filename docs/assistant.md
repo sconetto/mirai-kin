@@ -1,6 +1,6 @@
 # Assistant — privacy and data flow
 
-The finance planner includes an optional in-app assistant. It is **disabled by default**. When it is disabled or not configured, the assistant page shows setup instructions and no user data is sent to any external provider.
+mirai-kin includes an optional in-app assistant. It is **disabled by default**. When it is disabled or not configured, the assistant page shows setup instructions and no user data is sent to any external provider.
 
 ## Enabling it
 

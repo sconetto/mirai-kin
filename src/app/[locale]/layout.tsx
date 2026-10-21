@@ -21,8 +21,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Finance Planner",
-  description: "Self-hosted wealth planning dashboard",
+  title: "mirai-kin",
+  description: "Self-hosted personal finance workspace",
 };
 
 export default async function LocaleLayout({

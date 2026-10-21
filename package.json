@@ -1,7 +1,12 @@
 {
-  "name": "fin-planner",
+  "name": "mirai-kin",
   "version": "0.1.0",
   "private": true,
+  "description": "Self-hosted personal finance workspace: import, review, report, insight, plan.",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/sconetto/mirai-kin.git"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

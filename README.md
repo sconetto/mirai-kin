@@ -1,6 +1,8 @@
-# Finance Planner
+# mirai-kin
 
-Self-hosted, multi-lingual (en-US / pt-BR) finance planner built around **import → review → report → insight → plan**. Statements are imported once, cleaned up in a review queue, and turned into cash-flow reports, deterministic insights, net worth, brokerage, tax summaries, and a financial plan — with a first-class, agent-integrable REST API.
+**mirai-kin** (未来金 — “future funds”) is a self-hosted, multi-lingual (en-US / pt-BR) personal finance workspace built around **import → review → report → insight → plan**. Statements are imported once, cleaned up in a review queue, and turned into cash-flow reports, deterministic insights, net worth, brokerage, tax summaries, and a financial plan — with a first-class, agent-integrable REST API.
+
+Repository: <https://github.com/sconetto/mirai-kin>
 
 ## Product
 
@@ -9,7 +11,7 @@ Self-hosted, multi-lingual (en-US / pt-BR) finance planner built around **import
 - **Learn** — glossary, guides, and articles.
 - **Import** — CSV, OFX, brokerage CSV, and Wallet MCP-assisted imports with staging, deduplication, and review.
 
-An optional in-app assistant (disabled by default) is specified for a later phase; deterministic insights and the REST API work without it.
+An optional in-app assistant is available when configured; it is disabled by default. Deterministic insights and the REST API work without it.
 
 ## Stack
 

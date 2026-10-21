@@ -384,10 +384,10 @@ export function buildOpenApiDocument() {
   const document = generator.generateDocument({
     openapi: "3.1.0",
     info: {
-      title: "Finance Planner API",
+      title: "mirai-kin API",
       version: "1.0.0",
       description:
-        "Self-hosted finance planner API. All endpoints require a bearer token (API_TOKEN). Mutating endpoints accept an `Idempotency-Key` header.",
+        "Self-hosted personal finance API for mirai-kin. All endpoints require a bearer token (API_TOKEN). Mutating endpoints accept an `Idempotency-Key` header.",
     },
     servers: [{ url: "/" }],
   });
