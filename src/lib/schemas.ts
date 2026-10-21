@@ -203,6 +203,8 @@ export const recurringTransactionCreateSchema = z.object({
   endDate: isoDate.nullish(),
   note: z.string().nullish(),
   paymentType: z.enum(PAYMENT_TYPES).nullish(),
+  externalSource: z.enum(IMPORT_SOURCES).optional(),
+  externalId: z.string().min(1).max(200).optional(),
 });
 
 export const projectionQuerySchema = z.object({

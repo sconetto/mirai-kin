@@ -84,7 +84,7 @@ pnpm db:seed       # seed user + categories + default account
 
 All mutating endpoints accept an `Idempotency-Key` header; repeated keys return the original result. Batch transaction creation accepts up to 50 items and returns per-item results.
 
-For source-backed imports, send the optional `externalSource` and `externalId` fields on accounts, categories, labels, and transactions. Replaying the same pair returns the existing row; first-time replays adopt matching legacy rows before creating anything new. Use `externalSource: "wallet_mcp"` and the Wallet record/entity IDs.
+For source-backed imports, send the optional `externalSource` and `externalId` fields on accounts, categories, labels, transactions, and recurring transactions. Replaying the same pair returns the existing row; first-time replays adopt matching legacy rows before creating anything new. Use `externalSource: "wallet_mcp"` and the Wallet record/entity IDs.
 
 ```bash
 curl -H "Authorization: Bearer $API_TOKEN" http://localhost:3100/api/v1/accounts

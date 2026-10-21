@@ -15,6 +15,7 @@ import {
   investmentPriceCreateSchema,
   labelCreateSchema,
   labelUpdateSchema,
+  recurringTransactionCreateSchema,
   transactionBatchSchema,
   transactionCreateSchema,
   transactionUpdateSchema,
@@ -60,6 +61,7 @@ export function buildOpenApiDocument() {
   registry.register("InvestmentPriceInput", investmentPriceCreateSchema);
   registry.register("DebtInput", debtCreateSchema);
   registry.register("DebtUpdate", debtUpdateSchema);
+  registry.register("RecurringTransactionInput", recurringTransactionCreateSchema);
   registry.register("CsvImportInput", csvImportSchema);
   registry.register("TransferInput", transferCreateSchema);
   registry.register("TransferPair", transferPairSchema);
@@ -319,6 +321,23 @@ export function buildOpenApiDocument() {
     security,
     request: { params: idParams },
     responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+
+  // Recurring transactions
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/recurring-transactions",
+    tags: ["recurring"],
+    security,
+    responses: { 200: ok(genericList), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/recurring-transactions",
+    tags: ["recurring"],
+    security,
+    request: { body: { content: json(recurringTransactionCreateSchema) } },
+    responses: { 201: created(genericEntity), 400: badRequest, 401: unauthorized },
   });
 
   // Transfers

@@ -403,25 +403,31 @@ export const recurringDetections = pgTable("recurring_detections", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const recurringTransactions = pgTable("recurring_transactions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  accountId: uuid("account_id")
-    .notNull()
-    .references(() => accounts.id, { onDelete: "cascade" }),
-  categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
-  amount: money("amount").notNull(),
-  currency: text("currency").notNull(),
-  frequency: text("frequency").$type<RecurrenceFrequency>().notNull(),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date"),
-  note: text("note"),
-  paymentType: text("payment_type").$type<PaymentType>(),
-  detectionId: uuid("detection_id").references(() => recurringDetections.id, {
-    onDelete: "set null",
-  }),
-  source: text("source").$type<RecurringSource>().notNull().default("manual"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const recurringTransactions = pgTable(
+  "recurring_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    amount: money("amount").notNull(),
+    currency: text("currency").notNull(),
+    frequency: text("frequency").$type<RecurrenceFrequency>().notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date"),
+    note: text("note"),
+    paymentType: text("payment_type").$type<PaymentType>(),
+    detectionId: uuid("detection_id").references(() => recurringDetections.id, {
+      onDelete: "set null",
+    }),
+    source: text("source").$type<RecurringSource>().notNull().default("manual"),
+    externalSource: text("external_source").$type<ImportSource>(),
+    externalId: text("external_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("recurring_transactions_external_idx").on(t.externalSource, t.externalId)],
+);
 
 export const idempotencyKeys = pgTable("idempotency_keys", {
   key: text("key").primaryKey(),

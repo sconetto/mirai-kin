@@ -7,6 +7,7 @@ import { transactions } from "@/db/schema";
 import { createAccount, deleteAccount } from "./accounts";
 import { createCategory, deleteCategory } from "./categories";
 import { createLabel, deleteLabel } from "./labels";
+import { createRecurring } from "./projections";
 import { createTransaction } from "./transactions";
 
 describe.skipIf(!process.env.DATABASE_URL)("idempotent imports", () => {
@@ -96,5 +97,65 @@ describe.skipIf(!process.env.DATABASE_URL)("idempotent imports", () => {
     });
     expect(adopted.id).toBe(legacy.id);
     expect(adopted.externalId).toBe(externalId);
+  });
+
+  it("uses the note when legacy rows share a counterparty and amount", async () => {
+    const firstLegacy = await createTransaction({
+      accountId,
+      amount: "78.90",
+      currency: "BRL",
+      recordDate: "2026-02-04T12:00:00.000Z",
+      counterparty: "TEST shared shop",
+      note: "TEST first installment",
+    });
+    const secondLegacy = await createTransaction({
+      accountId,
+      amount: "78.90",
+      currency: "BRL",
+      recordDate: "2026-02-04T12:00:00.000Z",
+      counterparty: "TEST shared shop",
+      note: "TEST second installment",
+    });
+    const firstExternal = `test-${randomUUID()}`;
+    const secondExternal = `test-${randomUUID()}`;
+    const firstAdopted = await createTransaction({
+      accountId,
+      amount: "78.90",
+      currency: "BRL",
+      recordDate: "2026-02-04T12:00:00.000Z",
+      counterparty: "TEST shared shop",
+      note: "TEST first installment",
+      externalSource: "wallet_mcp",
+      externalId: firstExternal,
+    });
+    const secondAdopted = await createTransaction({
+      accountId,
+      amount: "78.90",
+      currency: "BRL",
+      recordDate: "2026-02-04T12:00:00.000Z",
+      counterparty: "TEST shared shop",
+      note: "TEST second installment",
+      externalSource: "wallet_mcp",
+      externalId: secondExternal,
+    });
+    expect(firstAdopted.id).toBe(firstLegacy.id);
+    expect(secondAdopted.id).toBe(secondLegacy.id);
+  });
+
+  it("returns the existing recurring transaction for the same external id", async () => {
+    const externalId = `test-${randomUUID()}`;
+    const input = {
+      accountId,
+      amount: "-10",
+      currency: "BRL",
+      frequency: "monthly" as const,
+      startDate: "2026-03-05",
+      note: "TEST recurring import",
+      externalSource: "wallet_mcp" as const,
+      externalId,
+    };
+    const first = await createRecurring(input);
+    const second = await createRecurring(input);
+    expect(second.id).toBe(first.id);
   });
 });

@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { debts, debtSchedule, recurringTransactions } from "@/db/schema";
 import type { RecurrenceFrequency } from "@/db/schema";
@@ -12,6 +13,21 @@ function round4(value: number): number {
 
 export async function createRecurring(input: RecurringTransactionCreateInput) {
   const db = getDb();
+
+  if (input.externalSource && input.externalId) {
+    const [existing] = await db
+      .select()
+      .from(recurringTransactions)
+      .where(
+        and(
+          eq(recurringTransactions.externalSource, input.externalSource),
+          eq(recurringTransactions.externalId, input.externalId),
+        ),
+      )
+      .limit(1);
+    if (existing) return existing;
+  }
+
   const [row] = await db
     .insert(recurringTransactions)
     .values({
@@ -24,6 +40,8 @@ export async function createRecurring(input: RecurringTransactionCreateInput) {
       endDate: input.endDate ? input.endDate.slice(0, 10) : null,
       note: input.note ?? null,
       paymentType: input.paymentType ?? null,
+      externalSource: input.externalSource,
+      externalId: input.externalId,
     })
     .returning();
   return row;
