@@ -65,6 +65,7 @@ export type DashboardModel = {
   nextGoal: PlanGoal | null;
   points: DashboardPoint[];
   history: { date: string; value: number }[];
+  netWorthChange: { amount: number; pct: number | null; from: string } | null;
   movement: DashboardMovement | null;
   pace: DashboardPace | null;
   composition: DashboardComposition[];
@@ -322,6 +323,18 @@ export async function getDashboard(
   if (history.length === 0 || history[history.length - 1]?.date !== equity.asOf) {
     history.push({ date: equity.asOf, value: equity.net });
   }
+  const firstHistory = history[0];
+  const netWorthChange =
+    history.length > 1 && firstHistory
+      ? {
+          amount: Number((equity.net - firstHistory.value).toFixed(4)),
+          pct:
+            firstHistory.value !== 0
+              ? Number(((equity.net - firstHistory.value) / Math.abs(firstHistory.value)).toFixed(4))
+              : null,
+          from: firstHistory.date,
+        }
+      : null;
 
   const points = new Map<string, DashboardPoint>();
   for (const point of history) {
@@ -427,6 +440,7 @@ export async function getDashboard(
     nextGoal: nextGoalFor(goals),
     points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)),
     history,
+    netWorthChange,
     movement,
     pace,
     composition: compositionFor(equity.components),

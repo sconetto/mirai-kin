@@ -43,6 +43,21 @@ The overview SHALL chart actual net-worth history together with conservative, ba
 - **WHEN** fewer than two net-worth snapshots exist
 - **THEN** the chart shows the current value and a history-building state rather than inventing a trend
 
+### Requirement: Cash-flow and spending analysis
+The overview SHALL show a monthly cash-flow breakdown from income sources to top-level spending categories and surplus or savings draw, SHALL expose subcategory detail for spending, and SHALL compare cumulative spending for the selected month with the previous month.
+
+#### Scenario: Cash-flow breakdown
+- **WHEN** a month has income and spending transactions
+- **THEN** the overview shows income sources flowing to category outcomes and a surplus or savings draw
+
+#### Scenario: Spending comparison
+- **WHEN** a month is selected
+- **THEN** the overview compares its cumulative spending with the same period in the previous month
+
+#### Scenario: Month navigation
+- **WHEN** a user moves to a previous or next month
+- **THEN** the cash-flow, outflows, and spending comparison views use that month
+
 ### Requirement: Goal status list
 The overview SHALL show each goal's name, target date, status, projected value, funding gap, and required monthly contribution, with a link to the planner.
 

@@ -6,11 +6,15 @@ import { CategoryIcon } from "@/components/category-icon";
 import { CHART_COLORS } from "@/lib/chart-colors";
 import { formatCurrency } from "@/lib/format";
 
-type CategorySlice = {
+type CategoryChild = {
   name: string;
   total: number;
   color?: string | null;
   icon?: string | null;
+};
+
+type CategorySlice = CategoryChild & {
+  children?: CategoryChild[];
 };
 
 export function SpendingChart({
@@ -68,26 +72,41 @@ export function SpendingChart({
         {data.map((item, index) => {
           const share = total > 0 ? (item.total / total) * 100 : 0;
           return (
-            <li key={item.name} className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: colorFor(item, index) }}
-                />
-                <CategoryIcon name={item.name} icon={item.icon} color={item.color} />
-                <span className="truncate text-ink-2">{item.name}</span>
-              </span>
-              <span className="shrink-0 text-right">
-                <span className="block font-medium text-ink">
-                  {formatCurrency(item.total, currency, locale)}
+            <li key={item.name}>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: colorFor(item, index) }}
+                  />
+                  <CategoryIcon name={item.name} icon={item.icon} color={item.color} />
+                  <span className="truncate text-ink-2">{item.name}</span>
                 </span>
-                <span className="text-xs text-ink-3">
-                  {new Intl.NumberFormat(locale === "en" ? "en-US" : "pt-BR", {
-                    maximumFractionDigits: 1,
-                  }).format(share)}
-                  %
+                <span className="shrink-0 text-right">
+                  <span className="block font-medium text-ink">
+                    {formatCurrency(item.total, currency, locale)}
+                  </span>
+                  <span className="text-xs text-ink-3">
+                    {new Intl.NumberFormat(locale === "en" ? "en-US" : "pt-BR", {
+                      maximumFractionDigits: 1,
+                    }).format(share)}
+                    %
+                  </span>
                 </span>
-              </span>
+              </div>
+              {item.children && item.children.length > 0 ? (
+                <ul className="ml-5 mt-1 space-y-1 border-l border-line/70 pl-3">
+                  {item.children.map((child) => (
+                    <li
+                      key={child.name}
+                      className="flex items-center justify-between gap-3 text-xs text-ink-3"
+                    >
+                      <span className="truncate">{child.name}</span>
+                      <span className="shrink-0">{formatCurrency(child.total, currency, locale)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           );
         })}

@@ -30,7 +30,17 @@ test("plan dashboard leads with status and switches ranges", async ({ page }) =>
   await login(page);
   await expect(page.getByText("Status do plano")).toBeVisible();
   await expect(page.getByText("Trajetória do patrimônio")).toBeVisible();
+  await expect(page.getByText("Fluxo de caixa").first()).toBeVisible();
+  await expect(page.getByText("Saídas").first()).toBeVisible();
   await expect(page.getByText("Ritmo de contribuição")).toBeVisible();
+
+  const previousMonth = page.getByRole("link", { name: "Mês anterior" });
+  if ((await previousMonth.count()) > 0) {
+    await previousMonth.click();
+    await expect(page).toHaveURL(/month=/);
+    await page.getByRole("link", { name: "Este mês" }).click();
+    await expect(page).not.toHaveURL(/month=/);
+  }
 
   await page.getByRole("link", { name: "1M" }).click();
   await expect(page).toHaveURL(/range=1m/);

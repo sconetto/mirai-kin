@@ -1,5 +1,8 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { CashflowSankey } from "@/components/charts/cashflow-sankey";
 import { ContributionPaceChart } from "@/components/charts/contribution-pace-chart";
+import { MonthlySpendingChart } from "@/components/charts/monthly-spending-chart";
 import { MovementWaterfall } from "@/components/charts/movement-waterfall";
 import { PlanTrajectoryChart } from "@/components/charts/plan-trajectory-chart";
 import { SpendingChart } from "@/components/charts/spending-chart";
@@ -7,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
+import { localizedCategoryName } from "@/lib/category-name";
 import {
   DASHBOARD_RANGES,
   parseDashboardRange,
   type DashboardRange,
 } from "@/lib/dashboard-range";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { formatCurrency, formatDate, formatMonth, formatNumber } from "@/lib/format";
 import { getDashboard } from "@/services/dashboard";
+import { getMonthlyInsights, shiftMonth } from "@/services/dashboard-charts";
 
 const STATUS_TONE = {
   on_track: "success",
@@ -43,7 +48,7 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ range?: string | string[] }>;
+  searchParams: Promise<{ range?: string | string[]; month?: string | string[] }>;
 }) {
   const { locale } = await params;
   const search = await searchParams;
@@ -51,12 +56,34 @@ export default async function DashboardPage({
   const t = await getTranslations("dashboard");
   const tp = await getTranslations("planner");
   const range = parseDashboardRange(search.range);
-  const data = await getDashboard(range);
+  const [data, monthly] = await Promise.all([
+    getDashboard(range),
+    getMonthlyInsights(typeof search.month === "string" ? search.month : undefined),
+  ]);
   const currency = data.baseCurrency;
   const composition = data.composition.map((item) => ({
     name: t(item.key),
     total: item.value,
     color: COMPOSITION_COLORS[item.key],
+  }));
+  const previousMonth = shiftMonth(monthly.month, -1);
+  const nextMonth = shiftMonth(monthly.month, 1);
+  const canGoPrevious = monthly.month > monthly.firstMonth;
+  const canGoNext = monthly.month < monthly.currentMonth;
+  const monthHref = (month: string) => `?range=${range}&month=${month}`;
+  const rangeHref = (nextRange: DashboardRange) =>
+    `?range=${nextRange}${monthly.month !== monthly.currentMonth ? `&month=${monthly.month}` : ""}`;
+  const outflows = monthly.cashflow.expenseCategories.map((item) => ({
+    name: localizedCategoryName(item, locale),
+    total: item.total,
+    color: item.color,
+    icon: item.icon,
+    children: item.children.map((child) => ({
+      name: localizedCategoryName(child, locale),
+      total: child.total,
+      color: child.color,
+      icon: child.icon,
+    })),
   }));
   const next = data.nextGoal;
   const overallLabel =
@@ -75,7 +102,7 @@ export default async function DashboardPage({
             {DASHBOARD_RANGES.map((option) => (
               <Link
                 key={option}
-                href={`?range=${option}`}
+                href={rangeHref(option)}
                 aria-current={range === option ? "page" : undefined}
                 className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   range === option
@@ -87,6 +114,45 @@ export default async function DashboardPage({
               </Link>
             ))}
           </div>
+          <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-0.5">
+            {canGoPrevious ? (
+              <Link
+                href={monthHref(previousMonth)}
+                aria-label={t("previousMonth")}
+                className="rounded-md p-1.5 text-ink-3 hover:bg-paper hover:text-ink"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="p-1.5 text-line">
+                <ChevronLeft className="h-4 w-4" />
+              </span>
+            )}
+            <span className="min-w-24 px-1 text-center text-xs font-medium text-ink">
+              {formatMonth(monthly.month, locale)}
+            </span>
+            {canGoNext ? (
+              <Link
+                href={monthHref(nextMonth)}
+                aria-label={t("nextMonth")}
+                className="rounded-md p-1.5 text-ink-3 hover:bg-paper hover:text-ink"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="p-1.5 text-line">
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </div>
+          {monthly.month !== monthly.currentMonth ? (
+            <Link
+              href={`?range=${range}`}
+              className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-3 hover:bg-paper hover:text-ink"
+            >
+              {t("currentMonth")}
+            </Link>
+          ) : null}
           <Link
             href="/planner"
             className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-paper"
@@ -139,6 +205,22 @@ export default async function DashboardPage({
             <p className="tabular mt-1 text-2xl font-semibold text-ink">
               {formatCurrency(data.plan.netWorth.net, currency, locale)}
             </p>
+            {data.netWorthChange ? (
+              <p
+                className={`mt-1 text-xs ${
+                  data.netWorthChange.amount >= 0 ? "text-positive" : "text-negative"
+                }`}
+              >
+                {t("netWorthChange", {
+                  amount: formatCurrency(data.netWorthChange.amount, currency, locale),
+                  pct:
+                    data.netWorthChange.pct === null
+                      ? "—"
+                      : formatNumber(data.netWorthChange.pct * 100, locale),
+                  from: formatDate(data.netWorthChange.from, locale),
+                })}
+              </p>
+            ) : null}
             <p className="mt-1 text-xs text-ink-3">
               {t("assets")}: {formatCurrency(data.plan.netWorth.assets, currency, locale)}
             </p>
@@ -257,6 +339,102 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
       </section>
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("cashflow")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">
+              {t("cashflowSubtitle", { month: formatMonth(monthly.month, locale) })}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <dl className="mb-3 grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <dt className="text-ink-3">{t("income")}</dt>
+                <dd className="tabular mt-0.5 font-semibold text-positive">
+                  {formatCurrency(monthly.cashflow.income, currency, locale)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-ink-3">{t("spending")}</dt>
+                <dd className="tabular mt-0.5 font-semibold text-negative">
+                  {formatCurrency(monthly.cashflow.expenses, currency, locale)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-ink-3">{t("surplus")}</dt>
+                <dd className="tabular mt-0.5 font-semibold text-ink">
+                  {formatCurrency(monthly.cashflow.surplus, currency, locale)}
+                </dd>
+              </div>
+            </dl>
+            <CashflowSankey data={monthly.cashflow} currency={currency} locale={locale} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("outflows")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">
+              {t("outflowsSubtitle", { month: formatMonth(monthly.month, locale) })}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <p className="text-xs text-ink-3">{t("totalOutflows")}</p>
+              <p className="tabular mt-1 text-2xl font-semibold text-ink">
+                {formatCurrency(monthly.cashflow.expenses, currency, locale)}
+              </p>
+            </div>
+            <SpendingChart data={outflows} currency={currency} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <Card>
+        <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>{t("spendingTrend")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">
+              {t("spendingComparisonSubtitle", {
+                month: formatMonth(monthly.month, locale),
+                previous: formatMonth(previousMonth, locale),
+              })}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-xs text-ink-3">{t("selectedMonth")}</p>
+            <p className="tabular mt-0.5 text-xl font-semibold text-ink">
+              {formatCurrency(monthly.spending.selectedTotal, currency, locale)}
+            </p>
+            <p
+              className={`text-xs ${
+                monthly.spending.change > 0 ? "text-negative" : "text-positive"
+              }`}
+            >
+              {t("spendingChange", {
+                amount: formatCurrency(monthly.spending.change, currency, locale),
+                pct:
+                  monthly.spending.changePct === null
+                    ? "—"
+                    : formatNumber(monthly.spending.changePct * 100, locale),
+              })}
+            </p>
+            <p className="text-xs text-ink-3">
+              {t("previousMonth")}:{" "}
+              {formatCurrency(monthly.spending.previousTotal, currency, locale)}
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <MonthlySpendingChart
+            data={monthly.spending}
+            currency={currency}
+            locale={locale}
+          />
+        </CardContent>
+      </Card>
 
       <section className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <Card>
