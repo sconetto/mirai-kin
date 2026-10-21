@@ -135,6 +135,10 @@ async function getPeriodRows(config: ReportConfig): Promise<ReportRow[]> {
 
 async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
   const db = getDb();
+  const conditions = [
+    ...baseConditions(config),
+    sql`(${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer')`,
+  ];
   const rows = await db
     .select({
       key: sql<string>`coalesce(${categories.name}, 'Uncategorized')`,
@@ -143,7 +147,7 @@ async function getCategoryRows(config: ReportConfig): Promise<ReportRow[]> {
     })
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(and(...baseConditions(config)))
+    .where(and(...conditions))
     .groupBy(categories.name)
     .orderBy(sql`sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end) desc`);
 

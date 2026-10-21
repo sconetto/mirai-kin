@@ -13,13 +13,20 @@ export async function overview(limitRecent = 10) {
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999),
   );
 
+  const monthConditions = [
+    gte(transactions.recordDate, monthStart),
+    lte(transactions.recordDate, monthEnd),
+    sql`${transactions.reviewStatus} <> 'split'`,
+    sql`(${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer')`,
+  ];
+
   const [monthAggregate] = await db
     .select({
       income: sql<string>`coalesce(sum(case when ${transactions.amount} > 0 then ${transactions.baseAmount} else 0 end), 0)`,
       expenses: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end), 0)`,
     })
     .from(transactions)
-    .where(and(gte(transactions.recordDate, monthStart), lte(transactions.recordDate, monthEnd)));
+    .where(and(...monthConditions));
 
   const spendingRows = await db
     .select({
@@ -29,7 +36,7 @@ export async function overview(limitRecent = 10) {
     })
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(and(gte(transactions.recordDate, monthStart), lte(transactions.recordDate, monthEnd)))
+    .where(and(...monthConditions))
     .groupBy(categories.id, categories.name);
 
   const recent = await db
