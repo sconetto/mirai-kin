@@ -27,6 +27,7 @@ describe.skipIf(!process.env.DATABASE_URL)("localized categories", () => {
     const duplicates = await getDb()
       .select({ nameEn: categories.nameEn, namePt: categories.namePt })
       .from(categories)
+      .where(eq(categories.isSystem, false))
       .groupBy(categories.nameEn, categories.namePt)
       .having(sql`count(*) > 1`);
     expect(duplicates).toHaveLength(0);

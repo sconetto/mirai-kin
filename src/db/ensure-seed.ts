@@ -5,6 +5,7 @@ import { getEnv } from "@/lib/env";
 import { getDb } from "./index";
 import { accounts, categories, users } from "./schema";
 import { markTransferCategories, mergeDuplicateCategories } from "./category-maintenance";
+import { ensureWalletCategoryGroups } from "./wallet-category-groups";
 
 const SEED_CATEGORIES = [
   { name: "Salary", type: "income" },
@@ -65,9 +66,11 @@ export async function ensureSeed(): Promise<void> {
       name: categories.name,
       nameEn: categories.nameEn,
       namePt: categories.namePt,
+      isSystem: categories.isSystem,
     })
     .from(categories);
   for (const category of existingCategories) {
+    if (category.isSystem) continue;
     const translation = categoryTranslation(category.name);
     if (!translation) continue;
     if (category.nameEn === translation.en && category.namePt === translation.pt) continue;
@@ -78,6 +81,7 @@ export async function ensureSeed(): Promise<void> {
   }
 
   await mergeDuplicateCategories();
+  await ensureWalletCategoryGroups();
   const markedTransfers = await markTransferCategories();
   if (markedTransfers > 0) {
     console.log(`[categories] marked ${markedTransfers} Wallet transfer rows`);

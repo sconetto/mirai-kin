@@ -78,7 +78,7 @@ export default async function DashboardPage({
     total: item.total,
     color: item.color,
     icon: item.icon,
-    grouped: item.id === "grouped-other",
+    grouped: item.children.length > 0,
     children: item.children.map((child) => ({
       name: localizedCategoryName(child, locale),
       total: child.total,

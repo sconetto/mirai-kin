@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { isWalletGroupCategory } from "@/db/wallet-category-groups";
 import { categories, transactions } from "@/db/schema";
 import type { CategoryType } from "@/db/schema";
 import type { CategoryCreateInput } from "@/lib/schemas";
@@ -18,7 +19,7 @@ export async function listCategories(type?: CategoryType) {
   const rows = type
     ? await db.select().from(categories).where(eq(categories.type, type)).orderBy(categories.name)
     : await db.select().from(categories).orderBy(categories.name);
-  return rows;
+  return rows.filter((row) => !isWalletGroupCategory(row));
 }
 
 export async function getCategory(id: string) {
@@ -44,7 +45,9 @@ export async function createCategory(input: CategoryCreateInput) {
     if (existing) return existing;
   }
 
-  const all = await db.select().from(categories);
+  const all = (await db.select().from(categories)).filter(
+    (category) => !isWalletGroupCategory(category),
+  );
   const sameType = findCategory(
     all.filter((category) => category.type === input.type),
     input.name,

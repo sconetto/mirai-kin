@@ -62,6 +62,10 @@ The overview SHALL show a monthly cash-flow breakdown from income sources to top
 - **WHEN** a spending category falls below 3% of monthly outflows
 - **THEN** the overview groups it into Other while keeping the category detail available
 
+#### Scenario: Wallet group parents
+- **WHEN** imported Wallet categories belong to a Wallet group
+- **THEN** the overview shows the group as the parent category and its Wallet categories as child detail
+
 ### Requirement: Goal status list
 The overview SHALL show each goal's name, target date, status, projected value, funding gap, and required monthly contribution, with a link to the planner.
 

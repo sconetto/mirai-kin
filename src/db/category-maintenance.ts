@@ -42,14 +42,14 @@ export async function mergeDuplicateCategories(): Promise<void> {
     const [source] = await db
       .select({ id: categories.id })
       .from(categories)
-      .where(eq(categories.name, merge.source))
+      .where(and(eq(categories.name, merge.source), eq(categories.isSystem, false)))
       .limit(1);
     if (!source) continue;
 
     const [target] = await db
       .select({ id: categories.id })
       .from(categories)
-      .where(eq(categories.name, merge.target))
+      .where(and(eq(categories.name, merge.target), eq(categories.isSystem, false)))
       .limit(1);
     if (!target || target.id === source.id) continue;
 
