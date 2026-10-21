@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { bulkTransactionAction } from "@/app/[locale]/(app)/actions";
+import { CategoryIcon } from "@/components/category-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
@@ -28,7 +29,7 @@ export function TransactionReview({
   locale,
 }: {
   rows: ReviewRow[];
-  categories: { id: string; name: string }[];
+  categories: { id: string; name: string; icon?: string | null; color?: string | null }[];
   locale: string;
 }) {
   const t = useTranslations("transactions");
@@ -46,8 +47,8 @@ export function TransactionReview({
     setSelected(allSelected ? [] : rows.map((row) => row.id));
   }
 
-  const categoryName = (id: string | null) =>
-    categories.find((category) => category.id === id)?.name ?? t("noCategory");
+  const categoryFor = (id: string | null) =>
+    categories.find((category) => category.id === id) ?? null;
 
   return (
     <form action={bulkTransactionAction} className="space-y-3">
@@ -134,7 +135,23 @@ export function TransactionReview({
                   <td className="py-2.5 pr-4 text-ink-2">
                     {row.counterparty ?? row.note ?? "—"}
                   </td>
-                  <td className="py-2.5 pr-4 text-ink-3">{categoryName(row.categoryId)}</td>
+                  <td className="py-2.5 pr-4 text-ink-3">
+                    {(() => {
+                      const category = categoryFor(row.categoryId);
+                      return category ? (
+                        <span className="flex items-center gap-1.5">
+                          <CategoryIcon
+                            name={category.name}
+                            icon={category.icon}
+                            color={category.color}
+                          />
+                          {category.name}
+                        </span>
+                      ) : (
+                        t("noCategory")
+                      );
+                    })()}
+                  </td>
                   <td className="py-2.5 pr-4 text-right">
                     <Money
                       className="font-medium"

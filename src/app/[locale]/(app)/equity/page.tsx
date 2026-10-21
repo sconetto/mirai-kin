@@ -99,7 +99,7 @@ export default async function EquityPage({ params }: { params: Promise<{ locale:
             {chartData.length === 0 ? (
               <p className="py-8 text-center text-sm text-ink-3">{t("noSnapshots")}</p>
             ) : (
-              <TrendChart data={chartData} dataKey="net" label={t("net")} />
+              <TrendChart data={chartData} dataKey="net" label={t("net")} currency={equity.currency} />
             )}
           </CardContent>
         </Card>

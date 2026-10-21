@@ -9,20 +9,24 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { intlLocale } from "@/lib/format";
+import { formatCurrency, intlLocale } from "@/lib/format";
 
 export function PortfolioChart({
   data,
   locale,
+  currency,
 }: {
   data: { date: string; value: number }[];
   locale: string;
+  currency: string;
 }) {
   if (data.length === 0) {
     return <div className="flex h-40 items-center justify-center text-sm text-ink-3">—</div>;
   }
 
   const compact = new Intl.NumberFormat(intlLocale(locale), {
+    style: "currency",
+    currency,
     notation: "compact",
     maximumFractionDigits: 1,
   });
@@ -47,6 +51,7 @@ export function PortfolioChart({
             width={64}
           />
           <Tooltip
+            formatter={(value) => formatCurrency(Number(value), currency, locale)}
             contentStyle={{
               background: "var(--color-surface)",
               borderRadius: 8,

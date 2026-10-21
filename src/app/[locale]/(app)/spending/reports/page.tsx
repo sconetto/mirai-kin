@@ -113,7 +113,7 @@ export default async function ReportsPage({
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <section>
+        <section className="min-w-0">
           <Card>
             <CardHeader className="flex items-center justify-between py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
@@ -160,7 +160,12 @@ export default async function ReportsPage({
                 </div>
               </form>
 
-              <ReportChart data={chartData} label={t(type)} locale={locale} />
+              <ReportChart
+                data={chartData}
+                label={t(type)}
+                locale={locale}
+                currency={report.currency}
+              />
 
               <SummaryStrip items={summaryItems} />
 
@@ -174,7 +179,7 @@ export default async function ReportsPage({
                           {type === "breakdown" ? null : <ArrowDown className="h-3.5 w-3.5" />}
                         </span>
                       </th>
-                      <th className="pb-3 pr-4 text-right">{t("totalIncome")}</th>
+                      <th className="hidden pb-3 pr-4 text-right sm:table-cell">{t("totalIncome")}</th>
                       <th className="pb-3 pr-4 text-right">{t("totalExpenses")}</th>
                       <th className="pb-3 text-right">{t("net")}</th>
                     </tr>
@@ -185,7 +190,7 @@ export default async function ReportsPage({
                         <td className="py-2.5 pr-4 text-ink-2">
                           {type === "breakdown" ? row.label : formatMonth(row.key, locale)}
                         </td>
-                        <td className="py-2.5 pr-4 text-right text-positive">
+                        <td className="hidden py-2.5 pr-4 text-right text-positive sm:table-cell">
                           {formatCurrency(String(row.income), report.currency, locale)}
                         </td>
                         <td className="py-2.5 pr-4 text-right text-negative">
@@ -206,7 +211,7 @@ export default async function ReportsPage({
           </Card>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <Card>
             <CardHeader className="py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">

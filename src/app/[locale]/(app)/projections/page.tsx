@@ -4,6 +4,7 @@ import { TrendChart } from "@/components/charts/trend-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatMonth } from "@/lib/format";
 import { compareScenarios, forecast } from "@/services/projections";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function ProjectionsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -29,10 +30,7 @@ export default async function ProjectionsPage({ params }: { params: Promise<{ lo
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>
@@ -46,6 +44,7 @@ export default async function ProjectionsPage({ params }: { params: Promise<{ lo
               optimistic: t("optimistic"),
               pessimistic: t("pessimistic"),
             }}
+            currency={comparison.baseCurrency}
           />
           <div className="grid gap-3 sm:grid-cols-3">
             {comparison.scenarios.map((scenario) => (
@@ -69,7 +68,7 @@ export default async function ProjectionsPage({ params }: { params: Promise<{ lo
           <CardTitle>{t("net")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <TrendChart data={chartData} dataKey="net" label={t("net")} />
+          <TrendChart data={chartData} dataKey="net" label={t("net")} currency={data.baseCurrency} />
         </CardContent>
       </Card>
 

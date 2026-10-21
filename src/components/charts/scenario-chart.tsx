@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import {
   CartesianGrid,
   Legend,
@@ -10,14 +11,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatCurrency, intlLocale } from "@/lib/format";
 
 export function ScenarioChart({
   data,
   labels,
+  currency,
 }: {
   data: { month: string; base: number; optimistic: number; pessimistic: number }[];
   labels: { base: string; optimistic: string; pessimistic: string };
+  currency: string;
 }) {
+  const locale = useLocale();
+  const compact = new Intl.NumberFormat(intlLocale(locale), {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -31,12 +43,14 @@ export function ScenarioChart({
             minTickGap={24}
           />
           <YAxis
+            tickFormatter={(value: number) => compact.format(value)}
             tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
             axisLine={false}
             width={72}
           />
           <Tooltip
+            formatter={(value) => formatCurrency(Number(value), currency, locale)}
             contentStyle={{
               background: "var(--color-surface)",
               borderRadius: 8,

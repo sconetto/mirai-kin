@@ -79,7 +79,8 @@
     "recentTransactions": "Transações recentes",
     "spendingByCategory": "Gastos por categoria",
     "balanceTrend": "Evolução do saldo",
-    "noTransactions": "Nenhuma transação registrada"
+    "noTransactions": "Nenhuma transação registrada",
+    "spendingSubtitle": "Distribuição das despesas do mês por categoria"
   },
   "accounts": {
     "title": "Contas",

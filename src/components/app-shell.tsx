@@ -20,15 +20,15 @@ import {
   TrendingUp,
   Upload,
   Wallet,
+  WalletCards,
   Wand2,
 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { BrandMark } from "@/components/brand";
 import { useTheme } from "@/components/theme-provider";
 import type { Theme } from "@/lib/theme";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -43,6 +43,7 @@ const SECTIONS: NavSection[] = [
     key: "sections.track",
     items: [
       { href: "/", key: "nav.overview", icon: House },
+      { href: "/accounts", key: "nav.accounts", icon: WalletCards },
       { href: "/insights", key: "nav.insights", icon: Sparkles },
       { href: "/spending", key: "nav.spending", icon: Wallet },
       { href: "/invest", key: "nav.invest", icon: TrendingUp },
@@ -80,14 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-  const locale = useLocale();
   const [, startTransition] = useTransition();
-
-  function switchLocale(next: string) {
-    startTransition(() => {
-      router.replace(pathname, { locale: next });
-    });
-  }
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -127,7 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                        "group flex min-w-0 items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors",
                         active
                           ? "bg-subtle font-medium text-ink"
                           : "text-ink-2 hover:bg-paper hover:text-ink",
@@ -139,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           active ? "text-ink" : "text-ink-3 group-hover:text-ink-2",
                         )}
                       />
-                      <span>{t(item.key)}</span>
+                      <span className="truncate">{t(item.key)}</span>
                     </Link>
                   );
                 })}
@@ -178,22 +172,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           </div>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink-3">
-              {t("common.language")}
-            </span>
-            <select
-              value={locale}
-              onChange={(event) => switchLocale(event.target.value)}
-              className="w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink"
-            >
-              {routing.locales.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
           <button
             onClick={logout}
             type="button"
@@ -224,18 +202,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <option value="dark">{t("common.themeDark")}</option>
                 <option value="system">{t("common.themeSystem")}</option>
               </select>
-              <select
-                value={locale}
-                onChange={(event) => switchLocale(event.target.value)}
-                aria-label={t("common.language")}
-                className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink"
-              >
-                {routing.locales.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
               <button
                 onClick={logout}
                 type="button"
@@ -246,7 +212,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-3 py-2">
+        <nav className="flex flex-wrap gap-1 border-b border-line bg-surface px-3 py-2">
           {MOBILE_ITEMS.map((item) => (
             <Link
               key={item.href}

@@ -8,6 +8,7 @@ import { listAccounts } from "@/services/accounts";
 import { listCategories } from "@/services/categories";
 import { listTransactions } from "@/services/transactions";
 import { createTransactionAction } from "../actions";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Search = { from?: string; to?: string };
 
@@ -34,10 +35,7 @@ export default async function TransactionsPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>

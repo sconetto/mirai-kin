@@ -114,7 +114,7 @@ export default async function SpendingTransactionsPage({
           </div>
           <TransactionReview
             rows={rows}
-            categories={categories.map(({ id, name }) => ({ id, name }))}
+            categories={categories.map(({ id, name, icon, color }) => ({ id, name, icon, color }))}
             locale={locale}
           />
         </CardContent>

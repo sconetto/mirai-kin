@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SpendingChart } from "@/components/charts/spending-chart";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Money } from "@/components/ui/money";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -24,14 +25,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const spending = data.spendingByCategory.map((row) => ({
     name: row.name,
     total: Number(row.total),
+    color: row.color,
+    icon: row.icon,
   }));
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="mt-1 text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       {insights.length > 0 ? (
         <section className="grid gap-2">
@@ -92,9 +92,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         <Card>
           <CardHeader>
             <CardTitle>{t("spendingByCategory")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">{t("spendingSubtitle")}</p>
           </CardHeader>
           <CardContent>
-            <SpendingChart data={spending} />
+            <SpendingChart data={spending} currency={data.baseCurrency} />
           </CardContent>
         </Card>
 

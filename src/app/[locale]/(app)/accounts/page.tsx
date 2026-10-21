@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/format";
 import { listAccountBalances } from "@/services/accounts";
 import { overview } from "@/services/analytics";
 import { createAccountAction } from "../actions";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function AccountsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -26,10 +27,7 @@ export default async function AccountsPage({ params }: { params: Promise<{ local
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>
@@ -58,7 +56,7 @@ export default async function AccountsPage({ params }: { params: Promise<{ local
           <CardTitle>{t("balanceChart")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <BalanceChart data={chartData} locale={locale} />
+          <BalanceChart data={chartData} locale={locale} currency={baseCurrency} />
         </CardContent>
       </Card>
 

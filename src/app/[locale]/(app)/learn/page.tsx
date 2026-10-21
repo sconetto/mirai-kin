@@ -3,6 +3,7 @@ import { Mdx } from "@/components/mdx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
 import { getGlossary, listArticles } from "@/lib/knowledge";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function LearnPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -13,10 +14,7 @@ export default async function LearnPage({ params }: { params: Promise<{ locale: 
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>

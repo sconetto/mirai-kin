@@ -79,7 +79,8 @@
     "recentTransactions": "Recent transactions",
     "spendingByCategory": "Spending by category",
     "balanceTrend": "Balance trend",
-    "noTransactions": "No transactions recorded"
+    "noTransactions": "No transactions recorded",
+    "spendingSubtitle": "Distribution of this month's expenses by category"
   },
   "accounts": {
     "title": "Accounts",

@@ -9,6 +9,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { listAccounts } from "@/services/accounts";
 import { listPositionsWithValue, getPortfolioHistory } from "@/services/investments";
 import { createPositionAction } from "../actions";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function InvestmentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -22,17 +23,14 @@ export default async function InvestmentsPage({ params }: { params: Promise<{ lo
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>
           <CardTitle>{t("growth")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PortfolioChart data={history} locale={locale} />
+          <PortfolioChart data={history} locale={locale} currency={baseCurrency} />
         </CardContent>
       </Card>
 

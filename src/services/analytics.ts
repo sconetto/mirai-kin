@@ -33,12 +33,14 @@ export async function overview(limitRecent = 10) {
     .select({
       categoryId: categories.id,
       name: categories.name,
+      color: categories.color,
+      icon: categories.icon,
       total: sql<string>`coalesce(sum(case when ${transactions.amount} < 0 then -${transactions.baseAmount} else 0 end), 0)`,
     })
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
     .where(and(...monthConditions))
-    .groupBy(categories.id, categories.name);
+    .groupBy(categories.id, categories.name, categories.color, categories.icon);
 
   const recent = await db
     .select()
@@ -87,7 +89,13 @@ export async function overview(limitRecent = 10) {
     },
     spendingByCategory: spendingRows
       .filter((row) => Number(row.total) > 0)
-      .map((row) => ({ name: row.name ?? "—", total: row.total }))
+      .map((row) => ({
+        categoryId: row.categoryId,
+        name: row.name ?? "—",
+        total: row.total,
+        color: row.color,
+        icon: row.icon,
+      }))
       .sort((a, b) => Number(b.total) - Number(a.total)),
     recent,
     balances,

@@ -238,7 +238,7 @@ export default async function SettingsPage({
                 </form>
                 <a
                   href="/api/export"
-                  className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+                  className="whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
                 >
                   {t("downloadExport")}
                 </a>

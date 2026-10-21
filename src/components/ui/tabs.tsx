@@ -32,7 +32,7 @@ export function Tabs({
   if (variant === "segmented") {
     return (
       <nav
-        className="grid border-b border-line"
+        className="flex flex-wrap border-b border-line sm:grid"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
         {items.map((item) => (
@@ -40,7 +40,7 @@ export function Tabs({
             key={item.href}
             href={item.href}
             className={cn(
-              "border-b-2 px-2 py-3 text-center text-sm transition-colors",
+              "shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-center text-sm transition-colors sm:px-2",
               item.active
                 ? "border-ink font-medium text-ink"
                 : "border-transparent text-ink-3 hover:text-ink",
@@ -54,7 +54,7 @@ export function Tabs({
   }
 
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-line">
+    <nav className="flex flex-wrap gap-x-1 border-b border-line">
       {items.map((item) => (
         <Link
           key={item.href}

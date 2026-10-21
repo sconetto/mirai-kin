@@ -7,6 +7,7 @@ import { getBaseCurrency } from "@/services/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getDebtWithSchedule, listDebts } from "@/services/debts";
 import { createDebtAction } from "../actions";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function DebtsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -23,10 +24,7 @@ export default async function DebtsPage({ params }: { params: Promise<{ locale: 
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card>
         <CardHeader>

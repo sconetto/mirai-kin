@@ -14,17 +14,19 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { intlLocale } from "@/lib/format";
+import { formatCurrency, intlLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function ReportChart({
   data,
   label,
   locale,
+  currency,
 }: {
   data: { name: string; total: number }[];
   label: string;
   locale: string;
+  currency: string;
 }) {
   const t = useTranslations("reports");
   const [variant, setVariant] = useState<"bar" | "line">("bar");
@@ -38,6 +40,8 @@ export function ReportChart({
   const max = Math.max(0, ...values);
   const domain: [number, number] = min === max ? [0, 1] : [min, max];
   const compact = new Intl.NumberFormat(intlLocale(locale), {
+    style: "currency",
+    currency,
     notation: "compact",
     maximumFractionDigits: 1,
   });
@@ -61,6 +65,7 @@ export function ReportChart({
         width={80}
       />
       <Tooltip
+        formatter={(value) => formatCurrency(Number(value), currency, locale)}
         contentStyle={{
           background: "var(--color-surface)",
               borderRadius: 8,

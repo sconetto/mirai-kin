@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import {
   CartesianGrid,
   Line,
@@ -9,16 +10,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatCurrency, intlLocale } from "@/lib/format";
 
 export function TrendChart({
   data,
   dataKey,
   label,
+  currency,
 }: {
   data: Record<string, string | number>[];
   dataKey: string;
   label: string;
+  currency: string;
 }) {
+  const locale = useLocale();
+  const compact = new Intl.NumberFormat(intlLocale(locale), {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+
   if (data.length === 0) {
     return <div className="flex h-64 items-center justify-center text-sm text-ink-3">—</div>;
   }
@@ -35,12 +47,14 @@ export function TrendChart({
             axisLine={{ stroke: "var(--color-line)" }}
           />
           <YAxis
+            tickFormatter={(value: number) => compact.format(value)}
             tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
             axisLine={false}
             width={64}
           />
           <Tooltip
+            formatter={(value) => formatCurrency(Number(value), currency, locale)}
             contentStyle={{
               background: "var(--color-surface)",
               borderRadius: 8,
