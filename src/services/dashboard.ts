@@ -1,6 +1,7 @@
-import { and, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { transactions } from "@/db/schema";
+import { debts, debtSchedule, transactions, transfers } from "@/db/schema";
+import { resolveRate } from "./fx";
 import {
   DEFAULT_DASHBOARD_RANGE,
   historyMonths,
@@ -31,11 +32,15 @@ export type DashboardMovement = {
   change: number;
   income: number;
   expenses: number;
-  marketOther: number;
+  market: number;
+  fx: number;
+  fxSeparated: boolean;
+  debtService: number;
 };
 
 export type DashboardPace = {
   months: number;
+  source: "tracked" | "net_savings";
   requiredMonthly: number;
   actualTotal: number;
   requiredTotal: number;
@@ -67,6 +72,7 @@ export type DashboardModel = {
     inflation: number;
     monthlyContribution: number;
     returnBand: number;
+    horizonMonths: number;
   };
 };
 
@@ -128,6 +134,116 @@ async function monthlyFlow(start: Date, end: Date) {
   return new Map(
     rows.map((row) => [row.month, Number(row.income) - Number(row.expenses)] as const),
   );
+}
+
+async function rateOrOne(from: string, to: string, date: Date): Promise<number> {
+  if (from === to) return 1;
+  try {
+    const { rate } = await resolveRate(from, to, date);
+    return Number(rate);
+  } catch {
+    return 1;
+  }
+}
+
+type SnapshotComponent = {
+  kind?: string;
+  currency?: string;
+  value?: number;
+  nativeValue?: number;
+};
+
+async function fxEffect(
+  first: { date: string; breakdown: unknown },
+  last: { date: string },
+  baseCurrency: string,
+): Promise<{ fx: number; separated: boolean }> {
+  const breakdown = (first.breakdown ?? {}) as { components?: SnapshotComponent[] };
+  const components = breakdown.components ?? [];
+  if (components.length === 0) return { fx: 0, separated: true };
+
+  let fx = 0;
+  let separated = true;
+  for (const component of components) {
+    const currency = component.currency;
+    if (!currency || currency === baseCurrency) continue;
+    const native = Number(component.nativeValue);
+    const opening = Number(component.value);
+    if (!Number.isFinite(native) || !Number.isFinite(opening)) {
+      separated = false;
+      continue;
+    }
+    const signedOpening = component.kind === "liability" ? -opening : opening;
+    const closingRate = await rateOrOne(currency, baseCurrency, new Date(`${last.date}T23:59:59.000Z`));
+    const signedClosing = native * closingRate;
+    fx += signedClosing - signedOpening;
+  }
+
+  return { fx: Number(fx.toFixed(4)), separated };
+}
+
+async function debtServiceBetween(start: Date, end: Date, baseCurrency: string): Promise<number> {
+  const db = getDb();
+  const startDay = start.toISOString().slice(0, 10);
+  const endDay = end.toISOString().slice(0, 10);
+  const rows = await db
+    .select({
+      payment: debtSchedule.payment,
+      currency: debts.currency,
+      dueDate: debtSchedule.dueDate,
+    })
+    .from(debtSchedule)
+    .innerJoin(debts, eq(debtSchedule.debtId, debts.id))
+    .where(and(gte(debtSchedule.dueDate, startDay), lte(debtSchedule.dueDate, endDay)));
+
+  let total = 0;
+  for (const row of rows) {
+    total += Number(row.payment) * (await rateOrOne(row.currency, baseCurrency, new Date(`${row.dueDate}T12:00:00.000Z`)));
+  }
+  return Number(total.toFixed(4));
+}
+
+function allocationSets(goals: PlanGoal[]) {
+  return goals.map((goal) => ({
+    goal,
+    accounts: new Set(goal.allocations.map((allocation) => allocation.accountId)),
+    shares: new Map(goal.allocations.map((allocation) => [allocation.accountId, allocation.sharePct])),
+  }));
+}
+
+async function trackedMonthlyFlow(
+  goals: PlanGoal[],
+  start: Date,
+  end: Date,
+  baseCurrency: string,
+): Promise<Map<string, number>> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(transfers)
+    .where(and(gte(transfers.date, start), lte(transfers.date, end)));
+  const totals = new Map<string, number>();
+  const entries = allocationSets(goals);
+
+  for (const transfer of rows) {
+    for (const entry of entries) {
+      if (!entry.accounts.has(transfer.toAccountId)) continue;
+      if (entry.accounts.has(transfer.fromAccountId)) continue;
+      const share = entry.shares.get(transfer.toAccountId) ?? 0;
+      if (share <= 0) continue;
+      const rate = await rateOrOne(
+        transfer.counterCurrency,
+        baseCurrency,
+        new Date(transfer.date),
+      );
+      const amount = Number(transfer.counterAmount) * (share / 100) * rate;
+      const key = monthKey(new Date(transfer.date));
+      totals.set(key, (totals.get(key) ?? 0) + amount);
+    }
+  }
+
+  for (const [month, value] of totals) totals.set(month, Number(value.toFixed(4)));
+  return totals;
 }
 
 function statusFor(goals: PlanGoal[]): DashboardStatus {
@@ -230,6 +346,12 @@ export async function getDashboard(
       new Date(`${last.date}T23:59:59.999Z`),
     );
     const change = Number(last.net) - Number(first.net);
+    const { fx, separated } = await fxEffect(first, last, plan.baseCurrency);
+    const debtService = await debtServiceBetween(
+      new Date(`${first.date}T00:00:00.000Z`),
+      new Date(`${last.date}T23:59:59.999Z`),
+      plan.baseCurrency,
+    );
     movement = {
       from: first.date,
       to: last.date,
@@ -238,13 +360,20 @@ export async function getDashboard(
       change: Number(change.toFixed(4)),
       income: Number(flow.income.toFixed(4)),
       expenses: Number(flow.expenses.toFixed(4)),
-      marketOther: Number((change - (flow.income - flow.expenses)).toFixed(4)),
+      fx,
+      fxSeparated: separated,
+      market: Number((change - (flow.income - flow.expenses) - fx).toFixed(4)),
+      debtService,
     };
   }
 
   const paceWindow = paceMonths(range);
-  const paceStart = monthStart(shiftMonths(asOf, -paceWindow));
-  const flows = await monthlyFlow(paceStart, asOf);
+  const paceStart = monthStart(shiftMonths(asOf, -(paceWindow - 1)));
+  const trackedFlows = await trackedMonthlyFlow(plan.goals, paceStart, asOf, plan.baseCurrency);
+  const trackedTotal = [...trackedFlows.values()].reduce((sum, value) => sum + value, 0);
+  const source: DashboardPace["source"] = trackedTotal > 0 ? "tracked" : "net_savings";
+  const flows =
+    source === "tracked" ? trackedFlows : await monthlyFlow(paceStart, asOf);
   const startMonth = monthKey(paceStart);
   const pacePoints = [];
   let actual = 0;
@@ -266,6 +395,7 @@ export async function getDashboard(
     plan.goals.length > 0
       ? {
           months: paceWindow,
+          source,
           requiredMonthly: Number(requiredMonthly.toFixed(4)),
           actualTotal: Number(actual.toFixed(4)),
           requiredTotal: Number(requiredTotal.toFixed(4)),

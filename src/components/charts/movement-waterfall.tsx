@@ -14,6 +14,7 @@ export function MovementWaterfall({
   locale: string;
 }) {
   const t = useTranslations("dashboard");
+  const afterSpending = movement.opening + movement.income - movement.expenses;
   const flows = [
     {
       key: "opening",
@@ -35,18 +36,39 @@ export function MovementWaterfall({
       key: "spending",
       label: t("spending"),
       start: movement.opening + movement.income,
-      end: movement.opening + movement.income - movement.expenses,
+      end: afterSpending,
       value: -movement.expenses,
       tone: "negative",
     },
-    {
-      key: "market",
-      label: t("marketOther"),
-      start: movement.opening + movement.income - movement.expenses,
-      end: movement.closing,
-      value: movement.marketOther,
-      tone: movement.marketOther >= 0 ? "positive" : "negative",
-    },
+    ...(movement.fxSeparated
+      ? [
+          {
+            key: "market",
+            label: t("market"),
+            start: afterSpending,
+            end: afterSpending + movement.market,
+            value: movement.market,
+            tone: movement.market >= 0 ? "positive" : "negative",
+          },
+          {
+            key: "fx",
+            label: t("fx"),
+            start: afterSpending + movement.market,
+            end: movement.closing,
+            value: movement.fx,
+            tone: movement.fx >= 0 ? "positive" : "negative",
+          },
+        ]
+      : [
+          {
+            key: "marketFx",
+            label: t("marketFx"),
+            start: afterSpending,
+            end: movement.closing,
+            value: movement.market + movement.fx,
+            tone: movement.market + movement.fx >= 0 ? "positive" : "negative",
+          },
+        ]),
     {
       key: "closing",
       label: t("closing"),
@@ -106,6 +128,13 @@ export function MovementWaterfall({
           change: formatCurrency(movement.change, currency, locale),
         })}
       </p>
+      {movement.debtService > 0 ? (
+        <p className="mt-1 text-xs text-ink-3">
+          {t("debtServiceMemo", {
+            amount: formatCurrency(movement.debtService, currency, locale),
+          })}
+        </p>
+      ) : null}
     </div>
   );
 }

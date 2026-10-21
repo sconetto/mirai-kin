@@ -293,6 +293,7 @@ export type PlanGoal = {
   gap: number;
   requiredMonthly: number | null;
   currency: string;
+  rateDate: string;
   goalCurrency: string;
   targetDate: string | null;
   targetAmountOriginal: number;
@@ -307,6 +308,7 @@ export type PlanGoal = {
 
 export type PlanStatus = {
   asOf: string;
+  rateDate: string;
   baseCurrency: string;
   netWorth: { assets: number; liabilities: number; net: number };
   assumptions: { defaultInflation: number; returnBand: number };
@@ -421,6 +423,7 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
       gap: round4(Math.max(0, targetBase - projected.conservative)),
       requiredMonthly: requiredMonthly === null ? null : round4(requiredMonthly),
       currency: baseCurrency,
+      rateDate: asOf.toISOString().slice(0, 10),
       goalCurrency,
       targetDate: targetDate ? targetDate.toISOString().slice(0, 10) : null,
       targetAmountOriginal: numberValue(goal.targetAmount),
@@ -437,6 +440,7 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
 
   return {
     asOf: asOf.toISOString().slice(0, 10),
+    rateDate: asOf.toISOString().slice(0, 10),
     baseCurrency,
     netWorth: {
       assets: netWorth.assets,

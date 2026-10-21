@@ -13,6 +13,7 @@ export type EquityComponent = {
   type: string;
   label: string;
   value: number;
+  nativeValue: number;
   currency: string;
 };
 
@@ -32,6 +33,7 @@ export type AccountValue = {
   type: AccountType;
   currency: string;
   valueBase: number;
+  nativeValue: number;
 };
 
 export type NetWorth = {
@@ -99,6 +101,7 @@ export async function getAccountValues(asOf = new Date()): Promise<AccountValue[
       type: row.type,
       currency: row.currency,
       valueBase: Number(valueBase.toFixed(4)),
+      nativeValue: Number(native.toFixed(4)),
     });
   }
 
@@ -122,6 +125,7 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
       type: row.type,
       label: row.name,
       value: liability ? Math.max(0, -row.valueBase) : row.valueBase,
+      nativeValue: row.nativeValue,
       currency: row.currency,
     });
   }
@@ -132,6 +136,7 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
       type: "investment",
       label: `${position.symbol} — ${position.name}`,
       value: Number(position.value) * rate,
+      nativeValue: Number(position.value),
       currency: position.currency,
     });
   }
@@ -144,6 +149,7 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
       type: asset.type,
       label: asset.name,
       value: Number(asset.value) * rate,
+      nativeValue: Number(asset.value),
       currency: asset.currency,
     });
   }

@@ -56,12 +56,14 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
     expect(investment?.valueBase).toBe(1000);
 
     const equity = await getEquity();
-    expect(equity.components.find((component) => component.label === investmentName)?.value).toBe(
-      1000,
+    const investmentComponent = equity.components.find(
+      (component) => component.label === investmentName,
     );
-    expect(equity.components.find((component) => component.label === manualAssetName)?.value).toBe(
-      200,
-    );
+    expect(investmentComponent?.value).toBe(1000);
+    expect(investmentComponent?.nativeValue).toBe(1000);
+    const manualAsset = equity.components.find((component) => component.label === manualAssetName);
+    expect(manualAsset?.value).toBe(200);
+    expect(manualAsset?.nativeValue).toBe(200);
   });
 
   it("uses positions instead of the investment account balance", async () => {
@@ -83,9 +85,11 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
     expect(values.find((account) => account.id === investmentId)?.valueBase).toBe(1200);
 
     const equity = await getEquity();
-    expect(
-      equity.components.find((component) => component.label === "TEST — TEST position")?.value,
-    ).toBe(1200);
+    const positionComponent = equity.components.find(
+      (component) => component.label === "TEST — TEST position",
+    );
+    expect(positionComponent?.value).toBe(1200);
+    expect(positionComponent?.nativeValue).toBe(1200);
     expect(
       equity.components.find((component) => component.label === investmentName),
     ).toBeUndefined();

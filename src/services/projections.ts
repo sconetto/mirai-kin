@@ -228,6 +228,7 @@ export type PlanTrajectory = {
     inflation: number;
     monthlyContribution: number;
     returnBand: number;
+    horizonMonths: number;
   };
   points: PlanTrajectoryPoint[];
 };
@@ -284,6 +285,7 @@ export async function planTrajectory(
       inflation,
       monthlyContribution: round4(monthlyContribution),
       returnBand: RETURN_BAND,
+      horizonMonths,
     },
     points,
   };

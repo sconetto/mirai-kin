@@ -104,6 +104,9 @@ export function ContributionPaceChart({
               amount: formatCurrency(pace.surplus, currency, locale),
             })}
       </p>
+      <p className="mt-1 text-xs text-ink-3">
+        {pace.source === "tracked" ? t("paceTracked") : t("paceFallback")}
+      </p>
     </div>
   );
 }

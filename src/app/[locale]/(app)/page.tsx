@@ -194,11 +194,7 @@ export default async function DashboardPage({
                           {goal.name}
                         </Link>
                         <p className="mt-0.5 text-xs text-ink-3">
-                          {goal.targetDate
-                            ? formatDate(goal.targetDate, locale)
-                            : tp(
-                                `reason.${goal.reason ?? "missing_target_date"}` as never,
-                              )}
+                          {goal.targetDate ? formatDate(goal.targetDate, locale) : "—"}
                         </p>
                       </div>
                       <Badge tone={STATUS_TONE[goal.status]} className="whitespace-nowrap">
