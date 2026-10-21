@@ -119,6 +119,8 @@
     "conservative": "Conservador",
     "range": "Faixa projetada",
     "targetMarkers": "{count, plural, one {# marcador de meta} other {# marcadores de metas}}",
+    "goalTarget": "Meta",
+    "goalTargetHint": "Os pontos amarelos marcam o valor e a data alvo de cada meta. Eles usam o financiamento da meta, não o patrimônio total do plano, por isso podem não ficar sobre a linha da trajetória.",
     "trajectorySummary": "Trajetória de {current} hoje até o fim do período selecionado.",
     "opening": "Abertura",
     "spending": "Gastos",

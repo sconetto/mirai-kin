@@ -89,6 +89,11 @@ export function PlanTrajectoryChart({
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-4 rounded-sm bg-accent/10" /> {t("range")}
         </span>
+        {targets.length > 0 ? (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-warning" /> {t("goalTarget")}
+          </span>
+        ) : null}
       </div>
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -172,15 +177,19 @@ export function PlanTrajectoryChart({
                 stroke="var(--color-surface)"
                 strokeWidth={2}
                 ifOverflow="extendDomain"
+                label={{
+                  value: goal.name.length > 22 ? `${goal.name.slice(0, 21)}…` : goal.name,
+                  position: "top",
+                  fill: "var(--color-ink-3)",
+                  fontSize: 10,
+                }}
               />
             ))}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       {targets.length > 0 ? (
-        <p className="mt-2 text-xs text-ink-3">
-          {t("targetMarkers", { count: targets.length })}
-        </p>
+        <p className="mt-2 text-xs text-ink-3">{t("goalTargetHint")}</p>
       ) : null}
     </figure>
   );

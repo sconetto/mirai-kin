@@ -119,6 +119,8 @@
     "conservative": "Conservative",
     "range": "Projection range",
     "targetMarkers": "{count, plural, one {# goal marker} other {# goal markers}}",
+    "goalTarget": "Goal target",
+    "goalTargetHint": "Target dots mark each goal's target amount and date. They use goal funding, not total plan net worth, so they may not sit on the trajectory line.",
     "trajectorySummary": "Trajectory from {current} today through the selected range.",
     "opening": "Opening",
     "spending": "Spending",
