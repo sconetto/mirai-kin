@@ -183,7 +183,7 @@ export function AssistantChat({
                 className={cn(
                   "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                   isUser
-                    ? "rounded-br-md bg-accent text-white"
+                    ? "rounded-br-md bg-accent text-on-accent"
                     : "rounded-bl-md border border-line/80 bg-paper text-ink",
                 )}
               >
@@ -201,7 +201,7 @@ export function AssistantChat({
                 className={cn(
                   "rounded-lg border px-3 py-2.5 text-sm",
                   action.status === "pending"
-                    ? "border-warning/30 bg-[#fffaeb]"
+                    ? "border-warning/30 bg-warning-soft"
                     : "border-line bg-paper",
                 )}
               >

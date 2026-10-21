@@ -7,12 +7,15 @@ import {
   House,
   Landmark,
   MessageCircle,
+  Monitor,
+  Moon,
   Receipt,
   RefreshCw,
   Scale,
   Settings,
   ShieldCheck,
   Sparkles,
+  Sun,
   Target,
   TrendingUp,
   Upload,
@@ -22,6 +25,8 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { BrandMark } from "@/components/brand";
+import { useTheme } from "@/components/theme-provider";
+import type { Theme } from "@/lib/theme";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -72,6 +77,7 @@ const MOBILE_ITEMS: NavItem[] = SECTIONS.flatMap((section) => section.items);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations();
+  const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
@@ -143,6 +149,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mt-5 space-y-3 border-t border-line/70 pt-4">
+<div>
+            <span className="mb-1 block text-xs font-medium text-ink-3">
+              {t("common.theme")}
+            </span>
+            <div className="flex gap-1 rounded-lg border border-line bg-surface p-1">
+              {([
+                ["light", Sun],
+                ["dark", Moon],
+                ["system", Monitor],
+              ] as const).map(([value, Icon]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-label={t(`common.theme${value === "light" ? "Light" : value === "dark" ? "Dark" : "System"}`)}
+                  aria-pressed={theme === value}
+                  title={t(`common.theme${value === "light" ? "Light" : value === "dark" ? "Dark" : "System"}`)}
+                  onClick={() => setTheme(value)}
+                  className={cn(
+                    "flex h-8 flex-1 items-center justify-center rounded-md transition-colors",
+                    theme === value
+                      ? "bg-subtle text-ink"
+                      : "text-ink-3 hover:bg-paper hover:text-ink",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink-3">
               {t("common.language")}
@@ -179,6 +214,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
             <div className="flex items-center gap-2">
+              <select
+                value={theme}
+                onChange={(event) => setTheme(event.target.value as Theme)}
+                aria-label={t("common.theme")}
+                className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink"
+              >
+                <option value="light">{t("common.themeLight")}</option>
+                <option value="dark">{t("common.themeDark")}</option>
+                <option value="system">{t("common.themeSystem")}</option>
+              </select>
               <select
                 value={locale}
                 onChange={(event) => switchLocale(event.target.value)}

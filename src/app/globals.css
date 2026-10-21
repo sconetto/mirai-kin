@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
+:root {
+  --paper: #f6f7f9;
+  --subtle: #f1f3f5;
+  --surface: #ffffff;
+  --ink: #101828;
+  --ink-2: #344054;
+  --ink-3: #475467;
+  --line: #d0d5dd;
+  --accent: #0b6b5d;
+  --accent-strong: #075247;
+  --accent-soft: #e6f2ef;
+  --positive: #067647;
+  --negative: #b42318;
+  --warning: #b54708;
+  --on-accent: #ffffff;
+  --on-negative: #ffffff;
+  --strong: #101828;
+  --on-strong: #ffffff;
+  --warning-soft: #fffaeb;
+  --negative-soft: #fef3f2;
+  --positive-soft: #ecfdf3;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --paper: #0b1220;
+  --subtle: #111a2c;
+  --surface: #151f33;
+  --ink: #f8fafc;
+  --ink-2: #d1d9e6;
+  --ink-3: #93a1b5;
+  --line: #263449;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-soft: #0d2f2c;
+  --positive: #6ce9a6;
+  --negative: #fda29b;
+  --warning: #fdb022;
+  --on-accent: #042f2e;
+  --on-negative: #2b0b0b;
+  --strong: #050a13;
+  --on-strong: #ffffff;
+  --warning-soft: #2b1d0a;
+  --negative-soft: #2b1515;
+  --positive-soft: #0d2b1c;
+  color-scheme: dark;
+}
+
 @theme {
   --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
 
-  --color-paper: #f6f7f9;
-  --color-subtle: #f1f3f5;
-  --color-surface: #ffffff;
-  --color-ink: #101828;
-  --color-ink-2: #344054;
-  --color-ink-3: #475467;
-  --color-line: #d0d5dd;
-  --color-accent: #0b6b5d;
-  --color-accent-strong: #075247;
-  --color-accent-soft: #e6f2ef;
-  --color-positive: #067647;
-  --color-negative: #b42318;
-  --color-warning: #b54708;
+  --color-paper: var(--paper);
+  --color-subtle: var(--subtle);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-on-accent: var(--on-accent);
+  --color-on-negative: var(--on-negative);
+  --color-strong: var(--strong);
+  --color-on-strong: var(--on-strong);
+  --color-warning-soft: var(--warning-soft);
+  --color-negative-soft: var(--negative-soft);
+  --color-positive-soft: var(--positive-soft);
 }
 
 @layer base {
   html {
+    background-color: var(--color-paper);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -33,7 +89,7 @@
 
   ::selection {
     background-color: var(--color-accent);
-    color: #ffffff;
+    color: var(--color-on-accent);
   }
 
   :focus-visible {

@@ -66,6 +66,14 @@ describe.skipIf(!process.env.DATABASE_URL)("settings", () => {
     expect(current.theme).toBe("light");
   });
 
+  it("persists the dark theme", async () => {
+    await updateSettings({ theme: "dark" });
+    expect((await getSettings()).theme).toBe("dark");
+
+    await updateSettings({ theme: "system" });
+    expect((await getSettings()).theme).toBe("system");
+  });
+
   it("rejects invalid values", async () => {
     await expect(updateSettings({ baseCurrency: "BR" })).rejects.toBeInstanceOf(
       SettingsValidationError,
@@ -74,6 +82,9 @@ describe.skipIf(!process.env.DATABASE_URL)("settings", () => {
       SettingsValidationError,
     );
     await expect(updateSettings({ firstDayOfMonth: 32 })).rejects.toBeInstanceOf(
+      SettingsValidationError,
+    );
+    await expect(updateSettings({ theme: "neon" as never })).rejects.toBeInstanceOf(
       SettingsValidationError,
     );
     await expect(

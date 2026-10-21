@@ -2,13 +2,15 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { settings } from "@/db/schema";
 import { getEnv } from "@/lib/env";
+import { isTheme } from "@/lib/theme";
+import type { Theme } from "@/lib/theme";
 
 export type AppSettings = {
   baseCurrency: string;
   timezone: string;
   firstDayOfMonth: number;
   defaultLocale: "en" | "pt-BR";
-  theme: "light" | "system";
+  theme: Theme;
   fxProvider: string;
   assistant: {
     enabled: boolean;
@@ -28,7 +30,7 @@ export type SettingsPatch = {
   timezone?: string;
   firstDayOfMonth?: number;
   defaultLocale?: "en" | "pt-BR";
-  theme?: "light" | "system";
+  theme?: Theme;
   fxProvider?: string;
   assistant?: Partial<AppSettings["assistant"]>;
   backup?: Partial<AppSettings["backup"]>;
@@ -81,6 +83,7 @@ export async function getSettings(): Promise<AppSettings> {
 
   const storedAssistant = objectValue(stored.get("assistant"));
   const storedBackup = objectValue(stored.get("backup"));
+  const storedTheme = stored.get("theme");
 
   return {
     baseCurrency:
@@ -94,7 +97,7 @@ export async function getSettings(): Promise<AppSettings> {
         ? Math.min(31, Math.max(1, Number(stored.get("firstDayOfMonth"))))
         : base.firstDayOfMonth,
     defaultLocale: stored.get("defaultLocale") === "en" ? "en" : "pt-BR",
-    theme: stored.get("theme") === "light" ? "light" : "system",
+    theme: isTheme(storedTheme) ? storedTheme : "system",
     fxProvider:
       typeof stored.get("fxProvider") === "string"
         ? String(stored.get("fxProvider"))
@@ -221,8 +224,8 @@ export async function updateSettings(patch: SettingsPatch): Promise<AppSettings>
   }
 
   if (patch.theme !== undefined) {
-    if (patch.theme !== "light" && patch.theme !== "system") {
-      throw new SettingsValidationError("Theme must be light or system.");
+    if (!isTheme(patch.theme)) {
+      throw new SettingsValidationError("Theme must be light, dark, or system.");
     }
     entries.push(["theme", patch.theme]);
   }

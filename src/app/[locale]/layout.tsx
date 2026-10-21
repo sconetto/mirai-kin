@@ -44,7 +44,19 @@ export default async function LocaleLayout({
   const appSettings = await getSettings();
 
   return (
-    <html lang={locale} data-theme={appSettings.theme} className={`${sans.variable} ${mono.variable}`}>
+    <html
+      lang={locale}
+      data-theme={appSettings.theme}
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var v=localStorage.getItem('mirai-kin-theme');var t=(v==='light'||v==='dark'||v==='system')?v:(document.documentElement.dataset.theme||'system');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-paper text-ink antialiased">
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>

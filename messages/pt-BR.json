@@ -26,7 +26,11 @@
     "none": "Nenhum",
     "optional": "opcional",
     "view": "Ver",
-    "export": "Exportar"
+    "export": "Exportar",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema"
   },
   "nav": {
     "dashboard": "Painel",
@@ -527,7 +531,15 @@
     "status": "Status",
     "backupSuccess": "Sucesso",
     "backupFailed": "Falhou",
-    "download": "Baixar"
+    "download": "Baixar",
+    "themeDark": "Escuro",
+    "active": "Ativo",
+    "language": "Idioma",
+    "testConnection": "Testar conexão",
+    "testing": "Testando...",
+    "connectionOk": "Conexão bem-sucedida.",
+    "connectionFailed": "Falha na conexão.",
+    "connectionHint": "Salve as configurações do assistente antes de testar. O teste apenas verifica o endpoint do provedor e não envia dados financeiros."
   },
   "reconciliation": {
     "title": "Conciliação",

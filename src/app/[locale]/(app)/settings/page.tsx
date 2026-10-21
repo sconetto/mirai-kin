@@ -1,10 +1,12 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { AssistantConnectionTest } from "@/components/assistant-connection-test";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { ThemePicker } from "@/components/theme-picker";
 import { Tabs } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { listBackups } from "@/services/backups";
@@ -62,12 +64,12 @@ export default async function SettingsPage({
       <Tabs items={tabs} variant="pills" />
 
       {search.error ? (
-        <p className="rounded-lg border border-negative/20 bg-[#fef3f2] px-4 py-3 text-sm text-negative">
+        <p className="rounded-lg border border-negative/20 bg-negative-soft px-4 py-3 text-sm text-negative">
           {search.error}
         </p>
       ) : null}
       {search.saved ? (
-        <p className="rounded-lg border border-positive/20 bg-[#ecfdf3] px-4 py-3 text-sm text-positive">
+        <p className="rounded-lg border border-positive/20 bg-positive-soft px-4 py-3 text-sm text-positive">
           {t("saved")}
         </p>
       ) : null}
@@ -118,7 +120,7 @@ export default async function SettingsPage({
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="section" value="localization" />
               <label className="text-xs text-ink-3">
-                {t("defaultLocale")}
+                {t("language")}
                 <Select name="defaultLocale" defaultValue={settings.defaultLocale} className="mt-1">
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="en">English (US)</option>
@@ -138,20 +140,7 @@ export default async function SettingsPage({
             <CardTitle>{t("appearance")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={saveSettingsAction} className="grid gap-4 sm:grid-cols-2">
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="section" value="appearance" />
-              <label className="text-xs text-ink-3">
-                {t("theme")}
-                <Select name="theme" defaultValue={settings.theme} className="mt-1">
-                  <option value="light">{t("themeLight")}</option>
-                  <option value="system">{t("themeSystem")}</option>
-                </Select>
-              </label>
-              <div className="sm:col-span-2">
-                <Button type="submit">{tc("save")}</Button>
-              </div>
-            </form>
+            <ThemePicker />
           </CardContent>
         </Card>
       ) : null}
@@ -220,6 +209,9 @@ export default async function SettingsPage({
                 <p className="text-xs text-ink-3 sm:col-span-2">{t("assistantHint")}</p>
                 <div className="sm:col-span-2">
                   <Button type="submit">{tc("save")}</Button>
+                </div>
+                <div className="sm:col-span-2">
+                  <AssistantConnectionTest />
                 </div>
               </form>
             </CardContent>

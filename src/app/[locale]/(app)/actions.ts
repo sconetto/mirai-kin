@@ -66,6 +66,7 @@ export async function saveSettingsAction(formData: FormData) {
     : "general";
 
   let error: string | null = null;
+  let redirectLocale = locale;
   try {
     if (section === "general") {
       await updateSettings({
@@ -76,6 +77,7 @@ export async function saveSettingsAction(formData: FormData) {
     } else if (section === "localization") {
       const defaultLocale = field(formData, "defaultLocale") === "en" ? "en" : "pt-BR";
       await updateSettings({ defaultLocale });
+      redirectLocale = defaultLocale;
       const store = await cookies();
       store.set("NEXT_LOCALE", defaultLocale, {
         path: "/",
@@ -118,7 +120,8 @@ export async function saveSettingsAction(formData: FormData) {
   }
 
   revalidatePath(`/${locale}/settings`);
-  redirect(`/${locale}/settings?section=${section}&saved=1`);
+  revalidatePath(`/${redirectLocale}/settings`);
+  redirect(`/${redirectLocale}/settings?section=${section}&saved=1`);
 }
 
 export async function setOpeningBalanceAction(formData: FormData) {

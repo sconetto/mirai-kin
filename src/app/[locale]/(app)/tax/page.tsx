@@ -98,7 +98,7 @@ export default async function TaxPage({
         </CardContent>
       </Card>
 
-      <p className="rounded-lg border border-warning/20 bg-[#fffaeb] px-4 py-3 text-sm text-warning">
+      <p className="rounded-lg border border-warning/20 bg-warning-soft px-4 py-3 text-sm text-warning">
         {t("disclaimer")}
       </p>
     </div>

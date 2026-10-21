@@ -45,27 +45,28 @@ export function ReportChart({
 
   const axes = (
     <>
-      <CartesianGrid strokeDasharray="3 3" stroke="#e4e7ec" vertical={false} />
+      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
       <XAxis
         dataKey="name"
-        tick={{ fontSize: 12, fill: "#667085" }}
+        tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
         tickLine={false}
-        axisLine={{ stroke: "#e4e7ec" }}
+        axisLine={{ stroke: "var(--color-line)" }}
       />
       <YAxis
         domain={domain}
         tickFormatter={formatTick}
-        tick={{ fontSize: 12, fill: "#667085" }}
+        tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
         tickLine={false}
         axisLine={false}
         width={80}
       />
       <Tooltip
         contentStyle={{
-          borderRadius: 8,
-          border: "1px solid #d0d5dd",
+          background: "var(--color-surface)",
+              borderRadius: 8,
+          border: "1px solid var(--color-line)",
           fontSize: 12,
-          color: "#101828",
+          color: "var(--color-ink)",
         }}
       />
     </>
@@ -110,7 +111,7 @@ export function ReportChart({
               <Bar
                 dataKey="total"
                 name={label}
-                fill="#0b6b5d"
+                fill="var(--color-accent)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={48}
                 isAnimationActive={false}
@@ -123,7 +124,7 @@ export function ReportChart({
                 type="monotone"
                 dataKey="total"
                 name={label}
-                stroke="#0b6b5d"
+                stroke="var(--color-accent)"
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}

@@ -31,33 +31,34 @@ export function BalanceChart({
     <div style={{ height: Math.max(220, data.length * 28) }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e7ec" horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" horizontal={false} />
           <XAxis
             type="number"
             tickFormatter={(value: number) => compact.format(value)}
-            tick={{ fontSize: 12, fill: "#667085" }}
+            tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
-            axisLine={{ stroke: "#e4e7ec" }}
+            axisLine={{ stroke: "var(--color-line)" }}
           />
           <YAxis
             type="category"
             dataKey="name"
             width={160}
-            tick={{ fontSize: 12, fill: "#667085" }}
+            tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
             contentStyle={{
+              background: "var(--color-surface)",
               borderRadius: 8,
-              border: "1px solid #d0d5dd",
+              border: "1px solid var(--color-line)",
               fontSize: 12,
-              color: "#101828",
+              color: "var(--color-ink)",
             }}
           />
           <Bar
             dataKey="total"
-            fill="#0b6b5d"
+            fill="var(--color-accent)"
             radius={[0, 4, 4, 0]}
             maxBarSize={24}
             isAnimationActive={false}

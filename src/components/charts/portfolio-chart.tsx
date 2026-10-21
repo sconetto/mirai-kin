@@ -31,33 +31,34 @@ export function PortfolioChart({
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e7ec" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 12, fill: "#667085" }}
+            tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
-            axisLine={{ stroke: "#e4e7ec" }}
+            axisLine={{ stroke: "var(--color-line)" }}
             minTickGap={32}
           />
           <YAxis
             tickFormatter={(value: number) => compact.format(value)}
-            tick={{ fontSize: 12, fill: "#667085" }}
+            tick={{ fontSize: 12, fill: "var(--color-ink-3)" }}
             tickLine={false}
             axisLine={false}
             width={64}
           />
           <Tooltip
             contentStyle={{
+              background: "var(--color-surface)",
               borderRadius: 8,
-              border: "1px solid #d0d5dd",
+              border: "1px solid var(--color-line)",
               fontSize: 12,
-              color: "#101828",
+              color: "var(--color-ink)",
             }}
           />
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#0b6b5d"
+            stroke="var(--color-accent)"
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
