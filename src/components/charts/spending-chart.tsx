@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { CategoryIcon } from "@/components/category-icon";
 import { CHART_COLORS } from "@/lib/chart-colors";
@@ -15,16 +15,21 @@ type CategoryChild = {
 
 type CategorySlice = CategoryChild & {
   children?: CategoryChild[];
+  grouped?: boolean;
 };
 
 export function SpendingChart({
   data,
   currency,
+  variant = "compact",
 }: {
   data: CategorySlice[];
   currency: string;
+  variant?: "compact" | "wide";
 }) {
   const locale = useLocale();
+  const t = useTranslations("dashboard");
+  const wide = variant === "wide";
 
   if (data.length === 0) {
     return <div className="flex h-64 items-center justify-center text-sm text-ink-3">—</div>;
@@ -35,8 +40,20 @@ export function SpendingChart({
     item.color || CHART_COLORS[index % CHART_COLORS.length];
 
   return (
-    <div className="grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-center">
-      <div className="mx-auto h-56 w-56 max-w-full">
+    <div
+      className={
+        wide
+          ? "grid gap-6 md:grid-cols-[20rem_minmax(0,1fr)] md:items-start"
+          : "grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-center"
+      }
+    >
+      <div
+        className={
+          wide
+            ? "mx-auto h-72 w-72 max-w-full md:h-80 md:w-80"
+            : "mx-auto h-56 w-56 max-w-full"
+        }
+      >
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -68,11 +85,20 @@ export function SpendingChart({
         </ResponsiveContainer>
       </div>
 
-      <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+      <ul
+        className={
+          wide
+            ? "grid max-h-[28rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2"
+            : "max-h-64 space-y-2 overflow-y-auto pr-1"
+        }
+      >
         {data.map((item, index) => {
           const share = total > 0 ? (item.total / total) * 100 : 0;
           return (
-            <li key={item.name}>
+            <li
+              key={item.name}
+              className={wide ? "rounded-lg border border-line/60 px-3 py-2" : undefined}
+            >
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2">
                   <span
@@ -82,7 +108,7 @@ export function SpendingChart({
                   <CategoryIcon name={item.name} icon={item.icon} color={item.color} />
                   <span className="truncate text-ink-2">{item.name}</span>
                 </span>
-                <span className="shrink-0 text-right">
+                <span className="shrink-0 whitespace-nowrap text-right">
                   <span className="block font-medium text-ink">
                     {formatCurrency(item.total, currency, locale)}
                   </span>
@@ -95,17 +121,40 @@ export function SpendingChart({
                 </span>
               </div>
               {item.children && item.children.length > 0 ? (
-                <ul className="ml-5 mt-1 space-y-1 border-l border-line/70 pl-3">
-                  {item.children.map((child) => (
-                    <li
-                      key={child.name}
-                      className="flex items-center justify-between gap-3 text-xs text-ink-3"
-                    >
-                      <span className="truncate">{child.name}</span>
-                      <span className="shrink-0">{formatCurrency(child.total, currency, locale)}</span>
-                    </li>
-                  ))}
-                </ul>
+                item.grouped ? (
+                  <details className="ml-5 mt-1 border-l border-line/70 pl-3">
+                    <summary className="cursor-pointer text-[11px] text-ink-3">
+                      {t("groupedChildren", { count: item.children.length })}
+                    </summary>
+                    <ul className="mt-1 space-y-1">
+                      {item.children.map((child) => (
+                        <li
+                          key={child.name}
+                          className="flex items-center justify-between gap-3 text-xs text-ink-3"
+                        >
+                          <span className="truncate">{child.name}</span>
+                          <span className="shrink-0">
+                            {formatCurrency(child.total, currency, locale)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <ul className="ml-5 mt-1 space-y-1 border-l border-line/70 pl-3">
+                    {item.children.map((child) => (
+                      <li
+                        key={child.name}
+                        className="flex items-center justify-between gap-3 text-xs text-ink-3"
+                      >
+                        <span className="truncate">{child.name}</span>
+                        <span className="shrink-0">
+                          {formatCurrency(child.total, currency, locale)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )
               ) : null}
             </li>
           );

@@ -1,7 +1,13 @@
 import "dotenv/config";
 import { afterAll, describe, expect, it } from "vitest";
 import { closeDb } from "@/db";
-import { getMonthlyInsights, parseMonth, shiftMonth } from "./dashboard-charts";
+import {
+  getMonthlyInsights,
+  groupSmallCategories,
+  parseMonth,
+  shiftMonth,
+  type MonthlyCategory,
+} from "./dashboard-charts";
 
 describe("month helpers", () => {
   it("parses valid months and falls back for invalid input", () => {
@@ -13,6 +19,39 @@ describe("month helpers", () => {
   it("shifts across year boundaries", () => {
     expect(shiftMonth("2026-01", -1)).toBe("2025-12");
     expect(shiftMonth("2026-12", 1)).toBe("2027-01");
+  });
+});
+
+describe("category grouping", () => {
+  const category = (id: string, total: number): MonthlyCategory => ({
+    id,
+    name: id,
+    nameEn: id,
+    namePt: id,
+    total,
+    color: null,
+    icon: null,
+    children: [],
+  });
+
+  it("groups categories below the threshold into Other", () => {
+    const grouped = groupSmallCategories([
+      category("rent", 96),
+      category("coffee", 2),
+      category("fees", 2),
+    ]);
+    expect(grouped).toHaveLength(2);
+    expect(grouped[0]?.name).toBe("rent");
+    expect(grouped[1]).toMatchObject({
+      name: "Other",
+      total: 4,
+      children: [{ name: "coffee" }, { name: "fees" }],
+    });
+  });
+
+  it("leaves categories above the threshold untouched", () => {
+    const items = [category("rent", 60), category("food", 30), category("transport", 10)];
+    expect(groupSmallCategories(items)).toBe(items);
   });
 });
 

@@ -58,6 +58,10 @@ The overview SHALL show a monthly cash-flow breakdown from income sources to top
 - **WHEN** a user moves to a previous or next month
 - **THEN** the cash-flow, outflows, and spending comparison views use that month
 
+#### Scenario: Small outflow categories
+- **WHEN** a spending category falls below 3% of monthly outflows
+- **THEN** the overview groups it into Other while keeping the category detail available
+
 ### Requirement: Goal status list
 The overview SHALL show each goal's name, target date, status, projected value, funding gap, and required monthly contribution, with a link to the planner.
 

@@ -154,6 +154,8 @@
     "outflows": "Outflows",
     "outflowsSubtitle": "Spending by category in {month}",
     "totalOutflows": "Total outflows",
+    "groupedBelow": "Categories below {pct}% are grouped as Other",
+    "groupedChildren": "{count, plural, one {# category} other {# categories}}",
     "spendingTrend": "Spending",
     "spendingComparisonSubtitle": "Cumulative spending in {month} compared with {previous}",
     "spendingChange": "{amount} ({pct}%) vs previous month",

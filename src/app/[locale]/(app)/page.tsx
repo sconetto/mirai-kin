@@ -78,6 +78,7 @@ export default async function DashboardPage({
     total: item.total,
     color: item.color,
     icon: item.icon,
+    grouped: item.id === "grouped-other",
     children: item.children.map((child) => ({
       name: localizedCategoryName(child, locale),
       total: child.total,
@@ -340,8 +341,8 @@ export default async function DashboardPage({
         </Card>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
-        <Card>
+      <section className="grid gap-4">
+        <Card className="overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35">
           <CardHeader>
             <CardTitle>{t("cashflow")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
@@ -373,26 +374,9 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("outflows")}</CardTitle>
-            <p className="mt-1 text-xs text-ink-3">
-              {t("outflowsSubtitle", { month: formatMonth(monthly.month, locale) })}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <p className="text-xs text-ink-3">{t("totalOutflows")}</p>
-              <p className="tabular mt-1 text-2xl font-semibold text-ink">
-                {formatCurrency(monthly.cashflow.expenses, currency, locale)}
-              </p>
-            </div>
-            <SpendingChart data={outflows} currency={currency} />
-          </CardContent>
-        </Card>
       </section>
 
-      <Card>
+      <Card className="border-t-4 border-t-negative">
         <CardHeader className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{t("spendingTrend")}</CardTitle>
@@ -433,6 +417,27 @@ export default async function DashboardPage({
             currency={currency}
             locale={locale}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="border-t-4 border-t-negative">
+        <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>{t("outflows")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">
+              {t("outflowsSubtitle", { month: formatMonth(monthly.month, locale) })}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-xs text-ink-3">{t("totalOutflows")}</p>
+            <p className="tabular mt-0.5 text-2xl font-semibold text-ink">
+              {formatCurrency(monthly.cashflow.expenses, currency, locale)}
+            </p>
+            <p className="text-xs text-ink-3">{t("groupedBelow", { pct: 3 })}</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <SpendingChart data={outflows} currency={currency} variant="wide" />
         </CardContent>
       </Card>
 

@@ -50,6 +50,7 @@ export type MonthlyInsights = {
 };
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+export const OUTFLOW_GROUP_THRESHOLD = 0.03;
 
 function round4(value: number) {
   return Math.round(value * 10_000) / 10_000;
@@ -131,6 +132,30 @@ function capCategories(items: MonthlyCategory[], limit: number, fallback: Monthl
   ];
 }
 
+export function groupSmallCategories(
+  items: MonthlyCategory[],
+  threshold = OUTFLOW_GROUP_THRESHOLD,
+): MonthlyCategory[] {
+  const total = items.reduce((sum, item) => sum + item.total, 0);
+  if (total <= 0) return items;
+  const visible = items.filter((item) => item.total / total >= threshold);
+  const small = items.filter((item) => item.total / total < threshold);
+  if (small.length === 0) return items;
+  return [
+    ...visible,
+    {
+      id: "grouped-other",
+      name: "Other",
+      nameEn: "Other",
+      namePt: "Outros",
+      total: round4(small.reduce((sum, item) => sum + item.total, 0)),
+      color: null,
+      icon: null,
+      children: small,
+    },
+  ];
+}
+
 function buildCashflow(
   rows: { categoryId: string | null; income: string; expenses: string }[],
   incomeCategories: MonthlyCategory[],
@@ -193,7 +218,7 @@ function buildCashflow(
     surplus,
     savingsDraw,
     incomeSources: capCategories(sources, 6, sourceFallback),
-    expenseCategories: outcomes.filter((item) => item.id !== "surplus"),
+    expenseCategories,
     outcomes: capCategories(outcomes, 6, outcomeFallback),
   };
 }
@@ -291,7 +316,9 @@ export async function getMonthlyInsights(monthInput?: string): Promise<MonthlyIn
     if (parent) parent.children = [...children.values()].sort((a, b) => b.total - a.total);
   }
 
-  const expenseCategories = [...expenseById.values()].sort((a, b) => b.total - a.total);
+  const expenseCategories = groupSmallCategories(
+    [...expenseById.values()].sort((a, b) => b.total - a.total),
+  );
   const cashflow = buildCashflow(rows, incomeSources, expenseCategories);
 
   const daily = new Map<string, Map<number, number>>();

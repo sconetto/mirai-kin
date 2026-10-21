@@ -43,7 +43,7 @@ export function MonthlySpendingChart({
     <div>
       <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-3">
         <span className="flex items-center gap-1.5">
-          <span className="h-0.5 w-4 bg-accent" /> {t("selectedMonth")}
+          <span className="h-0.5 w-4 bg-negative" /> {t("selectedMonth")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-4 border-t border-dashed border-ink-3" />{" "}
@@ -96,7 +96,7 @@ export function MonthlySpendingChart({
               type="monotone"
               dataKey="selected"
               name={t("selectedMonth")}
-              stroke="var(--color-accent)"
+              stroke="var(--negative)"
               strokeWidth={2.5}
               dot={false}
               isAnimationActive={false}
