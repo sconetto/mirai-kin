@@ -33,11 +33,15 @@ The system SHALL prevent allocations from assigning more than 100% of any accoun
 - **THEN** the system rejects the allocation with a validation error
 
 ### Requirement: Base-currency trajectory
-The system SHALL calculate goal trajectories in the base currency, converting account values and targets using the active exchange rate on the calculation date.
+The system SHALL calculate goal trajectories in the base currency, converting account values and targets using the active exchange rate on the calculation date, and SHALL return the rate date used for the conversion.
 
 #### Scenario: Multi-currency goal
 - **WHEN** a goal is funded by an account in a different currency from the base currency
 - **THEN** the system converts the funded value to the base currency and reports the rate date
+
+#### Scenario: Plan status rate date
+- **WHEN** an authenticated client requests plan status
+- **THEN** the response includes the rate date used for every converted goal value
 
 ### Requirement: Inflation-aware projection
 The system SHALL project a goal's future value using the real return derived from the expected nominal return and inflation, including the current funded amount and planned monthly contributions.
