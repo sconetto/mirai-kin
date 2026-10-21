@@ -1,13 +1,16 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SpendingNav } from "@/components/spending-nav";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { insightParams } from "@/lib/insight-params";
 import { overview } from "@/services/analytics";
 import { listBudgetsWithSpend } from "@/services/budgets";
+import { getInsights } from "@/services/insights";
 
 export default async function SpendingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -15,9 +18,15 @@ export default async function SpendingPage({ params }: { params: Promise<{ local
   const t = await getTranslations("spending");
   const tr = await getTranslations("reports");
   const tc = await getTranslations("common");
+  const ti = await getTranslations("insights");
 
   const data = await overview(8);
   const budgets = (await listBudgetsWithSpend()).slice(0, 5);
+  const tacticalInsights = (await getInsights())
+    .filter((insight) =>
+      ["savings_rate", "budget_over", "budget_near", "category_spike"].includes(insight.type),
+    )
+    .slice(0, 3);
   const net = Number(data.month.income) - Number(data.month.expenses);
 
   return (
@@ -44,6 +53,52 @@ export default async function SpendingPage({ params }: { params: Promise<{ local
         />
         <Stat label={tr("net")} value={formatCurrency(String(net), data.baseCurrency, locale)} />
       </section>
+
+      {tacticalInsights.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{ti("title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-line/70">
+              {tacticalInsights.map((insight) => (
+                <li
+                  key={`${insight.type}:${insight.signature}`}
+                  className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex min-w-0 items-start gap-2">
+                    <Badge
+                      tone={
+                        insight.severity === "critical"
+                          ? "danger"
+                          : insight.severity === "warning"
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
+                      {ti(`severity.${insight.severity}`)}
+                    </Badge>
+                    <p className="text-sm text-ink-2">
+                      {ti(
+                        insight.type as never,
+                        insightParams(insight, locale, data.baseCurrency) as never,
+                      )}
+                    </p>
+                  </div>
+                  {insight.action ? (
+                    <Link
+                      href={insight.action.href}
+                      className="text-sm font-medium text-accent hover:underline"
+                    >
+                      {tc("view")}
+                    </Link>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Card>
