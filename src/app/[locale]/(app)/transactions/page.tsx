@@ -35,7 +35,7 @@ export default async function TransactionsPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
         <p className="text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 

@@ -23,7 +23,7 @@ export default async function ArticlePage({
       <Link href="/learn" className="text-sm text-ink-3 hover:underline">
         ← {t("title")}
       </Link>
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">{article.title}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-ink">{article.title}</h1>
       {article.description ? (
         <p className="text-sm text-ink-3">{article.description}</p>
       ) : null}

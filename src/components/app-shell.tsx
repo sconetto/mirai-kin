@@ -1,5 +1,19 @@
 "use client";
 
+import {
+  BookOpen,
+  Briefcase,
+  ChartLine,
+  House,
+  Landmark,
+  Receipt,
+  Scale,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Upload,
+  Wallet,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { BrandMark } from "@/components/brand";
@@ -7,34 +21,38 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; key: string };
+type NavItem = {
+  href: string;
+  key: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
 type NavSection = { key: string; items: NavItem[] };
 
 const SECTIONS: NavSection[] = [
   {
     key: "sections.track",
     items: [
-      { href: "/", key: "nav.overview" },
-      { href: "/insights", key: "nav.insights" },
-      { href: "/spending", key: "nav.spending" },
-      { href: "/invest", key: "nav.invest" },
-      { href: "/forecast", key: "nav.forecast" },
-      { href: "/equity", key: "nav.equity" },
-      { href: "/import", key: "nav.import" },
+      { href: "/", key: "nav.overview", icon: House },
+      { href: "/insights", key: "nav.insights", icon: Sparkles },
+      { href: "/spending", key: "nav.spending", icon: Wallet },
+      { href: "/invest", key: "nav.invest", icon: TrendingUp },
+      { href: "/forecast", key: "nav.forecast", icon: ChartLine },
+      { href: "/equity", key: "nav.equity", icon: Scale },
+      { href: "/import", key: "nav.import", icon: Upload },
     ],
   },
   {
     key: "sections.services",
     items: [
-      { href: "/brokerage", key: "nav.brokerage" },
-      { href: "/tax", key: "nav.tax" },
-      { href: "/planner", key: "nav.planner" },
-      { href: "/estate", key: "nav.estate" },
+      { href: "/brokerage", key: "nav.brokerage", icon: Briefcase },
+      { href: "/tax", key: "nav.tax", icon: Receipt },
+      { href: "/planner", key: "nav.planner", icon: Target },
+      { href: "/estate", key: "nav.estate", icon: Landmark },
     ],
   },
   {
     key: "sections.learn",
-    items: [{ href: "/learn", key: "nav.learn" }],
+    items: [{ href: "/learn", key: "nav.learn", icon: BookOpen }],
   },
 ];
 
@@ -67,34 +85,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
-        <Link href="/" className="flex items-center gap-2.5 px-1">
+    <div className="min-h-screen lg:grid lg:grid-cols-[270px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-screen flex-col border-r border-line/70 bg-surface px-4 py-6 lg:flex">
+        <Link href="/" className="flex items-center gap-2.5 px-2">
           <BrandMark />
-          <span className="text-sm font-semibold tracking-tight text-ink">
+          <span className="text-[15px] font-semibold tracking-tight text-ink">
             {t("common.appName")}
           </span>
         </Link>
 
-        <nav className="mt-7 flex flex-1 flex-col gap-6 overflow-y-auto">
+        <nav className="mt-9 flex flex-1 flex-col gap-7 overflow-y-auto">
           {SECTIONS.map((section) => (
             <div key={section.key}>
-              <p className="px-3 text-xs font-medium text-ink-3">{t(section.key)}</p>
-              <div className="mt-2 flex flex-col gap-1">
-                {section.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "rounded-lg border-l-2 px-3 py-2 text-sm transition-colors",
-                      isActive(item.href)
-                        ? "border-accent bg-accent-soft font-medium text-accent-strong"
-                        : "border-transparent text-ink-2 hover:bg-paper hover:text-ink",
-                    )}
-                  >
-                    {t(item.key)}
-                  </Link>
-                ))}
+              <p className="px-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
+                {t(section.key)}
+              </p>
+              <div className="mt-2 flex flex-col gap-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                        active
+                          ? "bg-subtle font-medium text-ink"
+                          : "text-ink-2 hover:bg-paper hover:text-ink",
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          active ? "text-ink" : "text-ink-3 group-hover:text-ink-2",
+                        )}
+                      />
+                      <span>{t(item.key)}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -167,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className={cn(
                 "whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors",
                 isActive(item.href)
-                  ? "bg-accent font-medium text-white"
+                  ? "bg-subtle font-medium text-ink"
                   : "text-ink-2 hover:bg-paper hover:text-ink",
               )}
             >
@@ -177,8 +207,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </div>
 
-      <main className="min-w-0 px-4 py-6 lg:px-10 lg:py-10">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      <main className="min-w-0 px-4 py-6 lg:px-10 lg:py-8">
+        <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
   );

@@ -1,4 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { SpendingNav } from "@/components/spending-nav";
+import { PageHeader } from "@/components/ui/page-header";
 import { BUDGET_PERIODS } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("budgets");
+  const ts = await getTranslations("spending");
   const tc = await getTranslations("common");
   const te = await getTranslations("enums");
   const budgets = await listBudgetsWithSpend();
@@ -20,10 +23,7 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
-        <p className="text-sm text-ink-3">{t("subtitle")}</p>
-      </header>
+      <PageHeader title={ts("title")} subtitle={ts("subtitle")} tabs={<SpendingNav />} />
 
       <Card>
         <CardHeader>

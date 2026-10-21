@@ -1,9 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { SpendingNav } from "@/components/spending-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
-import { Tabs } from "@/components/ui/tabs";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { overview } from "@/services/analytics";
@@ -20,17 +20,9 @@ export default async function SpendingPage({ params }: { params: Promise<{ local
   const budgets = (await listBudgetsWithSpend()).slice(0, 5);
   const net = Number(data.month.income) - Number(data.month.expenses);
 
-  const tabs = [
-    { href: "/spending", label: t("overview"), active: true },
-    { href: "/spending/transactions", label: t("transactions"), active: false },
-    { href: "/spending/budgets", label: t("budgets"), active: false },
-    { href: "/spending/recurring", label: t("recurring"), active: false },
-    { href: "/spending/reports", label: t("reports"), active: false },
-  ];
-
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")}>
+      <PageHeader title={t("title")} subtitle={t("subtitle")} tabs={<SpendingNav />}>
         <Link
           href="/import"
           className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong"
@@ -38,8 +30,6 @@ export default async function SpendingPage({ params }: { params: Promise<{ local
           {t("importCta")}
         </Link>
       </PageHeader>
-
-      <Tabs items={tabs} />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <Stat

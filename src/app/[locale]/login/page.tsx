@@ -29,7 +29,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
             <BrandMark />
             <span className="text-sm font-semibold tracking-tight text-ink">{tc("appName")}</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
           <p className="mb-7 mt-2 text-sm text-ink-3">{t("subtitle")}</p>
           <LoginForm />
         </div>

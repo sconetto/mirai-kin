@@ -29,7 +29,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{t("title")}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">{t("title")}</h1>
         <p className="mt-1 text-sm text-ink-3">{t("subtitle")}</p>
       </header>
 

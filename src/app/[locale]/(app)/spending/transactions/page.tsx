@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { SpendingNav } from "@/components/spending-nav";
 import { TransactionReview } from "@/components/transaction-review";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ export default async function SpendingTransactionsPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("transactions");
+  const ts = await getTranslations("spending");
   const tc = await getTranslations("common");
   const te = await getTranslations("enums");
 
@@ -54,8 +56,7 @@ export default async function SpendingTransactionsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
-      <Tabs items={tabs} />
+      <PageHeader title={ts("title")} subtitle={ts("subtitle")} tabs={<SpendingNav />} />
 
       <Card>
         <CardHeader>
@@ -106,7 +107,14 @@ export default async function SpendingTransactionsPage({
           <CardTitle>{t("review")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <TransactionReview rows={rows} categories={categories.map(({ id, name }) => ({ id, name }))} locale={locale} />
+          <div className="mb-3">
+            <Tabs items={tabs} variant="pills" />
+          </div>
+          <TransactionReview
+            rows={rows}
+            categories={categories.map(({ id, name }) => ({ id, name }))}
+            locale={locale}
+          />
         </CardContent>
       </Card>
     </div>

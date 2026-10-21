@@ -294,7 +294,11 @@
     "savedOk": "Report saved",
     "delete": "Delete",
     "open": "Open",
-    "noSaved": "No saved reports"
+    "noSaved": "No saved reports",
+    "custom": "Custom",
+    "chartBar": "Bars",
+    "chartLine": "Lines",
+    "reset": "Reset"
   },
   "insights": {
     "title": "Insights",

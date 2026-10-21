@@ -294,7 +294,11 @@
     "savedOk": "Relatório salvo",
     "delete": "Excluir",
     "open": "Abrir",
-    "noSaved": "Nenhum relatório salvo"
+    "noSaved": "Nenhum relatório salvo",
+    "custom": "Personalizado",
+    "chartBar": "Barras",
+    "chartLine": "Linhas",
+    "reset": "Redefinir"
   },
   "insights": {
     "title": "Insights",

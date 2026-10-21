@@ -1,9 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { SpendingNav } from "@/components/spending-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { PageHeader } from "@/components/ui/page-header";
-import { Tabs } from "@/components/ui/tabs";
 import { getEnv } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { detectRecurring, getUpcomingBills } from "@/services/recurring";
@@ -12,20 +12,14 @@ export default async function RecurringPage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("recurring");
-  const tc = await getTranslations("common");
+  const ts = await getTranslations("spending");
   const currency = getEnv().BASE_CURRENCY;
 
   const [candidates, upcoming] = await Promise.all([detectRecurring(), getUpcomingBills(30)]);
 
-  const tabs = [
-    { href: "/spending", label: tc("back"), active: false },
-    { href: "/spending/recurring", label: t("title"), active: true },
-  ];
-
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
-      <Tabs items={tabs} />
+      <PageHeader title={ts("title")} subtitle={ts("subtitle")} tabs={<SpendingNav />} />
 
       <Card>
         <CardHeader>
