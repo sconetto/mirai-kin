@@ -7,6 +7,7 @@ import {
   BUDGET_PERIODS,
   CATEGORY_TYPES,
   DEBT_TYPES,
+  IMPORT_SOURCES,
   INSTRUMENT_TYPES,
   PAYMENT_TYPES,
   RECURRENCE_FREQUENCIES,
@@ -42,6 +43,8 @@ export const accountCreateSchema = z.object({
   dueDay: z.number().int().min(1).max(31).nullish(),
   creditLimit: decimal.nullish(),
   archived: z.boolean().optional(),
+  externalSource: z.enum(IMPORT_SOURCES).optional(),
+  externalId: z.string().min(1).max(200).optional(),
 });
 
 export const accountUpdateSchema = accountCreateSchema.partial();
@@ -54,12 +57,16 @@ export const categoryCreateSchema = z.object({
   parentId: z.uuid().optional(),
   color: z.string().optional(),
   icon: z.string().optional(),
+  externalSource: z.enum(IMPORT_SOURCES).optional(),
+  externalId: z.string().min(1).max(200).optional(),
 });
 
 export const categoryUpdateSchema = categoryCreateSchema.partial();
 
 export const labelCreateSchema = z.object({
   name: z.string().min(1).max(64),
+  externalSource: z.enum(IMPORT_SOURCES).optional(),
+  externalId: z.string().min(1).max(200).optional(),
 });
 
 export const labelUpdateSchema = labelCreateSchema.partial();
@@ -76,6 +83,8 @@ export const transactionCreateSchema = z.object({
   labelIds: z.array(z.uuid()).max(50).optional(),
   isDeductible: z.boolean().optional(),
   reviewStatus: z.enum(REVIEW_STATUSES).optional(),
+  externalSource: z.enum(IMPORT_SOURCES).optional(),
+  externalId: z.string().min(1).max(200).optional(),
 });
 
 export const transactionUpdateSchema = transactionCreateSchema.partial();

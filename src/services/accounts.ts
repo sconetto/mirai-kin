@@ -21,6 +21,45 @@ export async function getAccount(id: string) {
 
 export async function createAccount(input: AccountCreateInput) {
   const db = getDb();
+  const currency = input.currency.toUpperCase();
+
+  if (input.externalSource && input.externalId) {
+    const [existing] = await db
+      .select()
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.externalSource, input.externalSource),
+          eq(accounts.externalId, input.externalId),
+        ),
+      )
+      .limit(1);
+    if (existing) return existing;
+  }
+
+  const [existingByName] = await db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.name, input.name),
+        eq(accounts.currency, currency),
+        isNull(accounts.externalId),
+      ),
+    )
+    .limit(1);
+  if (existingByName) {
+    if (input.externalSource && input.externalId) {
+      const [adopted] = await db
+        .update(accounts)
+        .set({ externalSource: input.externalSource, externalId: input.externalId })
+        .where(eq(accounts.id, existingByName.id))
+        .returning();
+      if (adopted) return adopted;
+    }
+    return existingByName;
+  }
+
   const [row] = await db
     .insert(accounts)
     .values({
@@ -28,7 +67,7 @@ export async function createAccount(input: AccountCreateInput) {
       type: input.type,
       ownershipType: input.ownershipType ?? "personal",
       assetSubtype: input.assetSubtype ?? null,
-      currency: input.currency.toUpperCase(),
+      currency,
       openingBalance: input.openingBalance !== undefined ? String(input.openingBalance) : "0",
       openingBalanceCaptured: input.openingBalance !== undefined,
       statementCloseDay: input.statementCloseDay ?? null,
@@ -37,6 +76,8 @@ export async function createAccount(input: AccountCreateInput) {
         ? String(input.creditLimit)
         : null,
       archived: input.archived ?? false,
+      externalSource: input.externalSource,
+      externalId: input.externalId,
     })
     .returning();
   return row;
@@ -57,6 +98,8 @@ export async function updateAccount(id: string, input: AccountUpdateInput) {
     patch.creditLimit = input.creditLimit === null ? null : String(input.creditLimit);
   }
   if (input.archived !== undefined) patch.archived = input.archived;
+  if (input.externalSource !== undefined) patch.externalSource = input.externalSource;
+  if (input.externalId !== undefined) patch.externalId = input.externalId;
 
   const [row] = await db.update(accounts).set(patch).where(eq(accounts.id, id)).returning();
   return row ?? null;

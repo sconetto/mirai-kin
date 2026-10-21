@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, transactions } from "@/db/schema";
 import type { PaymentType } from "@/db/schema";
@@ -34,8 +34,54 @@ export async function createTransaction(input: TransactionCreateInput) {
   }
 
   const currency = (input.currency ?? account.currency).toUpperCase();
-  const baseCurrency = await getBaseCurrency();
   const recordDate = parseDate(input.recordDate);
+
+  if (input.externalSource && input.externalId) {
+    const [existing] = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.externalSource, input.externalSource),
+          eq(transactions.externalId, input.externalId),
+        ),
+      )
+      .limit(1);
+    if (existing) return existing;
+
+    const day = recordDate.toISOString().slice(0, 10);
+    const conditions = [
+      eq(transactions.accountId, input.accountId),
+      eq(transactions.amount, String(input.amount)),
+      eq(transactions.currency, currency),
+      gte(transactions.recordDate, new Date(`${day}T00:00:00.000Z`)),
+      lte(transactions.recordDate, new Date(`${day}T23:59:59.999Z`)),
+      isNull(transactions.externalId),
+    ];
+    if (input.counterparty) {
+      conditions.push(
+        sql`lower(coalesce(${transactions.counterparty}, '')) = ${input.counterparty.toLowerCase()}`,
+      );
+    } else if (input.note) {
+      conditions.push(sql`lower(coalesce(${transactions.note}, '')) = ${input.note.toLowerCase()}`);
+    }
+
+    const [legacy] = await db
+      .select()
+      .from(transactions)
+      .where(and(...conditions))
+      .limit(1);
+    if (legacy) {
+      const [adopted] = await db
+        .update(transactions)
+        .set({ externalSource: input.externalSource, externalId: input.externalId })
+        .where(eq(transactions.id, legacy.id))
+        .returning();
+      if (adopted) return adopted;
+    }
+  }
+
+  const baseCurrency = await getBaseCurrency();
   const { baseAmount, fxRateId } = await toBaseAmount(
     String(input.amount),
     currency,
@@ -60,6 +106,8 @@ export async function createTransaction(input: TransactionCreateInput) {
       labelIds: input.labelIds ?? [],
       isDeductible: input.isDeductible ?? false,
       reviewStatus: input.reviewStatus ?? "pending",
+      externalSource: input.externalSource,
+      externalId: input.externalId,
     })
     .returning();
 
@@ -169,6 +217,8 @@ export async function updateTransaction(id: string, input: Partial<TransactionCr
   if (input.labelIds !== undefined) patch.labelIds = input.labelIds;
   if (input.isDeductible !== undefined) patch.isDeductible = input.isDeductible;
   if (input.reviewStatus !== undefined) patch.reviewStatus = input.reviewStatus;
+  if (input.externalSource !== undefined) patch.externalSource = input.externalSource;
+  if (input.externalId !== undefined) patch.externalId = input.externalId;
   if (input.amount !== undefined) {
     amount = String(input.amount);
     patch.amount = amount;

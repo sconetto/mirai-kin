@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { labels } from "@/db/schema";
+import type { ImportSource } from "@/db/schema";
 import type { LabelCreateInput } from "@/lib/schemas";
 
 export async function listLabels() {
@@ -14,16 +15,40 @@ export async function getLabel(id: string) {
   return rows[0] ?? null;
 }
 
-export async function findOrCreateLabel(name: string) {
+export async function findOrCreateLabel(
+  name: string,
+  externalSource?: ImportSource,
+  externalId?: string,
+) {
   const db = getDb();
+  if (externalSource && externalId) {
+    const [byExternal] = await db
+      .select()
+      .from(labels)
+      .where(and(eq(labels.externalSource, externalSource), eq(labels.externalId, externalId)))
+      .limit(1);
+    if (byExternal) return byExternal;
+  }
+
   const existing = await db.select().from(labels).where(eq(labels.name, name)).limit(1);
-  if (existing[0]) return existing[0];
-  const [row] = await db.insert(labels).values({ name }).returning();
+  if (existing[0]) {
+    if (!existing[0].externalId && externalSource && externalId) {
+      const [adopted] = await db
+        .update(labels)
+        .set({ externalSource, externalId })
+        .where(eq(labels.id, existing[0].id))
+        .returning();
+      if (adopted) return adopted;
+    }
+    return existing[0];
+  }
+
+  const [row] = await db.insert(labels).values({ name, externalSource, externalId }).returning();
   return row;
 }
 
 export async function createLabel(input: LabelCreateInput) {
-  return findOrCreateLabel(input.name);
+  return findOrCreateLabel(input.name, input.externalSource, input.externalId);
 }
 
 export async function updateLabel(id: string, name: string) {

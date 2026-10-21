@@ -132,10 +132,15 @@ export const accounts = pgTable(
     dueDay: integer("due_day"),
     creditLimit: money("credit_limit"),
     archived: boolean("archived").notNull().default(false),
+    externalSource: text("external_source").$type<ImportSource>(),
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("accounts_currency_idx").on(t.currency)],
+  (t) => [
+    index("accounts_currency_idx").on(t.currency),
+    uniqueIndex("accounts_external_idx").on(t.externalSource, t.externalId),
+  ],
 );
 
 export const accountReconciliations = pgTable(
@@ -172,16 +177,27 @@ export const categories = pgTable(
     isSystem: boolean("is_system").notNull().default(false),
     taxTreatment: text("tax_treatment").$type<TaxTreatment>().notNull().default("none"),
     isEssential: boolean("is_essential").notNull().default(false),
+    externalSource: text("external_source").$type<ImportSource>(),
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("categories_parent_idx").on(t.parentId)],
+  (t) => [
+    index("categories_parent_idx").on(t.parentId),
+    uniqueIndex("categories_external_idx").on(t.externalSource, t.externalId),
+  ],
 );
 
-export const labels = pgTable("labels", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const labels = pgTable(
+  "labels",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull().unique(),
+    externalSource: text("external_source").$type<ImportSource>(),
+    externalId: text("external_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("labels_external_idx").on(t.externalSource, t.externalId)],
+);
 
 export const fxRates = pgTable(
   "fx_rates",
@@ -268,6 +284,8 @@ export const transactions = pgTable(
     appliedRuleId: uuid("applied_rule_id").references(() => transactionRules.id, {
       onDelete: "set null",
     }),
+    externalSource: text("external_source").$type<ImportSource>(),
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -275,6 +293,7 @@ export const transactions = pgTable(
     index("transactions_account_idx").on(t.accountId),
     index("transactions_category_idx").on(t.categoryId),
     index("transactions_record_date_idx").on(t.recordDate),
+    uniqueIndex("transactions_external_idx").on(t.externalSource, t.externalId),
   ],
 );
 

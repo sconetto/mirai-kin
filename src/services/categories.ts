@@ -4,6 +4,7 @@ import { categories, transactions } from "@/db/schema";
 import type { CategoryType } from "@/db/schema";
 import type { CategoryCreateInput } from "@/lib/schemas";
 import { categoryTranslation } from "@/lib/category-translations";
+import { findCategory } from "@/lib/category-match";
 
 export class CategoryInUseError extends Error {
   constructor(message: string) {
@@ -28,6 +29,39 @@ export async function getCategory(id: string) {
 
 export async function createCategory(input: CategoryCreateInput) {
   const db = getDb();
+
+  if (input.externalSource && input.externalId) {
+    const [existing] = await db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.externalSource, input.externalSource),
+          eq(categories.externalId, input.externalId),
+        ),
+      )
+      .limit(1);
+    if (existing) return existing;
+  }
+
+  const all = await db.select().from(categories);
+  const sameType = findCategory(
+    all.filter((category) => category.type === input.type),
+    input.name,
+  );
+  const existing = sameType ?? findCategory(all, input.name);
+  if (existing) {
+    if (!existing.externalId && input.externalSource && input.externalId) {
+      const [adopted] = await db
+        .update(categories)
+        .set({ externalSource: input.externalSource, externalId: input.externalId })
+        .where(eq(categories.id, existing.id))
+        .returning();
+      if (adopted) return adopted;
+    }
+    return existing;
+  }
+
   const translation = categoryTranslation(input.name);
   const [row] = await db
     .insert(categories)
@@ -39,6 +73,8 @@ export async function createCategory(input: CategoryCreateInput) {
       parentId: input.parentId ?? null,
       color: input.color ?? null,
       icon: input.icon ?? null,
+      externalSource: input.externalSource,
+      externalId: input.externalId,
     })
     .returning();
   return row;
@@ -61,6 +97,8 @@ export async function updateCategory(id: string, input: Partial<CategoryCreateIn
   if (input.parentId !== undefined) patch.parentId = input.parentId;
   if (input.color !== undefined) patch.color = input.color;
   if (input.icon !== undefined) patch.icon = input.icon;
+  if (input.externalSource !== undefined) patch.externalSource = input.externalSource;
+  if (input.externalId !== undefined) patch.externalId = input.externalId;
 
   const [row] = await db.update(categories).set(patch).where(eq(categories.id, id)).returning();
   return row ?? null;

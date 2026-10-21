@@ -57,6 +57,13 @@
       "when": 1792593976972,
       "tag": "0007_late_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792600049313,
+      "tag": "0008_same_justice",
+      "breakpoints": true
     }
   ]
 }
