@@ -43,6 +43,7 @@ export function AccountEditForm({
     <form action={updateAccountAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="id" value={account.id} />
+      <input type="hidden" name="returnTo" value={cancelHref} />
       <label className="text-xs text-ink-3">
         {tc("name")}
         <Input name="name" defaultValue={account.name} required className="mt-1" />

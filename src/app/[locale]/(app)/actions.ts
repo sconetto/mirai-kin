@@ -309,6 +309,10 @@ export async function updateAccountAction(formData: FormData) {
   await updateAccount(id, input);
   revalidatePath(`/${locale}/accounts`);
   revalidatePath(`/${locale}`);
+
+  const returnTo = field(formData, "returnTo");
+  const target = returnTo && /^\/accounts(?:\?.*)?$/.test(returnTo) ? returnTo : "/accounts";
+  redirect(`/${locale}${target}`);
 }
 
 export async function setAccountArchivedAction(formData: FormData) {
