@@ -11,6 +11,8 @@ import {
   goalCreateSchema,
   goalUpdateSchema,
   investmentPositionCreateSchema,
+  scenarioCreateSchema,
+  scenarioUpdateSchema,
   transactionCreateSchema,
 } from "@/lib/schemas";
 import { updateAccount } from "@/services/accounts";
@@ -20,6 +22,15 @@ import { createDebt } from "@/services/debts";
 import { createBeneficiary, createDocument, updateDocumentStatus } from "@/services/estate";
 import { recordSnapshot } from "@/services/equity";
 import { createGoal, deleteGoal, GoalValidationError, updateGoal } from "@/services/planner";
+import {
+  createScenario,
+  deleteScenario,
+  duplicateScenario,
+  getScenario,
+  ScenarioValidationError,
+  setDefaultScenario,
+  updateScenario,
+} from "@/services/scenarios";
 import {
   commitBatch,
   deleteProfile,
@@ -324,6 +335,116 @@ export async function setAccountArchivedAction(formData: FormData) {
   await updateAccount(id, { archived: formData.get("archived") === "true" });
   revalidatePath(`/${locale}/accounts`);
   revalidatePath(`/${locale}`);
+}
+
+function scenarioFormValues(formData: FormData) {
+  const expectedReturn = field(formData, "expectedReturnPct");
+  const inflation = field(formData, "inflationPct");
+  const monthlyContribution = field(formData, "monthlyContribution");
+  const horizonMonths = field(formData, "horizonMonths");
+  return {
+    ...(expectedReturn ? { expectedReturn: Number(expectedReturn) / 100 } : {}),
+    ...(inflation ? { inflation: Number(inflation) / 100 } : {}),
+    ...(monthlyContribution ? { monthlyContribution: Number(monthlyContribution) } : {}),
+    ...(horizonMonths ? { horizonMonths: Number(horizonMonths) } : {}),
+  };
+}
+
+function scenarioErrorRedirect(
+  locale: string,
+  fieldName?: string,
+  scenarioId?: string,
+): never {
+  const params = new URLSearchParams({ error: "validation" });
+  if (fieldName) params.set("field", fieldName.split(".").at(-1) ?? fieldName);
+  if (scenarioId) params.set("scenarioId", scenarioId);
+  redirect(`/${locale}/projections?${params.toString()}`);
+}
+
+export async function createScenarioAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const parsed = scenarioCreateSchema.safeParse({
+    name: field(formData, "name"),
+    assumptions: scenarioFormValues(formData),
+    isDefault: formData.get("isDefault") === "on",
+  });
+  if (!parsed.success) {
+    scenarioErrorRedirect(locale, parsed.error.issues[0]?.path.join("."));
+  }
+  try {
+    await createScenario(parsed.data);
+  } catch (error) {
+    if (error instanceof ScenarioValidationError) {
+      scenarioErrorRedirect(locale, error.fields?.[0]);
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/projections`);
+}
+
+export async function updateScenarioAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  const current = await getScenario(id);
+  const existing =
+    current?.assumptions && typeof current.assumptions === "object"
+      ? (current.assumptions as Record<string, unknown>)
+      : {};
+  const parsed = scenarioUpdateSchema.safeParse({
+    name: field(formData, "name"),
+    assumptions: { ...existing, ...scenarioFormValues(formData) },
+  });
+  if (!parsed.success) {
+    scenarioErrorRedirect(locale, parsed.error.issues[0]?.path.join("."), id);
+  }
+  try {
+    await updateScenario(id, parsed.data);
+  } catch (error) {
+    if (error instanceof ScenarioValidationError) {
+      scenarioErrorRedirect(locale, error.fields?.[0], id);
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/projections`);
+}
+
+export async function duplicateScenarioAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  try {
+    await duplicateScenario(id);
+  } catch (error) {
+    if (error instanceof ScenarioValidationError) {
+      scenarioErrorRedirect(locale, error.fields?.[0], id);
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/projections`);
+}
+
+export async function setDefaultScenarioAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  await setDefaultScenario(id);
+  revalidatePath(`/${locale}/projections`);
+}
+
+export async function deleteScenarioAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  try {
+    await deleteScenario(id, field(formData, "replacementDefaultId"));
+  } catch (error) {
+    if (error instanceof ScenarioValidationError) {
+      scenarioErrorRedirect(locale, error.fields?.[0], id);
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/projections`);
 }
 
 export async function createTransactionAction(formData: FormData) {

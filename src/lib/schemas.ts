@@ -185,6 +185,21 @@ export const goalCreateSchema = z.object({
 
 export const goalUpdateSchema = goalCreateSchema.partial();
 
+export const scenarioAssumptionsSchema = z.object({
+  expectedReturn: z.number().min(-0.99).max(1).optional(),
+  inflation: z.number().min(-0.5).max(1).optional(),
+  monthlyContribution: z.number().min(0).optional(),
+  horizonMonths: z.number().int().min(12).max(600).optional(),
+});
+
+export const scenarioCreateSchema = z.object({
+  name: z.string().min(1).max(80),
+  assumptions: scenarioAssumptionsSchema.optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const scenarioUpdateSchema = scenarioCreateSchema.partial();
+
 export const investmentPositionCreateSchema = z.object({
   accountId: z.uuid(),
   symbol: z.string().min(1),
@@ -262,6 +277,9 @@ export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
 export type GoalAllocationInput = z.infer<typeof goalAllocationInputSchema>;
 export type GoalCreateInput = z.infer<typeof goalCreateSchema>;
 export type GoalUpdateInput = z.infer<typeof goalUpdateSchema>;
+export type ScenarioAssumptionsInput = z.infer<typeof scenarioAssumptionsSchema>;
+export type ScenarioCreateInput = z.infer<typeof scenarioCreateSchema>;
+export type ScenarioUpdateInput = z.infer<typeof scenarioUpdateSchema>;
 export type InvestmentPositionCreateInput = z.infer<typeof investmentPositionCreateSchema>;
 export type DebtCreateInput = z.infer<typeof debtCreateSchema>;
 export type RecurringTransactionCreateInput = z.infer<typeof recurringTransactionCreateSchema>;

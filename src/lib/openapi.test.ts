@@ -13,6 +13,9 @@ describe("OpenAPI contract", () => {
     expect(paths["/api/v1/transactions"]).toBeTruthy();
     expect(paths["/api/v1/accounts"]).toBeTruthy();
     expect(paths["/api/v1/plan-status"]).toBeTruthy();
+    expect(paths["/api/v1/scenarios"]).toBeTruthy();
+    expect(paths["/api/v1/scenarios/compare"]).toBeTruthy();
+    expect(paths["/api/v1/scenarios/{id}"]).toBeTruthy();
     expect(paths["/api/v1/reports"]).toBeUndefined();
     expect(paths["/api/v1/transfers"]).toBeTruthy();
     expect(paths["/api/v1/transfers/pair"]).toBeTruthy();
@@ -22,6 +25,8 @@ describe("OpenAPI contract", () => {
     expect(document.components?.schemas?.AccountInput).toBeTruthy();
     expect(document.components?.schemas?.TransactionInput).toBeTruthy();
     expect(document.components?.schemas?.TransferInput).toBeTruthy();
+    expect(document.components?.schemas?.ScenarioInput).toBeTruthy();
+    expect(document.components?.schemas?.ScenarioUpdate).toBeTruthy();
     expect(document.components?.securitySchemes?.bearerAuth).toBeTruthy();
   });
 });

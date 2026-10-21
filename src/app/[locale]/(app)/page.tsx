@@ -155,6 +155,21 @@ export default async function DashboardPage({
           <CardHeader>
             <CardTitle>{t("trajectory")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("trajectorySubtitle")}</p>
+            {data.activeScenario ? (
+              <p className="mt-1 text-xs text-ink-3">
+                {t("activeScenarioDetail", {
+                  name: data.activeScenario.name,
+                  return: formatNumber(data.assumptions.expectedReturn * 100, locale),
+                  inflation: formatNumber(data.assumptions.inflation * 100, locale),
+                  contribution: formatCurrency(
+                    data.assumptions.monthlyContribution,
+                    currency,
+                    locale,
+                  ),
+                  horizon: data.assumptions.horizonMonths,
+                })}
+              </p>
+            ) : null}
           </CardHeader>
           <CardContent>
             <PlanTrajectoryChart

@@ -16,6 +16,8 @@ import {
   labelCreateSchema,
   labelUpdateSchema,
   recurringTransactionCreateSchema,
+  scenarioCreateSchema,
+  scenarioUpdateSchema,
   transactionBatchSchema,
   transactionCreateSchema,
   transactionUpdateSchema,
@@ -62,6 +64,8 @@ export function buildOpenApiDocument() {
   registry.register("DebtInput", debtCreateSchema);
   registry.register("DebtUpdate", debtUpdateSchema);
   registry.register("RecurringTransactionInput", recurringTransactionCreateSchema);
+  registry.register("ScenarioInput", scenarioCreateSchema);
+  registry.register("ScenarioUpdate", scenarioUpdateSchema);
   registry.register("CsvImportInput", csvImportSchema);
   registry.register("TransferInput", transferCreateSchema);
   registry.register("TransferPair", transferPairSchema);
@@ -330,6 +334,54 @@ export function buildOpenApiDocument() {
     tags: ["planner"],
     security,
     responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+
+  // Scenarios
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/scenarios",
+    tags: ["scenarios"],
+    security,
+    responses: { 200: ok(genericList), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/scenarios",
+    tags: ["scenarios"],
+    security,
+    request: { body: { content: json(scenarioCreateSchema) } },
+    responses: { 201: created(genericEntity), 400: badRequest, 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/scenarios/compare",
+    tags: ["scenarios"],
+    security,
+    responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/scenarios/{id}",
+    tags: ["scenarios"],
+    security,
+    request: { params: idParams },
+    responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "patch",
+    path: "/api/v1/scenarios/{id}",
+    tags: ["scenarios"],
+    security,
+    request: { params: idParams, body: { content: json(scenarioUpdateSchema) } },
+    responses: { 200: ok(genericEntity), 400: badRequest, 401: unauthorized },
+  });
+  registry.registerPath({
+    method: "delete",
+    path: "/api/v1/scenarios/{id}",
+    tags: ["scenarios"],
+    security,
+    request: { params: idParams },
+    responses: { 200: ok(genericEntity), 400: badRequest, 401: unauthorized },
   });
 
   // Recurring transactions

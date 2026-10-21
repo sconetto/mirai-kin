@@ -13,13 +13,19 @@ import {
 } from "recharts";
 import { formatCurrency, intlLocale } from "@/lib/format";
 
+export type ScenarioSeries = {
+  key: string;
+  label: string;
+  color: string;
+};
+
 export function ScenarioChart({
   data,
-  labels,
+  series,
   currency,
 }: {
-  data: { month: string; base: number; optimistic: number; pessimistic: number }[];
-  labels: { base: string; optimistic: string; pessimistic: string };
+  data: Record<string, string | number | null>[];
+  series: ScenarioSeries[];
   currency: string;
 }) {
   const locale = useLocale();
@@ -60,35 +66,19 @@ export function ScenarioChart({
             }}
           />
           <Legend wrapperStyle={{ fontSize: 12, color: "var(--color-ink-3)" }} />
-          <Line
-            type="monotone"
-            dataKey="base"
-            name={labels.base}
-            stroke="var(--color-accent)"
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="optimistic"
-            name={labels.optimistic}
-            stroke="var(--color-positive)"
-            strokeWidth={2}
-            strokeDasharray="4 3"
-            dot={false}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="pessimistic"
-            name={labels.pessimistic}
-            stroke="var(--color-negative)"
-            strokeWidth={2}
-            strokeDasharray="4 3"
-            dot={false}
-            isAnimationActive={false}
-          />
+          {series.map((item, index) => (
+            <Line
+              key={item.key}
+              type="monotone"
+              dataKey={item.key}
+              name={item.label}
+              stroke={item.color}
+              strokeWidth={index === 0 ? 2.5 : 2}
+              strokeDasharray={index === 0 ? undefined : "4 3"}
+              dot={false}
+              isAnimationActive={false}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>

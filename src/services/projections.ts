@@ -213,6 +213,13 @@ export async function compareScenarios(horizonMonths = 12) {
   return { baseCurrency: base.baseCurrency, horizonMonths, scenarios };
 }
 
+export type PlanAssumptionOverrides = Partial<{
+  expectedReturn: number;
+  inflation: number;
+  monthlyContribution: number;
+  horizonMonths: number;
+}>;
+
 export type PlanTrajectoryPoint = {
   date: string;
   conservative: number;
@@ -220,18 +227,79 @@ export type PlanTrajectoryPoint = {
   optimistic: number;
 };
 
+export type PlanTrajectoryAssumptions = {
+  expectedReturn: number;
+  inflation: number;
+  monthlyContribution: number;
+  returnBand: number;
+  horizonMonths: number;
+};
+
 export type PlanTrajectory = {
   asOf: string;
   baseCurrency: string;
-  assumptions: {
-    expectedReturn: number;
-    inflation: number;
-    monthlyContribution: number;
-    returnBand: number;
-    horizonMonths: number;
-  };
+  assumptions: PlanTrajectoryAssumptions;
   points: PlanTrajectoryPoint[];
 };
+
+export function resolvePlanAssumptions(
+  base: PlanTrajectoryAssumptions,
+  overrides: PlanAssumptionOverrides,
+  horizonMonths: number,
+): PlanTrajectoryAssumptions {
+  return {
+    expectedReturn: overrides.expectedReturn ?? base.expectedReturn,
+    inflation: overrides.inflation ?? base.inflation,
+    monthlyContribution: overrides.monthlyContribution ?? base.monthlyContribution,
+    returnBand: base.returnBand,
+    horizonMonths: overrides.horizonMonths ?? horizonMonths,
+  };
+}
+
+export function projectPlanTrajectory(input: {
+  netWorth: number;
+  baseCurrency: string;
+  asOf: string;
+  expectedReturn: number;
+  inflation: number;
+  monthlyContribution: number;
+  horizonMonths: number;
+}): PlanTrajectory {
+  const realReturn = realAnnualReturn(input.expectedReturn, input.inflation);
+  const conservativeReturn = realAnnualReturn(
+    Math.max(-0.99, input.expectedReturn - RETURN_BAND),
+    input.inflation,
+  );
+  const optimisticReturn = realAnnualReturn(input.expectedReturn + RETURN_BAND, input.inflation);
+  const startDate = input.asOf.slice(0, 10);
+  const points: PlanTrajectoryPoint[] = [];
+
+  for (let month = 0; month <= input.horizonMonths; month += 1) {
+    points.push({
+      date: addMonths(startDate, month),
+      conservative: round4(
+        futureValue(input.netWorth, input.monthlyContribution, conservativeReturn, month),
+      ),
+      base: round4(futureValue(input.netWorth, input.monthlyContribution, realReturn, month)),
+      optimistic: round4(
+        futureValue(input.netWorth, input.monthlyContribution, optimisticReturn, month),
+      ),
+    });
+  }
+
+  return {
+    asOf: startDate,
+    baseCurrency: input.baseCurrency,
+    assumptions: {
+      expectedReturn: input.expectedReturn,
+      inflation: input.inflation,
+      monthlyContribution: round4(input.monthlyContribution),
+      returnBand: RETURN_BAND,
+      horizonMonths: input.horizonMonths,
+    },
+    points,
+  };
+}
 
 /**
  * Deterministic, real-terms net-worth projection for the plan dashboard.
@@ -242,51 +310,39 @@ export type PlanTrajectory = {
 export async function planTrajectory(
   horizonMonths = 120,
   asOf = new Date(),
+  overrides: PlanAssumptionOverrides = {},
 ): Promise<PlanTrajectory> {
   const plan = await getPlanStatus(asOf);
   const funded = plan.goals.filter((goal) => goal.target > 0);
   const weight = funded.reduce((sum, goal) => sum + goal.target, 0);
-  const expectedReturn =
+  const baseReturn =
     weight > 0
       ? funded.reduce((sum, goal) => sum + goal.expectedReturn * goal.target, 0) / weight
       : 0.05;
-  const inflation =
+  const baseInflation =
     weight > 0
       ? funded.reduce((sum, goal) => sum + goal.inflationRate * goal.target, 0) / weight
       : DEFAULT_INFLATION_RATE;
-  const monthlyContribution = plan.goals.reduce((sum, goal) => sum + goal.monthlyContribution, 0);
-  const realReturn = realAnnualReturn(expectedReturn, inflation);
-  const conservativeReturn = realAnnualReturn(
-    Math.max(-0.99, expectedReturn - RETURN_BAND),
-    inflation,
-  );
-  const optimisticReturn = realAnnualReturn(expectedReturn + RETURN_BAND, inflation);
-  const startDate = asOf.toISOString().slice(0, 10);
-
-  const points: PlanTrajectoryPoint[] = [];
-  for (let month = 0; month <= horizonMonths; month += 1) {
-    points.push({
-      date: addMonths(startDate, month),
-      conservative: round4(
-        futureValue(plan.netWorth.net, monthlyContribution, conservativeReturn, month),
-      ),
-      base: round4(futureValue(plan.netWorth.net, monthlyContribution, realReturn, month)),
-      optimistic: round4(
-        futureValue(plan.netWorth.net, monthlyContribution, optimisticReturn, month),
-      ),
-    });
-  }
-
-  return {
-    asOf: plan.asOf,
-    baseCurrency: plan.baseCurrency,
-    assumptions: {
-      expectedReturn,
-      inflation,
-      monthlyContribution: round4(monthlyContribution),
+  const baseContribution = plan.goals.reduce((sum, goal) => sum + goal.monthlyContribution, 0);
+  const effective = resolvePlanAssumptions(
+    {
+      expectedReturn: baseReturn,
+      inflation: baseInflation,
+      monthlyContribution: baseContribution,
       returnBand: RETURN_BAND,
       horizonMonths,
     },
-    points,
-  };
+    overrides,
+    horizonMonths,
+  );
+
+  return projectPlanTrajectory({
+    netWorth: plan.netWorth.net,
+    baseCurrency: plan.baseCurrency,
+    asOf: plan.asOf,
+    expectedReturn: effective.expectedReturn,
+    inflation: effective.inflation,
+    monthlyContribution: effective.monthlyContribution,
+    horizonMonths: effective.horizonMonths,
+  });
 }

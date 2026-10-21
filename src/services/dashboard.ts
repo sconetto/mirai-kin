@@ -12,7 +12,8 @@ import {
 } from "@/lib/dashboard-range";
 import { getEquity, getNetWorthSeries } from "./equity";
 import { getPlanStatus, type PlanGoal } from "./planner";
-import { planTrajectory } from "./projections";
+import { planTrajectory, type PlanAssumptionOverrides } from "./projections";
+import { getDefaultScenario } from "./scenarios";
 
 export type DashboardStatus = "on_track" | "at_risk" | "off_track" | "insufficient_data" | "no_plan";
 
@@ -58,6 +59,7 @@ export type DashboardModel = {
   asOf: string;
   baseCurrency: string;
   range: DashboardRange;
+  activeScenario: { id: string; name: string; isDefault: boolean } | null;
   plan: Awaited<ReturnType<typeof getPlanStatus>>;
   overallStatus: DashboardStatus;
   nextGoal: PlanGoal | null;
@@ -294,12 +296,17 @@ export async function getDashboard(
   range: DashboardRange = DEFAULT_DASHBOARD_RANGE,
   asOf = new Date(),
 ): Promise<DashboardModel> {
-  const [plan, equity, snapshots, trajectory] = await Promise.all([
+  const activeScenario = await getDefaultScenario(asOf);
+  const [plan, equity, snapshots] = await Promise.all([
     getPlanStatus(asOf),
     getEquity(asOf),
     getNetWorthSeries(5000),
-    planTrajectory(projectionMonths(range), asOf),
   ]);
+  const trajectory = await planTrajectory(
+    projectionMonths(range),
+    asOf,
+    (activeScenario?.assumptions ?? {}) as PlanAssumptionOverrides,
+  );
 
   const filterMonths = historyMonths(range);
   const earliestSnapshot = snapshots[0]?.date;
@@ -412,6 +419,9 @@ export async function getDashboard(
     asOf: plan.asOf,
     baseCurrency: plan.baseCurrency,
     range,
+    activeScenario: activeScenario
+      ? { id: activeScenario.id, name: activeScenario.name, isDefault: activeScenario.isDefault }
+      : null,
     plan,
     overallStatus: statusFor(goals),
     nextGoal: nextGoalFor(goals),
