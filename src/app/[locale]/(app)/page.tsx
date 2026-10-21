@@ -112,7 +112,7 @@ export default async function DashboardPage({
       : tp(`status.${data.overallStatus}` as never);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-1">
       <PageHeader title={t("title")} subtitle={t("subtitle")}>
         <div className="flex flex-wrap items-center gap-2">
           <div
@@ -252,8 +252,8 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
-        <Card>
+      <div className="columns-1 gap-0.5 xl:columns-2">
+        <Card className="mb-0.5 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("trajectory")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("trajectorySubtitle")}</p>
@@ -286,7 +286,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-0.5 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("goals")}</CardTitle>
           </CardHeader>
@@ -358,10 +358,22 @@ export default async function DashboardPage({
             )}
           </CardContent>
         </Card>
-      </section>
 
-      <section className="grid gap-4">
-        <Card className="overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35">
+        <Card className="mb-0.5 break-inside-avoid">
+          <CardHeader>
+            <CardTitle>{t("composition")}</CardTitle>
+            <p className="mt-1 text-xs text-ink-3">{t("compositionSubtitle")}</p>
+          </CardHeader>
+          <CardContent>
+            {composition.length === 0 ? (
+              <p className="py-8 text-center text-sm text-ink-3">{t("compositionEmpty")}</p>
+            ) : (
+              <SpendingChart data={composition} currency={currency} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mb-0.5 break-inside-avoid overflow-hidden border-t-4 border-t-positive bg-gradient-to-r from-positive-soft/35 via-surface to-negative-soft/35 [column-span:all]">
           <CardHeader>
             <CardTitle>{t("cashflow")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">
@@ -393,9 +405,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-      </section>
-
-      <Card className="border-t-4 border-t-negative">
+      <Card className="mb-0.5 break-inside-avoid border-t-4 border-t-negative">
         <CardHeader className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{t("spendingTrend")}</CardTitle>
@@ -439,7 +449,7 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <Card className="border-t-4 border-t-negative">
+      <Card className="mb-0.5 break-inside-avoid border-t-4 border-t-negative">
         <CardHeader className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{t("outflows")}</CardTitle>
@@ -456,12 +466,11 @@ export default async function DashboardPage({
           </div>
         </CardHeader>
         <CardContent>
-          <SpendingChart data={outflows} currency={currency} variant="wide" />
+          <SpendingChart data={outflows} currency={currency} />
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <Card>
+        <Card className="mb-0.5 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("movement")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("movementSubtitle")}</p>
@@ -475,7 +484,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-0.5 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("contributionPace")}</CardTitle>
             <p className="mt-1 text-xs text-ink-3">{t("contributionSubtitle")}</p>
@@ -488,46 +497,33 @@ export default async function DashboardPage({
             )}
           </CardContent>
         </Card>
-      </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.55fr)] lg:items-start">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("composition")}</CardTitle>
-            <p className="mt-1 text-xs text-ink-3">{t("compositionSubtitle")}</p>
-          </CardHeader>
-          <CardContent>
-            {composition.length === 0 ? (
-              <p className="py-8 text-center text-sm text-ink-3">{t("compositionEmpty")}</p>
-            ) : (
-              <SpendingChart data={composition} currency={currency} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
+        <Card className="mb-0.5 break-inside-avoid">
           <CardHeader>
             <CardTitle>{t("thisMonth")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between gap-3 text-sm">
+          <CardContent className="grid gap-4 text-sm sm:grid-cols-3 sm:items-center">
+            <div className="flex items-center justify-between gap-3 sm:block">
               <span className="text-ink-3">{t("income")}</span>
-              <span className="tabular font-medium text-positive">
+              <span className="tabular block font-medium text-positive">
                 {formatCurrency(data.currentMonth.income, currency, locale)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center justify-between gap-3 sm:block">
               <span className="text-ink-3">{t("spending")}</span>
-              <span className="tabular font-medium text-negative">
+              <span className="tabular block font-medium text-negative">
                 {formatCurrency(data.currentMonth.expenses, currency, locale)}
               </span>
             </div>
-            <Link href="/spending" className="inline-block text-sm font-medium text-accent hover:underline">
+            <Link
+              href="/spending"
+              className="text-sm font-medium text-accent hover:underline sm:text-right"
+            >
               {t("viewSpending")}
             </Link>
           </CardContent>
         </Card>
-      </section>
+      </div>
     </div>
   );
 }

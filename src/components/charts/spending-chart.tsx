@@ -89,7 +89,7 @@ export function SpendingChart({
         className={
           wide
             ? "grid max-h-[28rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2"
-            : "max-h-64 space-y-2 overflow-y-auto pr-1"
+            : "max-h-80 space-y-2 overflow-y-auto pr-1"
         }
       >
         {data.map((item, index) => {
@@ -106,7 +106,7 @@ export function SpendingChart({
                     style={{ background: colorFor(item, index) }}
                   />
                   <CategoryIcon name={item.name} icon={item.icon} color={item.color} />
-                  <span className="truncate text-ink-2">{item.name}</span>
+                  <span className="min-w-0 text-ink-2">{item.name}</span>
                 </span>
                 <span className="shrink-0 whitespace-nowrap text-right">
                   <span className="block font-medium text-ink">
