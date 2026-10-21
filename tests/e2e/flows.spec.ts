@@ -43,16 +43,20 @@ test("planner goal CRUD flows into estate", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Planejador" })).toBeVisible();
 
   const name = `E2E goal ${Date.now()}`;
-  await page.getByPlaceholder("Nome").fill(name);
-  await page.getByPlaceholder("Valor alvo").fill("1000");
+  const form = page.locator("form").first();
+  await form.getByLabel("Nome").fill(name);
+  await form.getByLabel("Valor alvo").fill("1000");
+  await form.getByLabel("Data alvo").fill("2027-12-31");
+  await form.getByLabel("Modo de financiamento").selectOption("manual");
+  await form.getByLabel("Valor atual manual").fill("0");
   await page.getByRole("button", { name: "Adicionar" }).click();
 
-  const row = page.getByRole("row", { name: new RegExp(name) });
-  await expect(row).toBeVisible();
-  await expect(row.getByText("0%")).toBeVisible();
+  const card = page.locator("div.rounded-xl").filter({ hasText: name }).last();
+  await expect(card).toBeVisible();
+  await expect(card.getByText("Fora do caminho")).toBeVisible();
 
-  await row.getByRole("button", { name: "Excluir" }).click();
-  await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(0);
+  await card.getByRole("button", { name: "Excluir" }).click();
+  await expect(page.getByText(name)).toHaveCount(0);
 
   await page.goto("/pt-BR/estate");
   await expect(page.getByRole("heading", { name: "Sucessão" })).toBeVisible();

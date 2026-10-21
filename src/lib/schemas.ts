@@ -7,6 +7,8 @@ import {
   BUDGET_PERIODS,
   CATEGORY_TYPES,
   DEBT_TYPES,
+  GOAL_FUNDING_MODES,
+  GOAL_TYPES,
   IMPORT_SOURCES,
   INSTRUMENT_TYPES,
   PAYMENT_TYPES,
@@ -159,6 +161,30 @@ export const budgetCreateSchema = z.object({
 
 export const budgetUpdateSchema = budgetCreateSchema.partial();
 
+export const goalAllocationInputSchema = z.object({
+  accountId: z.uuid(),
+  sharePct: decimal,
+});
+
+export const goalCreateSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(GOAL_TYPES),
+  targetAmount: decimal,
+  targetDate: isoDate.nullish(),
+  currency: currencyCode,
+  priority: z.coerce.number().int().min(1).optional(),
+  fundingMode: z.enum(GOAL_FUNDING_MODES).optional(),
+  manualCurrentAmount: decimal.nullish(),
+  monthlyContribution: decimal.optional(),
+  expectedReturn: decimal.optional(),
+  inflationRate: decimal.nullish(),
+  accountIds: z.array(z.uuid()).max(50).optional(),
+  allocations: z.array(goalAllocationInputSchema).max(50).optional(),
+  notes: z.string().nullish(),
+});
+
+export const goalUpdateSchema = goalCreateSchema.partial();
+
 export const investmentPositionCreateSchema = z.object({
   accountId: z.uuid(),
   symbol: z.string().min(1),
@@ -233,6 +259,9 @@ export type TransactionMergeInput = z.infer<typeof transactionMergeSchema>;
 export type TransferCreateInput = z.infer<typeof transferCreateSchema>;
 export type TransferPairInput = z.infer<typeof transferPairSchema>;
 export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
+export type GoalAllocationInput = z.infer<typeof goalAllocationInputSchema>;
+export type GoalCreateInput = z.infer<typeof goalCreateSchema>;
+export type GoalUpdateInput = z.infer<typeof goalUpdateSchema>;
 export type InvestmentPositionCreateInput = z.infer<typeof investmentPositionCreateSchema>;
 export type DebtCreateInput = z.infer<typeof debtCreateSchema>;
 export type RecurringTransactionCreateInput = z.infer<typeof recurringTransactionCreateSchema>;

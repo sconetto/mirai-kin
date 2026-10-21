@@ -323,6 +323,15 @@ export function buildOpenApiDocument() {
     responses: { 200: ok(genericEntity), 401: unauthorized },
   });
 
+  // Plan status
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/plan-status",
+    tags: ["planner"],
+    security,
+    responses: { 200: ok(genericEntity), 401: unauthorized },
+  });
+
   // Recurring transactions
   registry.registerPath({
     method: "get",

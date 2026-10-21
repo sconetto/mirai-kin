@@ -3,9 +3,16 @@ import { getDb } from "@/db";
 import { debts, debtSchedule, recurringTransactions } from "@/db/schema";
 import type { RecurrenceFrequency } from "@/db/schema";
 import { addMonths } from "@/lib/amortization";
+import {
+  DEFAULT_INFLATION_RATE,
+  futureValue,
+  realAnnualReturn,
+  RETURN_BAND,
+} from "@/lib/goal-trajectory";
 import { getBaseCurrency } from "./settings";
 import type { RecurringTransactionCreateInput } from "@/lib/schemas";
 import { resolveRate } from "./fx";
+import { getPlanStatus } from "./planner";
 
 function round4(value: number): number {
   return Math.round(value * 10_000) / 10_000;
@@ -34,7 +41,7 @@ export async function createRecurring(input: RecurringTransactionCreateInput) {
       accountId: input.accountId,
       categoryId: input.categoryId ?? null,
       amount: String(input.amount),
-      currency: (input.currency ?? await getBaseCurrency()).toUpperCase(),
+      currency: (input.currency ?? (await getBaseCurrency())).toUpperCase(),
       frequency: input.frequency,
       startDate: input.startDate.slice(0, 10),
       endDate: input.endDate ? input.endDate.slice(0, 10) : null,
@@ -204,4 +211,80 @@ export async function compareScenarios(horizonMonths = 12) {
   });
 
   return { baseCurrency: base.baseCurrency, horizonMonths, scenarios };
+}
+
+export type PlanTrajectoryPoint = {
+  date: string;
+  conservative: number;
+  base: number;
+  optimistic: number;
+};
+
+export type PlanTrajectory = {
+  asOf: string;
+  baseCurrency: string;
+  assumptions: {
+    expectedReturn: number;
+    inflation: number;
+    monthlyContribution: number;
+    returnBand: number;
+  };
+  points: PlanTrajectoryPoint[];
+};
+
+/**
+ * Deterministic, real-terms net-worth projection for the plan dashboard.
+ * The starting point is canonical net worth; contributions are the sum of
+ * funded goal contributions. Scheduled debt is already represented in net
+ * worth, so the projection does not subtract it again.
+ */
+export async function planTrajectory(
+  horizonMonths = 120,
+  asOf = new Date(),
+): Promise<PlanTrajectory> {
+  const plan = await getPlanStatus(asOf);
+  const funded = plan.goals.filter((goal) => goal.target > 0);
+  const weight = funded.reduce((sum, goal) => sum + goal.target, 0);
+  const expectedReturn =
+    weight > 0
+      ? funded.reduce((sum, goal) => sum + goal.expectedReturn * goal.target, 0) / weight
+      : 0.05;
+  const inflation =
+    weight > 0
+      ? funded.reduce((sum, goal) => sum + goal.inflationRate * goal.target, 0) / weight
+      : DEFAULT_INFLATION_RATE;
+  const monthlyContribution = plan.goals.reduce((sum, goal) => sum + goal.monthlyContribution, 0);
+  const realReturn = realAnnualReturn(expectedReturn, inflation);
+  const conservativeReturn = realAnnualReturn(
+    Math.max(-0.99, expectedReturn - RETURN_BAND),
+    inflation,
+  );
+  const optimisticReturn = realAnnualReturn(expectedReturn + RETURN_BAND, inflation);
+  const startDate = asOf.toISOString().slice(0, 10);
+
+  const points: PlanTrajectoryPoint[] = [];
+  for (let month = 0; month <= horizonMonths; month += 1) {
+    points.push({
+      date: addMonths(startDate, month),
+      conservative: round4(
+        futureValue(plan.netWorth.net, monthlyContribution, conservativeReturn, month),
+      ),
+      base: round4(futureValue(plan.netWorth.net, monthlyContribution, realReturn, month)),
+      optimistic: round4(
+        futureValue(plan.netWorth.net, monthlyContribution, optimisticReturn, month),
+      ),
+    });
+  }
+
+  return {
+    asOf: plan.asOf,
+    baseCurrency: plan.baseCurrency,
+    assumptions: {
+      expectedReturn,
+      inflation,
+      monthlyContribution: round4(monthlyContribution),
+      returnBand: RETURN_BAND,
+    },
+    points,
+  };
 }

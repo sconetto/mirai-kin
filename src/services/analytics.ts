@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, categories, transactions } from "@/db/schema";
 import { getBaseCurrency } from "./settings";
+import { getNetWorth } from "./equity";
 import { resolveRate } from "@/services/fx";
 
 export async function overview(limitRecent = 10) {
@@ -89,7 +90,7 @@ export async function overview(limitRecent = 10) {
     balances.push({ ...row, balance: native, baseBalance });
   }
 
-  const netWorth = balances.reduce((sum, row) => sum + Number(row.baseBalance), 0).toFixed(4);
+  const netWorth = (await getNetWorth(now)).net.toFixed(4);
 
   return {
     baseCurrency,

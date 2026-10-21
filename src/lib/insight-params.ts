@@ -16,7 +16,11 @@ export function insightParams(
     case "budget_over":
       return {
         name: String(data.name),
-        surplus: formatCurrency(String(data.surplus), String(data.currency ?? baseCurrency), locale),
+        surplus: formatCurrency(
+          String(data.surplus),
+          String(data.currency ?? baseCurrency),
+          locale,
+        ),
       };
     case "budget_near":
       return { name: String(data.name), percent: formatNumber(String(data.percent), locale) };
@@ -41,6 +45,18 @@ export function insightParams(
       return {
         month: formatMonth(String(data.month), locale),
         net: formatCurrency(String(data.net), String(data.currency ?? baseCurrency), locale),
+      };
+    case "goal_at_risk":
+    case "goal_off_track":
+      return {
+        name: String(data.name),
+        gap: formatCurrency(String(data.gap), String(data.currency ?? baseCurrency), locale),
+        requiredMonthly: formatCurrency(
+          String(data.requiredMonthly ?? 0),
+          String(data.currency ?? baseCurrency),
+          locale,
+        ),
+        targetDate: data.targetDate ? formatDate(String(data.targetDate), locale) : "—",
       };
     default:
       return { type: insight.type };

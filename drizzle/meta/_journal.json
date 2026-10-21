@@ -71,6 +71,13 @@
       "when": 1792601672997,
       "tag": "0009_steady_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792605215465,
+      "tag": "0010_rainy_dracula",
+      "breakpoints": true
     }
   ]
 }

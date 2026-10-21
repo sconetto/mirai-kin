@@ -395,6 +395,8 @@
     "allocation_concentration": "{symbol} representa {share}% do seu portfólio.",
     "net_worth_trend": "Seu patrimônio variou {changePct}% desde o último registro.",
     "cashflow_risk": "A projeção de {month} indica saldo negativo ({net}).",
+    "goal_at_risk": "A meta \"{name}\" está em risco: a projeção conservadora fica {gap} abaixo do alvo.",
+    "goal_off_track": "A meta \"{name}\" está fora do caminho: a projeção base fica {gap} abaixo. Guardar {requiredMonthly}/mês fecharia a lacuna até {targetDate}.",
     "generic": "Insight sobre {type}."
   },
   "equity": {
@@ -468,6 +470,8 @@
     "goals": "Metas",
     "newGoal": "Nova meta",
     "name": "Nome",
+    "type": "Tipo",
+    "currency": "Moeda",
     "target": "Valor alvo",
     "date": "Data alvo",
     "runway": "Reserva de emergência",
@@ -476,13 +480,42 @@
     "liquid": "Disponível",
     "essential": "Despesa essencial/mês",
     "empty": "Nenhuma meta cadastrada",
-    "note": "Cenários e contribuições necessárias chegam na próxima fase.",
+    "note": "Uma meta está no caminho quando a projeção conservadora atinge o alvo. As premissas aparecem em cada meta.",
     "emergency": "Reserva de emergência",
     "retirement": "Aposentadoria",
     "home": "Casa própria",
     "custom": "Personalizada",
     "progress": "Progresso",
-    "priority": "Prioridade"
+    "priority": "Prioridade",
+    "netWorth": "Patrimônio líquido",
+    "current": "Atual",
+    "projected": "Projetado",
+    "requiredMonthly": "Necessário / mês",
+    "gap": "Lacuna",
+    "range": "Faixa: {conservative} – {optimistic}",
+    "editGoal": "Editar meta",
+    "fundingAccounts": "Contas de financiamento",
+    "fundingHint": "Deixe todas desmarcadas para financiamento manual. As cotas da mesma conta não podem passar de 100% entre metas.",
+    "fundingMode": "Modo de financiamento",
+    "modeAccounts": "Contas vinculadas",
+    "modeManual": "Valor manual",
+    "manualCurrent": "Valor atual manual",
+    "monthlyContribution": "Contribuição mensal",
+    "expectedReturn": "Retorno esperado (% / ano)",
+    "inflationRate": "Inflação (% / ano)",
+    "share": "cota",
+    "validationError": "Verifique os campos da meta e as cotas de financiamento e tente novamente.",
+    "status": {
+      "on_track": "No caminho",
+      "at_risk": "Em risco",
+      "off_track": "Fora do caminho",
+      "insufficient_data": "Configurar"
+    },
+    "reason": {
+      "missing_target": "Adicione um valor alvo para calcular a trajetória.",
+      "missing_target_date": "Adicione uma data alvo para calcular a trajetória.",
+      "missing_funding": "Vincule uma conta ou informe um valor atual manual."
+    }
   },
   "estate": {
     "title": "Sucessão",

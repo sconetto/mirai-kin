@@ -87,6 +87,9 @@ export type ImportRowStatus = (typeof IMPORT_ROW_STATUSES)[number];
 export const GOAL_TYPES = ["emergency", "retirement", "home", "custom"] as const;
 export type GoalType = (typeof GOAL_TYPES)[number];
 
+export const GOAL_FUNDING_MODES = ["accounts", "manual"] as const;
+export type GoalFundingMode = (typeof GOAL_FUNDING_MODES)[number];
+
 export const TAX_TREATMENTS = ["none", "deductible", "income", "capital_gain", "dividend"] as const;
 export type TaxTreatment = (typeof TAX_TREATMENTS)[number];
 
@@ -556,6 +559,11 @@ export const goals = pgTable("goals", {
   targetDate: date("target_date"),
   currency: text("currency").notNull(),
   priority: integer("priority").notNull().default(1),
+  fundingMode: text("funding_mode").$type<GoalFundingMode>().notNull().default("accounts"),
+  manualCurrentAmount: money("manual_current_amount"),
+  monthlyContribution: money("monthly_contribution").notNull().default("0"),
+  expectedReturn: rate("expected_return").notNull().default("0"),
+  inflationRate: rate("inflation_rate"),
   accountIds: jsonb("account_ids")
     .$type<string[]>()
     .notNull()
@@ -564,6 +572,22 @@ export const goals = pgTable("goals", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const goalAllocations = pgTable(
+  "goal_allocations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    goalId: uuid("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    sharePct: percent("share_pct").notNull().default("100"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("goal_allocations_goal_account_idx").on(t.goalId, t.accountId)],
+);
 
 export const scenarios = pgTable("scenarios", {
   id: uuid("id").primaryKey().defaultRandom(),

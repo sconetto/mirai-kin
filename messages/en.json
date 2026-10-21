@@ -395,6 +395,8 @@
     "allocation_concentration": "{symbol} is {share}% of your portfolio.",
     "net_worth_trend": "Your net worth changed {changePct}% since the last snapshot.",
     "cashflow_risk": "The {month} projection shows a negative balance ({net}).",
+    "goal_at_risk": "The \"{name}\" goal is at risk: the conservative projection is {gap} short of its target.",
+    "goal_off_track": "The \"{name}\" goal is off track: the base projection is {gap} short. Saving {requiredMonthly}/month would close the gap by {targetDate}.",
     "generic": "Insight about {type}."
   },
   "equity": {
@@ -468,6 +470,8 @@
     "goals": "Goals",
     "newGoal": "New goal",
     "name": "Name",
+    "type": "Type",
+    "currency": "Currency",
     "target": "Target amount",
     "date": "Target date",
     "runway": "Emergency fund",
@@ -476,13 +480,42 @@
     "liquid": "Available",
     "essential": "Essential expense / month",
     "empty": "No goals yet",
-    "note": "Scenarios and required contributions arrive in the next phase.",
+    "note": "A goal is on track when the conservative projection reaches its target. Assumptions are shown on each goal.",
     "emergency": "Emergency fund",
     "retirement": "Retirement",
     "home": "Home",
     "custom": "Custom",
     "progress": "Progress",
-    "priority": "Priority"
+    "priority": "Priority",
+    "netWorth": "Net worth",
+    "current": "Current",
+    "projected": "Projected",
+    "requiredMonthly": "Required / month",
+    "gap": "Gap",
+    "range": "Range: {conservative} – {optimistic}",
+    "editGoal": "Edit goal",
+    "fundingAccounts": "Funding accounts",
+    "fundingHint": "Leave all unchecked for manual funding. Shares of the same account cannot exceed 100% across goals.",
+    "fundingMode": "Funding mode",
+    "modeAccounts": "Linked accounts",
+    "modeManual": "Manual amount",
+    "manualCurrent": "Manual current amount",
+    "monthlyContribution": "Monthly contribution",
+    "expectedReturn": "Expected return (% / year)",
+    "inflationRate": "Inflation (% / year)",
+    "share": "share",
+    "validationError": "Check the goal fields and funding shares, then try again.",
+    "status": {
+      "on_track": "On track",
+      "at_risk": "At risk",
+      "off_track": "Off track",
+      "insufficient_data": "Needs setup"
+    },
+    "reason": {
+      "missing_target": "Add a target amount to calculate a trajectory.",
+      "missing_target_date": "Add a target date to calculate a trajectory.",
+      "missing_funding": "Link a funding account or enter a manual current amount."
+    }
   },
   "estate": {
     "title": "Estate",

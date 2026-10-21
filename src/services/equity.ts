@@ -1,11 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import {
-  accounts,
-  estateAssets,
-  netWorthSnapshots,
-  transactions,
-} from "@/db/schema";
+import { accounts, estateAssets, netWorthSnapshots, transactions } from "@/db/schema";
 import type { AccountType } from "@/db/schema";
 import { getBaseCurrency } from "./settings";
 import { resolveRate } from "./fx";
@@ -31,6 +26,22 @@ export type Equity = {
   byCurrency: { currency: string; assets: number; liabilities: number }[];
 };
 
+export type AccountValue = {
+  id: string;
+  name: string;
+  type: AccountType;
+  currency: string;
+  valueBase: number;
+};
+
+export type NetWorth = {
+  asOf: string;
+  currency: string;
+  assets: number;
+  liabilities: number;
+  net: number;
+};
+
 async function rateOrOne(from: string, to: string, date: Date): Promise<number> {
   if (from === to) return 1;
   try {
@@ -41,11 +52,9 @@ async function rateOrOne(from: string, to: string, date: Date): Promise<number> 
   }
 }
 
-export async function getEquity(asOf = new Date()): Promise<Equity> {
+export async function getAccountValues(asOf = new Date()): Promise<AccountValue[]> {
   const db = getDb();
   const baseCurrency = await getBaseCurrency();
-  const components: EquityComponent[] = [];
-
   const accountRows = await db
     .select({
       id: accounts.id,
@@ -60,22 +69,62 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
     .where(eq(accounts.archived, false))
     .groupBy(accounts.id);
 
+  const positions = await listPositionsWithValue();
+  const positionsByAccount = new Map<string, typeof positions>();
+  for (const position of positions) {
+    const rows = positionsByAccount.get(position.accountId) ?? [];
+    rows.push(position);
+    positionsByAccount.set(position.accountId, rows);
+  }
+
+  const values: AccountValue[] = [];
   for (const row of accountRows) {
-    if (row.type === "investment") continue; // positions are added below
     const native = Number(row.openingBalance) + Number(row.txTotal);
-    const rate = await rateOrOne(row.currency, baseCurrency, asOf);
-    const value = native * rate;
+    const accountPositions = positionsByAccount.get(row.id) ?? [];
+    let valueBase =
+      row.type === "investment" && accountPositions.length > 0
+        ? 0
+        : native * (await rateOrOne(row.currency, baseCurrency, asOf));
+
+    if (row.type === "investment" && accountPositions.length > 0) {
+      for (const position of accountPositions) {
+        valueBase +=
+          Number(position.value) * (await rateOrOne(position.currency, baseCurrency, asOf));
+      }
+    }
+
+    values.push({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      currency: row.currency,
+      valueBase: Number(valueBase.toFixed(4)),
+    });
+  }
+
+  return values;
+}
+
+export async function getEquity(asOf = new Date()): Promise<Equity> {
+  const db = getDb();
+  const baseCurrency = await getBaseCurrency();
+  const components: EquityComponent[] = [];
+
+  const accountValues = await getAccountValues(asOf);
+  const positions = await listPositionsWithValue();
+  const positionsByAccount = new Set(positions.map((position) => position.accountId));
+
+  for (const row of accountValues) {
+    if (row.type === "investment" && positionsByAccount.has(row.id)) continue;
     const liability = LIABILITY_TYPES.includes(row.type);
     components.push({
       kind: liability ? "liability" : "asset",
       type: row.type,
       label: row.name,
-      value: liability ? Math.max(0, -value) : value,
+      value: liability ? Math.max(0, -row.valueBase) : row.valueBase,
       currency: row.currency,
     });
   }
-
-  const positions = await listPositionsWithValue();
   for (const position of positions) {
     const rate = await rateOrOne(position.currency, baseCurrency, asOf);
     components.push({
@@ -132,13 +181,20 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
   };
 }
 
+export async function getNetWorth(asOf = new Date()): Promise<NetWorth> {
+  const equity = await getEquity(asOf);
+  return {
+    asOf: equity.asOf,
+    currency: equity.currency,
+    assets: equity.assets,
+    liabilities: equity.liabilities,
+    net: equity.net,
+  };
+}
+
 export async function getNetWorthSeries(limit = 180) {
   const db = getDb();
-  return db
-    .select()
-    .from(netWorthSnapshots)
-    .orderBy(netWorthSnapshots.date)
-    .limit(limit);
+  return db.select().from(netWorthSnapshots).orderBy(netWorthSnapshots.date).limit(limit);
 }
 
 export async function recordSnapshot(asOf = new Date()) {

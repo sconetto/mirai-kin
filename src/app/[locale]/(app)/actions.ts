@@ -8,6 +8,8 @@ import {
   accountUpdateSchema,
   budgetCreateSchema,
   debtCreateSchema,
+  goalCreateSchema,
+  goalUpdateSchema,
   investmentPositionCreateSchema,
   transactionCreateSchema,
 } from "@/lib/schemas";
@@ -17,7 +19,7 @@ import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
 import { createBeneficiary, createDocument, updateDocumentStatus } from "@/services/estate";
 import { recordSnapshot } from "@/services/equity";
-import { createGoal, deleteGoal, updateGoal } from "@/services/planner";
+import { createGoal, deleteGoal, GoalValidationError, updateGoal } from "@/services/planner";
 import {
   commitBatch,
   deleteProfile,
@@ -503,18 +505,48 @@ export async function deleteProfileAction(formData: FormData) {
   revalidatePath(`/${locale}/import`);
 }
 
-export async function createGoalAction(formData: FormData) {
-  const locale = localeOf(formData);
-  const name = field(formData, "name");
-  if (!name) return;
-  await createGoal({
-    name,
-    type: (field(formData, "type") ?? "custom") as never,
+function goalFormValues(formData: FormData) {
+  const allocationAccountIds = formData
+    .getAll("allocationAccount")
+    .map(String)
+    .filter(Boolean);
+  const allocations = allocationAccountIds.map((accountId) => ({
+    accountId,
+    sharePct: field(formData, `share_${accountId}`) ?? 100,
+  }));
+  const expectedReturn = field(formData, "expectedReturnPct");
+  const inflationRate = field(formData, "inflationRatePct");
+
+  return {
+    name: field(formData, "name"),
+    type: field(formData, "type") ?? "custom",
     targetAmount: field(formData, "targetAmount") ?? "0",
     targetDate: field(formData, "targetDate") ?? null,
-    currency: field(formData, "currency") ?? await getBaseCurrency(),
-    priority: Number(field(formData, "priority") ?? 1),
-  });
+    currency: field(formData, "currency"),
+    priority: field(formData, "priority") ?? 1,
+    fundingMode: field(formData, "fundingMode") ?? "accounts",
+    manualCurrentAmount: field(formData, "manualCurrentAmount") ?? null,
+    monthlyContribution: field(formData, "monthlyContribution") ?? "0",
+    expectedReturn: expectedReturn ? Number(expectedReturn) / 100 : 0,
+    inflationRate: inflationRate ? Number(inflationRate) / 100 : null,
+    allocations,
+    notes: field(formData, "notes") ?? null,
+  };
+}
+
+export async function createGoalAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const parsed = goalCreateSchema.safeParse(await goalFormValues(formData));
+  if (!parsed.success) redirect(`/${locale}/planner?error=validation`);
+
+  try {
+    await createGoal(parsed.data);
+  } catch (error) {
+    if (error instanceof GoalValidationError) {
+      redirect(`/${locale}/planner?error=validation`);
+    }
+    throw error;
+  }
   revalidatePath(`/${locale}/planner`);
 }
 
@@ -522,13 +554,17 @@ export async function updateGoalAction(formData: FormData) {
   const locale = localeOf(formData);
   const id = field(formData, "id");
   if (!id) return;
-  const targetAmount = field(formData, "targetAmount");
-  const priority = field(formData, "priority");
-  await updateGoal(id, {
-    targetAmount: targetAmount ?? undefined,
-    targetDate: field(formData, "targetDate") ?? null,
-    priority: priority ? Number(priority) : undefined,
-  });
+  const parsed = goalUpdateSchema.safeParse(await goalFormValues(formData));
+  if (!parsed.success) redirect(`/${locale}/planner?error=validation`);
+
+  try {
+    await updateGoal(id, parsed.data);
+  } catch (error) {
+    if (error instanceof GoalValidationError) {
+      redirect(`/${locale}/planner?error=validation`);
+    }
+    throw error;
+  }
   revalidatePath(`/${locale}/planner`);
 }
 

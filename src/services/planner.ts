@@ -1,66 +1,451 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { categories, goals, transactions } from "@/db/schema";
-import type { GoalType } from "@/db/schema";
+import { accounts, categories, goalAllocations, goals, transactions } from "@/db/schema";
+import type { GoalCreateInput, GoalUpdateInput } from "@/lib/schemas";
+import {
+  classifyGoalStatus,
+  DEFAULT_INFLATION_RATE,
+  monthsBetween,
+  projectionRange,
+  requiredMonthlyContribution,
+  RETURN_BAND,
+} from "@/lib/goal-trajectory";
 import { emergencyRunway } from "@/lib/planner-math";
-import { listAccountBalances } from "./accounts";
+import { getAccountValues, getNetWorth } from "./equity";
+import { getBaseCurrency } from "./settings";
+import { resolveRate } from "./fx";
+
+export class GoalValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GoalValidationError";
+  }
+}
+
+type Allocation = { accountId: string; sharePct: number };
+
+function round4(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
+}
+
+async function rateOrOne(from: string, to: string, date: Date): Promise<number> {
+  if (from === to) return 1;
+  try {
+    const { rate } = await resolveRate(from, to, date);
+    return Number(rate);
+  } catch {
+    return 1;
+  }
+}
+
+function numberValue(value: unknown, fallback = 0): number {
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function validateRates(input: GoalCreateInput | GoalUpdateInput): void {
+  if (input.targetAmount !== undefined && numberValue(input.targetAmount) <= 0) {
+    throw new GoalValidationError("Target amount must be greater than zero");
+  }
+  if (input.monthlyContribution !== undefined && numberValue(input.monthlyContribution) < 0) {
+    throw new GoalValidationError("Monthly contribution cannot be negative");
+  }
+  if (input.expectedReturn !== undefined) {
+    const value = numberValue(input.expectedReturn);
+    if (value < -0.99 || value > 1) {
+      throw new GoalValidationError("Expected return must be between -99% and 100%");
+    }
+  }
+  if (input.inflationRate !== undefined && input.inflationRate !== null) {
+    const value = numberValue(input.inflationRate);
+    if (value < -0.5 || value > 1) {
+      throw new GoalValidationError("Inflation must be between -50% and 100%");
+    }
+  }
+  if (
+    input.manualCurrentAmount !== undefined &&
+    input.manualCurrentAmount !== null &&
+    numberValue(input.manualCurrentAmount) < 0
+  ) {
+    throw new GoalValidationError("Manual current amount cannot be negative");
+  }
+  if (input.targetDate) {
+    const date = new Date(`${input.targetDate}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new GoalValidationError("Target date is invalid");
+    }
+  }
+}
+
+function normalizeAllocationInput(input: GoalCreateInput | GoalUpdateInput): Allocation[] {
+  const raw =
+    input.allocations ?? input.accountIds?.map((accountId) => ({ accountId, sharePct: 100 })) ?? [];
+  const seen = new Set<string>();
+  return raw.map((allocation) => {
+    if (seen.has(allocation.accountId)) {
+      throw new GoalValidationError("An account can only appear once in a goal allocation");
+    }
+    seen.add(allocation.accountId);
+    const sharePct = numberValue(allocation.sharePct, 100);
+    if (sharePct < 0 || sharePct > 100) {
+      throw new GoalValidationError("Allocation share must be between 0% and 100%");
+    }
+    return { accountId: allocation.accountId, sharePct };
+  });
+}
+
+async function validateAllocations(
+  goalId: string | null,
+  allocations: Allocation[],
+): Promise<void> {
+  if (allocations.length === 0) return;
+
+  const db = getDb();
+  const ids = allocations.map((allocation) => allocation.accountId);
+  const accountRows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(inArray(accounts.id, ids));
+  if (accountRows.length !== new Set(ids).size) {
+    throw new GoalValidationError("One or more funding accounts do not exist");
+  }
+
+  const conditions = [inArray(goalAllocations.accountId, ids)];
+  if (goalId) conditions.push(ne(goalAllocations.goalId, goalId));
+  const existing = await db
+    .select({
+      goalId: goalAllocations.goalId,
+      accountId: goalAllocations.accountId,
+      sharePct: goalAllocations.sharePct,
+    })
+    .from(goalAllocations)
+    .where(and(...conditions));
+
+  const totals = new Map<string, number>();
+  for (const row of existing) {
+    totals.set(row.accountId, (totals.get(row.accountId) ?? 0) + numberValue(row.sharePct));
+  }
+
+  // Older goals may still use accountIds without allocation rows.
+  const allocatedGoalIds = new Set(existing.map((row) => row.goalId));
+  const legacyGoals = await db.select({ id: goals.id, accountIds: goals.accountIds }).from(goals);
+  for (const legacy of legacyGoals) {
+    if (legacy.id === goalId || allocatedGoalIds.has(legacy.id)) continue;
+    const legacyAccountIds = (legacy.accountIds as string[]) ?? [];
+    for (const accountId of legacyAccountIds) {
+      if (ids.includes(accountId)) {
+        totals.set(accountId, (totals.get(accountId) ?? 0) + 100);
+      }
+    }
+  }
+  for (const allocation of allocations) {
+    const total = (totals.get(allocation.accountId) ?? 0) + allocation.sharePct;
+    if (total > 100.0001) {
+      throw new GoalValidationError("Funding allocations for an account cannot exceed 100%");
+    }
+  }
+}
+
+function goalValues(input: GoalCreateInput | GoalUpdateInput) {
+  const values: Record<string, unknown> = {};
+  if (input.name !== undefined) values.name = input.name;
+  if (input.type !== undefined) values.type = input.type;
+  if (input.targetAmount !== undefined) values.targetAmount = String(input.targetAmount);
+  if (input.targetDate !== undefined) values.targetDate = input.targetDate;
+  if (input.currency !== undefined) values.currency = input.currency.toUpperCase();
+  if (input.priority !== undefined) values.priority = input.priority;
+  if (input.fundingMode !== undefined) values.fundingMode = input.fundingMode;
+  if (input.manualCurrentAmount !== undefined) {
+    values.manualCurrentAmount =
+      input.manualCurrentAmount === null ? null : String(input.manualCurrentAmount);
+  }
+  if (input.monthlyContribution !== undefined) {
+    values.monthlyContribution = String(input.monthlyContribution);
+  }
+  if (input.expectedReturn !== undefined) values.expectedReturn = String(input.expectedReturn);
+  if (input.inflationRate !== undefined) {
+    values.inflationRate = input.inflationRate === null ? null : String(input.inflationRate);
+  }
+  if (input.notes !== undefined) values.notes = input.notes;
+  return values;
+}
 
 export async function listGoals() {
   const db = getDb();
   return db.select().from(goals).orderBy(goals.priority, goals.createdAt);
 }
 
-export async function createGoal(input: {
-  name: string;
-  type: GoalType;
-  targetAmount: string | number;
-  targetDate?: string | null;
-  currency: string;
-  priority?: number;
-  notes?: string | null;
-}) {
+export async function listGoalAllocations(goalIds?: string[]) {
   const db = getDb();
-  const [row] = await db
-    .insert(goals)
-    .values({
-      name: input.name,
-      type: input.type,
-      targetAmount: String(input.targetAmount),
-      targetDate: input.targetDate ?? null,
-      currency: input.currency,
-      priority: input.priority ?? 1,
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return row;
+  if (goalIds && goalIds.length === 0) return [];
+  const rows = goalIds
+    ? await db.select().from(goalAllocations).where(inArray(goalAllocations.goalId, goalIds))
+    : await db.select().from(goalAllocations);
+  return rows;
 }
 
-export async function updateGoal(
-  id: string,
-  input: {
-    targetAmount?: string | number;
-    targetDate?: string | null;
-    priority?: number;
-    notes?: string | null;
-  },
-) {
+export async function createGoal(input: GoalCreateInput) {
+  validateRates(input);
+  const allocations = input.fundingMode === "manual" ? [] : normalizeAllocationInput(input);
+  if (input.fundingMode !== "manual" && allocations.length > 0) {
+    await validateAllocations(null, allocations);
+  }
+
   const db = getDb();
-  const [row] = await db
-    .update(goals)
-    .set({
-      ...(input.targetAmount !== undefined ? { targetAmount: String(input.targetAmount) } : {}),
-      ...(input.targetDate !== undefined ? { targetDate: input.targetDate } : {}),
-      ...(input.priority !== undefined ? { priority: input.priority } : {}),
-      ...(input.notes !== undefined ? { notes: input.notes } : {}),
-    })
-    .where(eq(goals.id, id))
-    .returning();
-  return row ?? null;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(goals)
+      .values({
+        name: input.name,
+        type: input.type,
+        targetAmount: String(input.targetAmount),
+        targetDate: input.targetDate ?? null,
+        currency: input.currency.toUpperCase(),
+        priority: input.priority ?? 1,
+        fundingMode: input.fundingMode ?? "accounts",
+        manualCurrentAmount:
+          input.manualCurrentAmount === undefined || input.manualCurrentAmount === null
+            ? null
+            : String(input.manualCurrentAmount),
+        monthlyContribution: String(input.monthlyContribution ?? 0),
+        expectedReturn: String(input.expectedReturn ?? 0),
+        inflationRate:
+          input.inflationRate === undefined || input.inflationRate === null
+            ? null
+            : String(input.inflationRate),
+        accountIds: allocations.map((allocation) => allocation.accountId),
+        notes: input.notes ?? null,
+      })
+      .returning();
+
+    if (allocations.length > 0) {
+      await tx.insert(goalAllocations).values(
+        allocations.map((allocation) => ({
+          goalId: row.id,
+          accountId: allocation.accountId,
+          sharePct: String(allocation.sharePct),
+        })),
+      );
+    }
+    return row;
+  });
+}
+
+export async function updateGoal(id: string, input: GoalUpdateInput) {
+  validateRates(input);
+  const db = getDb();
+  const [existing] = await db.select().from(goals).where(eq(goals.id, id)).limit(1);
+  if (!existing) return null;
+
+  const nextMode = input.fundingMode ?? existing.fundingMode;
+  const shouldReplaceAllocations =
+    input.allocations !== undefined ||
+    input.accountIds !== undefined ||
+    input.fundingMode !== undefined;
+  const allocations =
+    shouldReplaceAllocations && nextMode !== "manual" ? normalizeAllocationInput(input) : [];
+  if (allocations.length > 0) await validateAllocations(id, allocations);
+
+  return db.transaction(async (tx) => {
+    const values = goalValues(input);
+    if (shouldReplaceAllocations) {
+      values.accountIds = allocations.map((allocation) => allocation.accountId);
+    }
+    values.updatedAt = new Date();
+
+    const [row] = await tx.update(goals).set(values).where(eq(goals.id, id)).returning();
+
+    if (shouldReplaceAllocations) {
+      await tx.delete(goalAllocations).where(eq(goalAllocations.goalId, id));
+      if (allocations.length > 0) {
+        await tx.insert(goalAllocations).values(
+          allocations.map((allocation) => ({
+            goalId: id,
+            accountId: allocation.accountId,
+            sharePct: String(allocation.sharePct),
+          })),
+        );
+      }
+    }
+    return row ?? null;
+  });
 }
 
 export async function deleteGoal(id: string) {
   const db = getDb();
   await db.delete(goals).where(eq(goals.id, id));
+}
+
+export type PlanGoalStatus = "on_track" | "at_risk" | "off_track" | "insufficient_data";
+
+export type PlanGoal = {
+  id: string;
+  name: string;
+  type: string;
+  priority: number;
+  status: PlanGoalStatus;
+  reason: string | null;
+  current: number;
+  target: number;
+  progress: number;
+  projected: { conservative: number; base: number; optimistic: number };
+  gap: number;
+  requiredMonthly: number | null;
+  currency: string;
+  goalCurrency: string;
+  targetDate: string | null;
+  targetAmountOriginal: number;
+  fundingMode: "accounts" | "manual";
+  manualCurrentAmountOriginal: number | null;
+  monthlyContribution: number;
+  monthlyContributionOriginal: number;
+  expectedReturn: number;
+  inflationRate: number;
+  allocations: { accountId: string; sharePct: number }[];
+};
+
+export type PlanStatus = {
+  asOf: string;
+  baseCurrency: string;
+  netWorth: { assets: number; liabilities: number; net: number };
+  assumptions: { defaultInflation: number; returnBand: number };
+  goals: PlanGoal[];
+};
+
+export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
+  const db = getDb();
+  const [baseCurrency, goalRows, allocationRows, accountValues] = await Promise.all([
+    getBaseCurrency(),
+    db.select().from(goals).orderBy(goals.priority, goals.createdAt),
+    listGoalAllocations(),
+    getAccountValues(asOf),
+  ]);
+
+  const accountById = new Map(accountValues.map((account) => [account.id, account]));
+  const allocationsByGoal = new Map<string, Allocation[]>();
+  for (const allocation of allocationRows) {
+    const rows = allocationsByGoal.get(allocation.goalId) ?? [];
+    rows.push({ accountId: allocation.accountId, sharePct: numberValue(allocation.sharePct) });
+    allocationsByGoal.set(allocation.goalId, rows);
+  }
+
+  const netWorth = await getNetWorth(asOf);
+
+  const planGoals: PlanGoal[] = [];
+  for (const goal of goalRows) {
+    const goalCurrency = goal.currency.toUpperCase();
+    const targetBase =
+      numberValue(goal.targetAmount) * (await rateOrOne(goalCurrency, baseCurrency, asOf));
+    const monthlyBase =
+      numberValue(goal.monthlyContribution) * (await rateOrOne(goalCurrency, baseCurrency, asOf));
+    const expectedReturn = numberValue(goal.expectedReturn);
+    const inflationRate = numberValue(goal.inflationRate, DEFAULT_INFLATION_RATE);
+    const storedAllocations = allocationsByGoal.get(goal.id) ?? [];
+    const effectiveAllocations =
+      goal.fundingMode === "manual"
+        ? []
+        : storedAllocations.length > 0
+          ? storedAllocations
+          : (goal.accountIds as string[]).map((accountId) => ({ accountId, sharePct: 100 }));
+
+    let current = 0;
+    let fundingMissing = false;
+    if (goal.fundingMode === "manual") {
+      if (goal.manualCurrentAmount === null) {
+        fundingMissing = true;
+      } else {
+        current =
+          numberValue(goal.manualCurrentAmount) *
+          (await rateOrOne(goalCurrency, baseCurrency, asOf));
+      }
+    } else if (effectiveAllocations.length === 0) {
+      fundingMissing = true;
+    } else {
+      for (const allocation of effectiveAllocations) {
+        const account = accountById.get(allocation.accountId);
+        if (!account) {
+          fundingMissing = true;
+          continue;
+        }
+        current += account.valueBase * (allocation.sharePct / 100);
+      }
+    }
+
+    const parsedTargetDate = goal.targetDate ? new Date(`${goal.targetDate}T00:00:00.000Z`) : null;
+    const targetDate =
+      parsedTargetDate && !Number.isNaN(parsedTargetDate.getTime()) ? parsedTargetDate : null;
+    const months = targetDate ? monthsBetween(asOf, targetDate) : 0;
+    const projected = projectionRange(current, monthlyBase, expectedReturn, inflationRate, months);
+    const requiredMonthly = targetDate
+      ? requiredMonthlyContribution(
+          current,
+          targetBase,
+          (1 + expectedReturn) / (1 + inflationRate) - 1,
+          months,
+        )
+      : null;
+
+    let status: PlanGoalStatus;
+    let reason: string | null = null;
+    if (numberValue(goal.targetAmount) <= 0) {
+      status = "insufficient_data";
+      reason = "missing_target";
+    } else if (!targetDate) {
+      status = "insufficient_data";
+      reason = "missing_target_date";
+    } else if (fundingMissing) {
+      status = "insufficient_data";
+      reason = "missing_funding";
+    } else {
+      const classified = classifyGoalStatus(targetBase, projected);
+      status = classified.status;
+      reason = classified.reason;
+    }
+
+    planGoals.push({
+      id: goal.id,
+      name: goal.name,
+      type: goal.type,
+      priority: goal.priority,
+      status,
+      reason,
+      current: round4(current),
+      target: round4(targetBase),
+      progress: targetBase > 0 ? round4(Math.min(100, (current / targetBase) * 100)) : 0,
+      projected: {
+        conservative: round4(projected.conservative),
+        base: round4(projected.base),
+        optimistic: round4(projected.optimistic),
+      },
+      gap: round4(Math.max(0, targetBase - projected.conservative)),
+      requiredMonthly: requiredMonthly === null ? null : round4(requiredMonthly),
+      currency: baseCurrency,
+      goalCurrency,
+      targetDate: targetDate ? targetDate.toISOString().slice(0, 10) : null,
+      targetAmountOriginal: numberValue(goal.targetAmount),
+      fundingMode: goal.fundingMode,
+      manualCurrentAmountOriginal:
+        goal.manualCurrentAmount === null ? null : numberValue(goal.manualCurrentAmount),
+      monthlyContribution: round4(monthlyBase),
+      monthlyContributionOriginal: numberValue(goal.monthlyContribution),
+      expectedReturn,
+      inflationRate,
+      allocations: effectiveAllocations,
+    });
+  }
+
+  return {
+    asOf: asOf.toISOString().slice(0, 10),
+    baseCurrency,
+    netWorth: {
+      assets: netWorth.assets,
+      liabilities: netWorth.liabilities,
+      net: netWorth.net,
+    },
+    assumptions: { defaultInflation: DEFAULT_INFLATION_RATE, returnBand: RETURN_BAND },
+    goals: planGoals,
+  };
 }
 
 export async function getPlanner() {
@@ -82,30 +467,23 @@ export async function getPlanner() {
     );
 
   const essentialMonthly = Number(essential?.total ?? 0) / 3;
-  const balances = await listAccountBalances();
-  const liquid = balances
+  const [plan, accountValues] = await Promise.all([getPlanStatus(now), getAccountValues(now)]);
+  const liquid = accountValues
     .filter((account) => ["checking", "savings", "cash"].includes(account.type))
-    .reduce((sum, account) => sum + Number(account.balance), 0);
+    .reduce((sum, account) => sum + account.valueBase, 0);
   const runwayMonths = emergencyRunway(liquid, essentialMonthly);
 
-  const goalsWithProgress = (await listGoals()).map((goal) => {
-    const accountIds = Array.isArray(goal.accountIds) ? (goal.accountIds as string[]) : [];
-    const current = balances
-      .filter((account) => accountIds.includes(account.id))
-      .reduce((sum, account) => sum + Number(account.balance), 0);
-    const target = Number(goal.targetAmount);
-    return {
-      ...goal,
-      current: Number(current.toFixed(4)),
-      progress:
-        target > 0 ? Math.min(100, Number(((current / target) * 100).toFixed(1))) : 0,
-    };
-  });
-
   return {
-    goals: goalsWithProgress,
-    liquid: Number(liquid.toFixed(4)),
-    essentialMonthly: Number(essentialMonthly.toFixed(4)),
+    ...plan,
+    liquid: round4(liquid),
+    essentialMonthly: round4(essentialMonthly),
     runwayMonths: Number(runwayMonths.toFixed(1)),
+    accounts: accountValues.map((account) => ({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      currency: account.currency,
+      balance: account.valueBase,
+    })),
   };
 }

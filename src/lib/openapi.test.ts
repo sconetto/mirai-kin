@@ -12,6 +12,7 @@ describe("OpenAPI contract", () => {
   it("covers the core and transfer endpoints", () => {
     expect(paths["/api/v1/transactions"]).toBeTruthy();
     expect(paths["/api/v1/accounts"]).toBeTruthy();
+    expect(paths["/api/v1/plan-status"]).toBeTruthy();
     expect(paths["/api/v1/reports"]).toBeUndefined();
     expect(paths["/api/v1/transfers"]).toBeTruthy();
     expect(paths["/api/v1/transfers/pair"]).toBeTruthy();

@@ -13,6 +13,7 @@ import { listBudgetsWithSpend } from "./budgets";
 import { getNetWorthSeries } from "./equity";
 import { resolveRate } from "./fx";
 import { listPositionsWithValue } from "./investments";
+import { getPlanStatus } from "./planner";
 import { forecast } from "./projections";
 import { listRecurringDetections, syncRecurringDetections } from "./detections";
 
@@ -27,7 +28,9 @@ export type InsightType =
   | "debt_burden"
   | "allocation_concentration"
   | "net_worth_trend"
-  | "cashflow_risk";
+  | "cashflow_risk"
+  | "goal_at_risk"
+  | "goal_off_track";
 
 export type Insight = {
   type: InsightType;
@@ -51,9 +54,7 @@ function monthBounds(date: Date) {
     endDate: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0))
       .toISOString()
       .slice(0, 10),
-    key: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
-      .toISOString()
-      .slice(0, 7),
+    key: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)).toISOString().slice(0, 7),
   };
 }
 
@@ -177,7 +178,13 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
 
   const byCategory = new Map<
     string,
-    { name: string; nameEn: string | null; namePt: string | null; current: number; trailing: number[] }
+    {
+      name: string;
+      nameEn: string | null;
+      namePt: string | null;
+      current: number;
+      trailing: number[];
+    }
   >();
   for (const row of categoryRows) {
     if (!row.categoryId) continue;
@@ -226,7 +233,11 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     if (candidate.nextExpected < today || candidate.nextExpected > horizon) continue;
     insights.push({
       type: "upcoming_bill",
-      severity: candidate.nextExpected <= new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10) ? "warning" : "info",
+      severity:
+        candidate.nextExpected <=
+        new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10)
+          ? "warning"
+          : "info",
       signature: signature("upcoming_bill", `${candidate.key}:${candidate.nextExpected}`),
       data: {
         label: candidate.label,
@@ -294,7 +305,10 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
   if (snapshots.length >= 2) {
     const latest = snapshots[snapshots.length - 1];
     const previous = snapshots[snapshots.length - 2];
-    const changePct = Number(previous.net) === 0 ? 0 : ((Number(latest.net) - Number(previous.net)) / Math.abs(Number(previous.net))) * 100;
+    const changePct =
+      Number(previous.net) === 0
+        ? 0
+        : ((Number(latest.net) - Number(previous.net)) / Math.abs(Number(previous.net))) * 100;
     insights.push({
       type: "net_worth_trend",
       severity: changePct <= -5 ? "warning" : "info",
@@ -325,6 +339,31 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         action: { href: "/forecast" },
       });
     }
+  }
+
+  // Goal trajectory risk.
+  const plan = await getPlanStatus(now);
+  for (const goal of plan.goals) {
+    if (goal.status !== "at_risk" && goal.status !== "off_track") continue;
+    const required = goal.requiredMonthly ?? 0;
+    insights.push({
+      type: goal.status === "at_risk" ? "goal_at_risk" : "goal_off_track",
+      severity: goal.status === "at_risk" ? "warning" : "critical",
+      signature: signature(
+        goal.status === "at_risk" ? "goal_at_risk" : "goal_off_track",
+        `${goal.id}:${goal.targetDate ?? "none"}:${goal.requiredMonthly ?? "none"}:${goal.status}`,
+      ),
+      data: {
+        goalId: goal.id,
+        name: goal.name,
+        gap: goal.gap,
+        requiredMonthly: required,
+        targetDate: goal.targetDate,
+        currency: goal.currency,
+        status: goal.status,
+      },
+      action: { href: "/planner" },
+    });
   }
 
   const acknowledged = await db.select().from(insightAcknowledgements);

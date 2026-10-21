@@ -222,7 +222,7 @@ export function buildAssistantTools(conversationId: string) {
 
     get_planner: tool({
       description:
-        "Financial plan status: goals with progress/priority, liquid balance, essential monthly spending, and emergency runway in months.",
+        "Financial plan status: goal trajectory, projected value, gap, required contribution, liquid balance, essential monthly spending, and emergency runway in months.",
       inputSchema: z.object({}),
       execute: async () => {
         const planner = await getPlanner();
@@ -233,12 +233,16 @@ export function buildAssistantTools(conversationId: string) {
           goals: planner.goals.map((goal) => ({
             name: goal.name,
             type: goal.type,
-            targetAmount: goal.targetAmount,
+            targetAmount: goal.target,
             currency: goal.currency,
             targetDate: goal.targetDate,
             priority: goal.priority,
             current: goal.current,
             progress: goal.progress,
+            status: goal.status,
+            projected: goal.projected,
+            gap: goal.gap,
+            requiredMonthly: goal.requiredMonthly,
           })),
         };
       },
