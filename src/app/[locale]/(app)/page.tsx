@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { insightParams } from "@/lib/insight-params";
 import { overview } from "@/services/analytics";
+import { getEquity } from "@/services/equity";
 import { getInsights } from "@/services/insights";
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -15,8 +16,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const t = await getTranslations("dashboard");
   const tc = await getTranslations("common");
   const ti = await getTranslations("insights");
-  const data = await overview();
+  const [data, equity] = await Promise.all([overview(), getEquity()]);
   const insights = (await getInsights()).slice(0, 3);
+  const topAccounts = [...data.balances]
+    .sort((a, b) => Math.abs(Number(b.baseBalance)) - Math.abs(Number(a.baseBalance)))
+    .slice(0, 8);
   const spending = data.spendingByCategory.map((row) => ({
     name: row.name,
     total: Number(row.total),
@@ -68,7 +72,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label={t("netWorth")}
-          value={formatCurrency(data.netWorth, data.baseCurrency, locale)}
+          value={formatCurrency(equity.net, equity.currency, locale)}
           accent
         />
         <Stat
@@ -84,7 +88,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         <Stat label={t("accounts")} value={String(data.balances.length)} mono={false} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardHeader>
             <CardTitle>{t("spendingByCategory")}</CardTitle>
@@ -99,19 +103,27 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             <CardTitle>{t("accounts")}</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.balances.length === 0 ? (
+            {topAccounts.length === 0 ? (
               <p className="py-8 text-center text-sm text-ink-3">{tc("empty")}</p>
             ) : (
-              <ul className="divide-y divide-line/70">
-                {data.balances.map((account) => (
-                  <li key={account.id} className="flex items-center justify-between py-3">
-                    <span className="text-sm text-ink-2">{account.name}</span>
-                    <Money className="text-sm font-medium text-ink">
-                      {formatCurrency(account.balance, account.currency, locale)}
-                    </Money>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="divide-y divide-line/70">
+                  {topAccounts.map((account) => (
+                    <li key={account.id} className="flex items-center justify-between py-3">
+                      <span className="truncate pr-3 text-sm text-ink-2">{account.name}</span>
+                      <Money className="shrink-0 text-sm font-medium text-ink">
+                        {formatCurrency(account.balance, account.currency, locale)}
+                      </Money>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/accounts"
+                  className="mt-3 inline-block text-sm font-medium text-accent hover:underline"
+                >
+                  {tc("view")}
+                </Link>
+              </>
             )}
           </CardContent>
         </Card>

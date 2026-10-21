@@ -15,6 +15,11 @@ export function SpendingChart({ data }: { data: { name: string; total: number }[
     return <div className="flex h-64 items-center justify-center text-sm text-ink-3">—</div>;
   }
 
+  const values = data.map((item) => item.total);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const domain: [number, number] = min === max ? [0, 1] : [min, max];
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -27,6 +32,7 @@ export function SpendingChart({ data }: { data: { name: string; total: number }[
             axisLine={{ stroke: "#e4e7ec" }}
           />
           <YAxis
+            domain={domain}
             tick={{ fontSize: 12, fill: "#667085" }}
             tickLine={false}
             axisLine={false}
