@@ -46,6 +46,40 @@ export function insightParams(
         month: formatMonth(String(data.month), locale),
         net: formatCurrency(String(data.net), String(data.currency ?? baseCurrency), locale),
       };
+    case "idle_cash":
+      return {
+        amount: formatCurrency(String(data.liquid), String(data.currency ?? baseCurrency), locale),
+        months: formatNumber(String(data.runwayMonths), locale),
+      };
+    case "net_worth_milestone":
+      return {
+        milestone: formatCurrency(
+          String(data.milestone),
+          String(data.currency ?? baseCurrency),
+          locale,
+        ),
+        net: formatCurrency(String(data.net), String(data.currency ?? baseCurrency), locale),
+      };
+    case "spending_anomaly":
+      return {
+        month: formatMonth(String(data.month), locale),
+        amount: formatCurrency(String(data.total), String(data.currency ?? baseCurrency), locale),
+        average: formatCurrency(
+          String(data.average),
+          String(data.currency ?? baseCurrency),
+          locale,
+        ),
+      };
+    case "subscription_audit":
+      return {
+        count: formatNumber(String(data.count), locale),
+        monthlyTotal: formatCurrency(
+          String(data.monthlyTotal),
+          String(data.currency ?? baseCurrency),
+          locale,
+        ),
+        duplicates: String(data.duplicates ?? ""),
+      };
     case "goal_at_risk":
     case "goal_off_track":
       return {

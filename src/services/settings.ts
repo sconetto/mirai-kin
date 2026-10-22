@@ -12,6 +12,7 @@ export type AppSettings = {
   defaultLocale: "en" | "pt-BR";
   theme: Theme;
   onboardingComplete: boolean;
+  idleCashMonths: number;
   fxProvider: string;
   assistant: {
     enabled: boolean;
@@ -33,6 +34,7 @@ export type SettingsPatch = {
   defaultLocale?: "en" | "pt-BR";
   theme?: Theme;
   onboardingComplete?: boolean;
+  idleCashMonths?: number;
   fxProvider?: string;
   assistant?: Partial<AppSettings["assistant"]>;
   backup?: Partial<AppSettings["backup"]>;
@@ -62,6 +64,7 @@ function defaults(): AppSettings {
     defaultLocale: "pt-BR",
     theme: "system",
     onboardingComplete: false,
+    idleCashMonths: 6,
     fxProvider: getEnv().FX_SOURCE_URL,
     assistant: envAssistant(),
     backup: {
@@ -102,6 +105,10 @@ export async function getSettings(): Promise<AppSettings> {
     defaultLocale: stored.get("defaultLocale") === "en" ? "en" : "pt-BR",
     theme: isTheme(storedTheme) ? storedTheme : "system",
     onboardingComplete: stored.get("onboardingComplete") === true,
+    idleCashMonths:
+      typeof stored.get("idleCashMonths") === "number"
+        ? Math.min(24, Math.max(1, Number(stored.get("idleCashMonths"))))
+        : base.idleCashMonths,
     fxProvider:
       typeof stored.get("fxProvider") === "string"
         ? String(stored.get("fxProvider"))
@@ -236,6 +243,17 @@ export async function updateSettings(patch: SettingsPatch): Promise<AppSettings>
 
   if (patch.onboardingComplete !== undefined) {
     entries.push(["onboardingComplete", Boolean(patch.onboardingComplete)]);
+  }
+
+  if (patch.idleCashMonths !== undefined) {
+    if (
+      !Number.isInteger(patch.idleCashMonths) ||
+      patch.idleCashMonths < 1 ||
+      patch.idleCashMonths > 24
+    ) {
+      throw new SettingsValidationError("Idle cash threshold must be between 1 and 24 months.");
+    }
+    entries.push(["idleCashMonths", patch.idleCashMonths]);
   }
 
   if (patch.fxProvider !== undefined) {

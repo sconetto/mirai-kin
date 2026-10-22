@@ -116,6 +116,7 @@ export async function saveSettingsAction(formData: FormData) {
         baseCurrency: field(formData, "baseCurrency") ?? "",
         timezone: field(formData, "timezone") ?? "",
         firstDayOfMonth: Number(field(formData, "firstDayOfMonth") ?? 1),
+        idleCashMonths: Number(field(formData, "idleCashMonths") ?? 6),
       });
     } else if (section === "localization") {
       const defaultLocale = field(formData, "defaultLocale") === "en" ? "en" : "pt-BR";

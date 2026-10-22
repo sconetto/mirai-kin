@@ -8,14 +8,21 @@ import {
   insightAcknowledgements,
   transactions,
 } from "@/db/schema";
-import { getBaseCurrency } from "./settings";
+import { getSettings } from "./settings";
 import { listBudgetsWithSpend } from "./budgets";
 import { getNetWorthSeries } from "./equity";
 import { resolveRate } from "./fx";
 import { listPositionsWithValue } from "./investments";
-import { getPlanStatus } from "./planner";
+import { getPlanStatus, getPlanner } from "./planner";
 import { forecast } from "./projections";
 import { listRecurringDetections, syncRecurringDetections } from "./detections";
+import { listEntities } from "./entities";
+import {
+  detectMilestone,
+  detectSpendingAnomaly,
+  idleCashExcess,
+  subscriptionAudit,
+} from "@/lib/insight-rules";
 
 export type InsightSeverity = "info" | "warning" | "critical";
 
@@ -30,7 +37,11 @@ export type InsightType =
   | "net_worth_trend"
   | "cashflow_risk"
   | "goal_at_risk"
-  | "goal_off_track";
+  | "goal_off_track"
+  | "idle_cash"
+  | "net_worth_milestone"
+  | "spending_anomaly"
+  | "subscription_audit";
 
 export type Insight = {
   type: InsightType;
@@ -70,7 +81,8 @@ async function rateOrOne(from: string, to: string, date: Date): Promise<number> 
 
 export async function getInsights(now = new Date()): Promise<Insight[]> {
   const db = getDb();
-  const baseCurrency = await getBaseCurrency();
+  const settings = await getSettings();
+  const baseCurrency = settings.baseCurrency;
   const { start, end, startDate, endDate, key: monthKey } = monthBounds(now);
   const insights: Insight[] = [];
 
@@ -105,6 +117,29 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         expenses: Number(expenses.toFixed(2)),
       },
       action: { href: "/spending/reports" },
+    });
+  }
+
+  // Idle cash above six months of essential expenses.
+  const planner = await getPlanner();
+  const idle = idleCashExcess(
+    planner.liquid,
+    planner.essentialMonthly,
+    settings.idleCashMonths,
+  );
+  if (idle) {
+    insights.push({
+      type: "idle_cash",
+      severity: "info",
+      signature: signature("idle_cash", monthKey),
+      data: {
+        liquid: Number(planner.liquid.toFixed(2)),
+        essentialMonthly: Number(planner.essentialMonthly.toFixed(2)),
+        excess: idle.excess,
+        runwayMonths: idle.runwayMonths,
+        currency: baseCurrency,
+      },
+      action: { href: "/accounts" },
     });
   }
 
@@ -224,6 +259,49 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     }
   }
 
+  // Monthly spending anomaly against the trailing five months.
+  const anomalyKeys = Array.from({ length: 5 }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
+    return date.toISOString().slice(0, 7);
+  });
+  const anomalyStart = new Date(`${anomalyKeys[0]}-01T00:00:00.000Z`);
+  const monthlySpendRows = await db
+    .select({
+      month: sql<string>`to_char(${transactions.recordDate} at time zone 'UTC', 'YYYY-MM')`,
+      total: sql<string>`coalesce(sum(-${transactions.baseAmount}), 0)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        gte(transactions.recordDate, anomalyStart),
+        lte(transactions.recordDate, end),
+        sql`${transactions.amount} < 0`,
+        sql`${transactions.reviewStatus} <> 'split'`,
+        sql`${transactions.transferId} is null`,
+        sql`(${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer')`,
+      ),
+    )
+    .groupBy(sql`to_char(${transactions.recordDate} at time zone 'UTC', 'YYYY-MM')`);
+  const monthlySpend = new Map(monthlySpendRows.map((row) => [row.month, Number(row.total)]));
+  const currentSpend = monthlySpend.get(monthKey) ?? expenses;
+  const trailingSpend = anomalyKeys.map((key) => monthlySpend.get(key) ?? 0);
+  const anomaly = detectSpendingAnomaly(currentSpend, trailingSpend);
+  if (anomaly) {
+    insights.push({
+      type: "spending_anomaly",
+      severity: "warning",
+      signature: signature("spending_anomaly", monthKey),
+      data: {
+        month: monthKey,
+        total: Number(currentSpend.toFixed(2)),
+        average: anomaly.mean,
+        threshold: anomaly.threshold,
+        currency: baseCurrency,
+      },
+      action: { href: "/spending/reports" },
+    });
+  }
+
   // Upcoming recurring bills.
   const today = now.toISOString().slice(0, 10);
   const horizon = new Date(now.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
@@ -247,6 +325,35 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
       },
       action: { href: "/spending/recurring" },
     });
+  }
+
+  // Subscription audit.
+  const subscriptions = await listEntities("subscription");
+  if (subscriptions.length > 0) {
+    const audit = subscriptionAudit(
+      subscriptions.map((item) => ({
+        name: item.name,
+        amount: Number(item.amount ?? 0),
+        frequency: item.frequency,
+      })),
+    );
+    if (audit.count > 0) {
+      insights.push({
+        type: "subscription_audit",
+        severity: audit.duplicates.length > 0 ? "warning" : "info",
+        signature: signature(
+          "subscription_audit",
+          `${audit.count}:${audit.monthlyTotal}:${audit.duplicates.join(",")}`,
+        ),
+        data: {
+          count: audit.count,
+          monthlyTotal: audit.monthlyTotal,
+          duplicates: audit.duplicates.join(", "),
+          currency: baseCurrency,
+        },
+        action: { href: "/entities?kind=subscription" },
+      });
+    }
   }
 
   // Debt burden for the current month.
@@ -321,6 +428,27 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
       },
       action: { href: "/equity" },
     });
+  }
+
+  // Net-worth milestone.
+  if (snapshots.length >= 2) {
+    const latest = snapshots[snapshots.length - 1];
+    const previous = snapshots[snapshots.length - 2];
+    const milestone = detectMilestone(Number(previous.net), Number(latest.net));
+    if (milestone) {
+      insights.push({
+        type: "net_worth_milestone",
+        severity: "info",
+        signature: signature("net_worth_milestone", String(milestone.milestone)),
+        data: {
+          date: latest.date,
+          net: Number(latest.net),
+          milestone: milestone.milestone,
+          currency: latest.currency,
+        },
+        action: { href: "/equity" },
+      });
+    }
   }
 
   // Cash-flow risk from the three-month forecast.

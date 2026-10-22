@@ -102,6 +102,17 @@ export default async function SettingsPage({
                   className="mt-1"
                 />
               </label>
+              <label className="text-xs text-ink-3">
+                {t("idleCashMonths")}
+                <Input
+                  name="idleCashMonths"
+                  type="number"
+                  min={1}
+                  max={24}
+                  defaultValue={settings.idleCashMonths}
+                  className="mt-1"
+                />
+              </label>
               <div className="sm:col-span-3">
                 <Button type="submit">{tc("save")}</Button>
               </div>
