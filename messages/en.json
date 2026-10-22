@@ -42,6 +42,7 @@
     "projections": "Projections",
     "import": "Import",
     "learn": "Learn",
+    "changelog": "Changelog",
     "overview": "Overview",
     "insights": "Insights",
     "spending": "Spending",
@@ -421,6 +422,11 @@
     "openingBalance": "Opening balance (optional)",
     "currentBalance": "Current balance (optional)",
     "balanceHint": "Provide either an opening balance or the current statement balance; a current balance is converted to an opening balance from the imported transactions."
+  },
+  "changelog": {
+    "title": "Changelog",
+    "subtitle": "What changed in mirai-kin",
+    "empty": "No changelog entries yet"
   },
   "learn": {
     "title": "Learn",

@@ -42,6 +42,7 @@
     "projections": "Projeções",
     "import": "Importar",
     "learn": "Aprender",
+    "changelog": "Changelog",
     "overview": "Visão geral",
     "insights": "Insights",
     "spending": "Gastos",
@@ -421,6 +422,11 @@
     "openingBalance": "Saldo inicial (opcional)",
     "currentBalance": "Saldo atual (opcional)",
     "balanceHint": "Informe o saldo inicial ou o saldo atual do extrato; o saldo atual é convertido em saldo inicial a partir das transações importadas."
+  },
+  "changelog": {
+    "title": "Changelog",
+    "subtitle": "O que mudou no mirai-kin",
+    "empty": "Nenhuma entrada de changelog ainda"
   },
   "learn": {
     "title": "Aprender",

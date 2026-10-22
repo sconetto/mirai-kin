@@ -12,6 +12,7 @@ import {
   Receipt,
   RefreshCw,
   Scale,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -68,6 +69,7 @@ const SECTIONS: NavSection[] = [
     key: "sections.learn",
     items: [
       { href: "/learn", key: "nav.learn", icon: BookOpen },
+      { href: "/changelog", key: "nav.changelog", icon: ScrollText },
       { href: "/assistant", key: "nav.assistant", icon: MessageCircle },
       { href: "/settings", key: "nav.settings", icon: Settings },
     ],
