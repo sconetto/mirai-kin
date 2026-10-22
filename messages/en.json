@@ -69,6 +69,49 @@
     "submit": "Log in",
     "error": "Invalid username or password"
   },
+  "onboarding": {
+    "eyebrow": "First run",
+    "title": "Set up your plan",
+    "subtitle": "A short guided setup for currency, your first import, your first goal, and how mirai-kin works.",
+    "stepCurrency": "Currency",
+    "stepImport": "Import",
+    "stepGoal": "Goal",
+    "stepExplanation": "How it works",
+    "baseCurrency": "Base currency",
+    "continue": "Continue",
+    "skip": "Skip onboarding",
+    "finish": "Go to dashboard",
+    "progress": "Step {current} of {total}",
+    "currencyError": "Use a 3-letter currency code.",
+    "importDetected": "Imported transactions found. You can continue.",
+    "importHint": "Import a CSV, OFX, or brokerage file, or continue and do it later.",
+    "openImport": "Open import",
+    "goalDetected": "A goal already exists. You can continue.",
+    "goalHint": "Create a savings, purchase, debt, or income goal, or continue and do it later.",
+    "openPlanner": "Open planner",
+    "planFirstTitle": "Plan first",
+    "planFirstBody": "The dashboard leads with your long-term plan and goals, then the monthly detail.",
+    "importOnlyTitle": "Imported, never created",
+    "importOnlyBody": "Transactions are always imported into mirai-kin. This app does not create transactions.",
+    "step": {
+      "currency": {
+        "title": "Choose your base currency",
+        "body": "This is the currency used for totals, reports, and plan projections."
+      },
+      "import": {
+        "title": "Bring in your transactions",
+        "body": "Import from your bank or brokerage. You can skip this and import later."
+      },
+      "goal": {
+        "title": "Create your first goal",
+        "body": "Start with a savings, purchase, debt payoff, or income goal. You can skip this and add one later."
+      },
+      "explanation": {
+        "title": "How mirai-kin works",
+        "body": "A plan-first dashboard built on imported data."
+      }
+    }
+  },
   "dashboard": {
     "title": "Overview",
     "subtitle": "Am I on track for my long-term goals?",
@@ -730,6 +773,9 @@
     "configured": "Configured",
     "notConfigured": "Not configured",
     "saved": "Settings saved.",
+    "revisitOnboarding": "Onboarding",
+    "revisitOnboardingHint": "Run the guided first-run flow again without changing your data.",
+    "revisitOnboardingAction": "Revisit onboarding",
     "backupHistory": "Backup history",
     "backupNow": "Back up now",
     "downloadExport": "Download full export",

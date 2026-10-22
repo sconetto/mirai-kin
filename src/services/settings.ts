@@ -11,6 +11,7 @@ export type AppSettings = {
   firstDayOfMonth: number;
   defaultLocale: "en" | "pt-BR";
   theme: Theme;
+  onboardingComplete: boolean;
   fxProvider: string;
   assistant: {
     enabled: boolean;
@@ -31,6 +32,7 @@ export type SettingsPatch = {
   firstDayOfMonth?: number;
   defaultLocale?: "en" | "pt-BR";
   theme?: Theme;
+  onboardingComplete?: boolean;
   fxProvider?: string;
   assistant?: Partial<AppSettings["assistant"]>;
   backup?: Partial<AppSettings["backup"]>;
@@ -59,6 +61,7 @@ function defaults(): AppSettings {
     firstDayOfMonth: 1,
     defaultLocale: "pt-BR",
     theme: "system",
+    onboardingComplete: false,
     fxProvider: getEnv().FX_SOURCE_URL,
     assistant: envAssistant(),
     backup: {
@@ -98,6 +101,7 @@ export async function getSettings(): Promise<AppSettings> {
         : base.firstDayOfMonth,
     defaultLocale: stored.get("defaultLocale") === "en" ? "en" : "pt-BR",
     theme: isTheme(storedTheme) ? storedTheme : "system",
+    onboardingComplete: stored.get("onboardingComplete") === true,
     fxProvider:
       typeof stored.get("fxProvider") === "string"
         ? String(stored.get("fxProvider"))
@@ -228,6 +232,10 @@ export async function updateSettings(patch: SettingsPatch): Promise<AppSettings>
       throw new SettingsValidationError("Theme must be light, dark, or system.");
     }
     entries.push(["theme", patch.theme]);
+  }
+
+  if (patch.onboardingComplete !== undefined) {
+    entries.push(["onboardingComplete", Boolean(patch.onboardingComplete)]);
   }
 
   if (patch.fxProvider !== undefined) {

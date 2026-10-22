@@ -11,7 +11,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/format";
 import { listBackups } from "@/services/backups";
 import { getSecretStatus, getSettings } from "@/services/settings";
-import { runBackupAction, saveSettingsAction } from "../actions";
+import { revisitOnboardingAction, runBackupAction, saveSettingsAction } from "../actions";
 
 type Search = { section?: string; error?: string; saved?: string };
 
@@ -106,6 +106,16 @@ export default async function SettingsPage({
                 <Button type="submit">{tc("save")}</Button>
               </div>
             </form>
+            <div className="mt-5 border-t border-line/70 pt-4">
+              <p className="text-sm font-medium text-ink">{t("revisitOnboarding")}</p>
+              <p className="mt-1 text-xs text-ink-3">{t("revisitOnboardingHint")}</p>
+              <form action={revisitOnboardingAction} className="mt-2">
+                <input type="hidden" name="locale" value={locale} />
+                <Button type="submit" size="sm" variant="ghost">
+                  {t("revisitOnboardingAction")}
+                </Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
       ) : null}

@@ -7,6 +7,7 @@ import { handle, parseJson } from "@/lib/api/validate";
 import { verifyPassword } from "@/lib/auth";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, createSessionToken } from "@/lib/session";
 import { loginSchema } from "@/lib/schemas";
+import { getOnboardingStatus } from "@/services/onboarding";
 
 export async function POST(request: Request) {
   return handle(async () => {
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
     }
 
     const token = await createSessionToken(user.username);
-    const response = NextResponse.json({ ok: true });
+    const onboardingComplete = await getOnboardingStatus();
+    const response = NextResponse.json({ ok: true, onboardingComplete });
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",

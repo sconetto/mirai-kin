@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "@/i18n/navigation";
+import { postLoginPath } from "@/lib/onboarding";
 
 export function LoginForm() {
   const t = useTranslations("login");
@@ -30,7 +31,8 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/");
+      const data = (await response.json()) as { onboardingComplete?: boolean };
+      router.push(postLoginPath(data.onboardingComplete !== false));
       router.refresh();
     } catch {
       setError(t("error"));

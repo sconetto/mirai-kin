@@ -69,6 +69,49 @@
     "submit": "Entrar",
     "error": "Usuário ou senha inválidos"
   },
+  "onboarding": {
+    "eyebrow": "Primeiro acesso",
+    "title": "Configure seu plano",
+    "subtitle": "Uma configuração guiada para moeda, primeira importação, primeira meta e como o mirai-kin funciona.",
+    "stepCurrency": "Moeda",
+    "stepImport": "Importação",
+    "stepGoal": "Meta",
+    "stepExplanation": "Como funciona",
+    "baseCurrency": "Moeda base",
+    "continue": "Continuar",
+    "skip": "Pular configuração",
+    "finish": "Ir para o painel",
+    "progress": "Etapa {current} de {total}",
+    "currencyError": "Use um código de moeda de 3 letras.",
+    "importDetected": "Transações importadas encontradas. Você pode continuar.",
+    "importHint": "Importe um arquivo CSV, OFX ou de corretora, ou continue e faça isso depois.",
+    "openImport": "Abrir importação",
+    "goalDetected": "Uma meta já existe. Você pode continuar.",
+    "goalHint": "Crie uma meta de poupança, compra, quitação de dívida ou renda, ou continue e faça isso depois.",
+    "openPlanner": "Abrir planejador",
+    "planFirstTitle": "Plano primeiro",
+    "planFirstBody": "O painel começa com seu plano de longo prazo e metas, depois mostra o detalhe mensal.",
+    "importOnlyTitle": "Importado, nunca criado",
+    "importOnlyBody": "As transações são sempre importadas para o mirai-kin. Este app não cria transações.",
+    "step": {
+      "currency": {
+        "title": "Escolha sua moeda base",
+        "body": "É a moeda usada para totais, relatórios e projeções do plano."
+      },
+      "import": {
+        "title": "Traga suas transações",
+        "body": "Importe do seu banco ou corretora. Você pode pular e importar depois."
+      },
+      "goal": {
+        "title": "Crie sua primeira meta",
+        "body": "Comece com uma meta de poupança, compra, quitação de dívida ou renda. Você pode pular e adicionar depois."
+      },
+      "explanation": {
+        "title": "Como o mirai-kin funciona",
+        "body": "Um painel com o plano em primeiro lugar, construído sobre dados importados."
+      }
+    }
+  },
   "dashboard": {
     "title": "Visão geral",
     "subtitle": "Estou no caminho das minhas metas de longo prazo?",
@@ -730,6 +773,9 @@
     "configured": "Configurado",
     "notConfigured": "Não configurado",
     "saved": "Configurações salvas.",
+    "revisitOnboarding": "Primeiro acesso",
+    "revisitOnboardingHint": "Execute novamente o fluxo guiado sem alterar seus dados.",
+    "revisitOnboardingAction": "Revisitar configuração",
     "backupHistory": "Histórico de backups",
     "backupNow": "Fazer backup agora",
     "downloadExport": "Baixar exportação completa",

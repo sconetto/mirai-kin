@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getBaseCurrency, SettingsValidationError, updateSettings } from "@/services/settings";
+import { markOnboardingComplete, resetOnboarding } from "@/services/onboarding";
 import {
   accountUpdateSchema,
   budgetCreateSchema,
@@ -70,6 +71,32 @@ function localeOf(formData: FormData): string {
 }
 
 const SETTINGS_SECTIONS = ["general", "localization", "appearance", "fx", "assistant", "data"] as const;
+
+export async function saveOnboardingCurrencyAction(formData: FormData) {
+  const locale = localeOf(formData);
+  try {
+    await updateSettings({ baseCurrency: field(formData, "baseCurrency") ?? "" });
+  } catch (error) {
+    if (error instanceof SettingsValidationError) {
+      redirect(`/${locale}/onboarding?step=currency&error=validation`);
+    }
+    throw error;
+  }
+  redirect(`/${locale}/onboarding?step=import`);
+}
+
+export async function completeOnboardingAction(formData: FormData) {
+  const locale = localeOf(formData);
+  await markOnboardingComplete();
+  revalidatePath(`/${locale}`);
+  redirect(`/${locale}`);
+}
+
+export async function revisitOnboardingAction(formData: FormData) {
+  const locale = localeOf(formData);
+  await resetOnboarding();
+  redirect(`/${locale}/onboarding?step=currency`);
+}
 
 export async function saveSettingsAction(formData: FormData) {
   const locale = localeOf(formData);
