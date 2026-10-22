@@ -922,7 +922,12 @@
     "new": "New rule",
     "name": "Name",
     "priority": "Priority",
-    "counterparty": "Counterparty contains",
+    "counterparty": "Counterparty",
+    "operator": "Operator",
+    "contains": "Contains",
+    "equals": "Equals",
+    "regex": "Regex",
+    "note": "Note contains",
     "noCategory": "No category",
     "amountMin": "Amount min",
     "amountMax": "Amount max",
@@ -937,6 +942,14 @@
     "noMatches": "No matches in the preview window",
     "rules": "Rules",
     "condition": "Condition",
-    "empty": "No rules yet"
+    "empty": "No rules yet",
+    "previewAction": "Preview",
+    "previewRule": "Preview: {name}",
+    "allRules": "Preview all rules",
+    "runHistory": "Run history",
+    "noRuns": "No rule runs yet",
+    "runDate": "Run date",
+    "runMatched": "Matched",
+    "runUpdated": "Updated"
   }
 }

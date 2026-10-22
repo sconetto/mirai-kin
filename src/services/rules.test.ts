@@ -2,10 +2,17 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { accounts, categories, transactions } from "@/db/schema";
+import { accounts, categories, ruleRuns, transactions } from "@/db/schema";
 import type { TransactionRule } from "@/db/schema";
 import { createAccount } from "./accounts";
-import { applyRules, createRule, deleteRule, firstMatch, previewRules } from "./rules";
+import {
+  applyRules,
+  compileSafeRegex,
+  createRule,
+  deleteRule,
+  firstMatch,
+  previewRules,
+} from "./rules";
 
 describe("rule matching", () => {
   const rules = [
@@ -42,6 +49,25 @@ describe("rule matching", () => {
       rules,
     );
     expect(match).toBeNull();
+  });
+
+  it("supports bounded regex conditions", () => {
+    const regexRule = {
+      id: "regex",
+      name: "Regex",
+      priority: 1,
+      enabled: true,
+      conditions: { counterparty: { operator: "regex", value: "^market\\s+[0-9]+$" } },
+      actions: { categoryId: "regex-cat" },
+    } as unknown as TransactionRule;
+    expect(
+      firstMatch(
+        { accountId: "account", amount: "-10", counterparty: "Market 42" },
+        [regexRule],
+      )?.actions.categoryId,
+    ).toBe("regex-cat");
+    expect(compileSafeRegex("(a+)+$")).toBeNull();
+    expect(compileSafeRegex("a".repeat(200))).toBeNull();
   });
 });
 
@@ -110,5 +136,13 @@ describe.skipIf(!process.env.DATABASE_URL)("rules (database)", () => {
     expect(row.appliedRuleId).toBe(ruleId);
     expect(row.reviewStatus).toBe("reviewed");
     expect(row.categoryId).toBeTruthy();
+
+    const [run] = await db
+      .select()
+      .from(ruleRuns)
+      .where(eq(ruleRuns.ruleId, ruleId))
+      .limit(1);
+    expect(run?.matched).toBeGreaterThanOrEqual(1);
+    expect(run?.updated).toBeGreaterThanOrEqual(1);
   });
 });

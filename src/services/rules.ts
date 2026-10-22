@@ -1,11 +1,13 @@
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { transactionRules, transactions } from "@/db/schema";
+import { ruleRuns, transactionRules, transactions } from "@/db/schema";
 import type { TransactionRule } from "@/db/schema";
 
+export type RuleTextOperator = "contains" | "equals" | "regex";
+
 export type RuleConditions = {
-  counterparty?: { operator: "contains" | "equals"; value: string };
-  note?: { operator: "contains" | "equals"; value: string };
+  counterparty?: { operator: RuleTextOperator; value: string };
+  note?: { operator: RuleTextOperator; value: string };
   amountMin?: number;
   amountMax?: number;
   accountId?: string;
@@ -35,14 +37,30 @@ export type RuleMatch = {
   actions: RuleActions;
 };
 
+export function compileSafeRegex(pattern: string): RegExp | null {
+  if (!pattern || pattern.length > 120) return null;
+  // Reject nested quantified groups, a common catastrophic-backtracking shape.
+  if (/\([^)]*[+*][^)]*\)[+*]/.test(pattern)) return null;
+  try {
+    return new RegExp(pattern, "i");
+  } catch {
+    return null;
+  }
+}
+
 function textMatches(
   actual: string | null | undefined,
-  condition: { operator: "contains" | "equals"; value: string } | undefined,
+  condition: { operator: RuleTextOperator; value: string } | undefined,
 ): boolean {
   if (!condition?.value) return true;
   const value = (actual ?? "").toLowerCase();
   const target = condition.value.toLowerCase();
-  return condition.operator === "equals" ? value === target : value.includes(target);
+  if (condition.operator === "equals") return value === target;
+  if (condition.operator === "regex") {
+    const regex = compileSafeRegex(condition.value);
+    return regex ? regex.test(actual ?? "") : false;
+  }
+  return value.includes(target);
 }
 
 export function matchRule(draft: RuleDraft, rule: TransactionRule): boolean {
@@ -140,6 +158,25 @@ export async function deleteRule(id: string) {
   return row ?? null;
 }
 
+export async function listRuleRuns(limit = 20) {
+  const db = getDb();
+  return db
+    .select({
+      id: ruleRuns.id,
+      ruleId: ruleRuns.ruleId,
+      ruleName: transactionRules.name,
+      fromDate: ruleRuns.fromDate,
+      toDate: ruleRuns.toDate,
+      matched: ruleRuns.matched,
+      updated: ruleRuns.updated,
+      createdAt: ruleRuns.createdAt,
+    })
+    .from(ruleRuns)
+    .innerJoin(transactionRules, eq(ruleRuns.ruleId, transactionRules.id))
+    .orderBy(desc(ruleRuns.createdAt))
+    .limit(limit);
+}
+
 async function candidateTransactions(input: {
   from: string;
   to: string;
@@ -215,6 +252,7 @@ export async function applyRules(input: {
   const rows = await candidateTransactions(input);
   const db = getDb();
   let updated = 0;
+  const stats = new Map<string, { matched: number; updated: number }>();
 
   for (const row of rows) {
     const match = firstMatch(
@@ -230,6 +268,9 @@ export async function applyRules(input: {
     );
     if (!match) continue;
 
+    const stat = stats.get(match.ruleId) ?? { matched: 0, updated: 0 };
+    stat.matched += 1;
+    stats.set(match.ruleId, stat);
     const actions = match.actions;
     const labelIds = [...new Set([...(row.labelIds ?? []), ...(actions.labelIds ?? [])])];
 
@@ -244,7 +285,20 @@ export async function applyRules(input: {
         updatedAt: new Date(),
       })
       .where(eq(transactions.id, row.id));
+    stat.updated += 1;
     updated += 1;
+  }
+
+  if (stats.size > 0) {
+    await db.insert(ruleRuns).values(
+      [...stats.entries()].map(([ruleId, stat]) => ({
+        ruleId,
+        fromDate: input.from.slice(0, 10),
+        toDate: input.to.slice(0, 10),
+        matched: stat.matched,
+        updated: stat.updated,
+      })),
+    );
   }
 
   return { matched: updated, updated };

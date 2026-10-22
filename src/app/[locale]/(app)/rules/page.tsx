@@ -6,14 +6,22 @@ import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { localizedCategoryCompare, localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { Link } from "@/i18n/navigation";
 import { listCategories } from "@/services/categories";
-import { listRules, previewRules } from "@/services/rules";
+import { listRuleRuns, listRules, previewRules } from "@/services/rules";
 import type { RuleActions, RuleConditions } from "@/services/rules";
 import { getToday } from "@/services/settings";
 import { applyRulesAction, createRuleAction, deleteRuleAction } from "../actions";
 
-export default async function RulesPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function RulesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ ruleId?: string }>;
+}) {
   const { locale } = await params;
+  const search = await searchParams;
   setRequestLocale(locale);
 
   const t = await getTranslations("rules");
@@ -30,7 +38,9 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
   const from = new Date(new Date(`${today}T00:00:00.000Z`).getTime() - 90 * 86_400_000)
     .toISOString()
     .slice(0, 10);
-  const preview = await previewRules({ from, to: today });
+  const preview = await previewRules({ from, to: today, ruleId: search.ruleId });
+  const runs = await listRuleRuns();
+  const selectedRule = rules.find((rule) => rule.id === search.ruleId);
 
   return (
     <div className="space-y-6">
@@ -46,6 +56,12 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
             <Input name="name" placeholder={t("name")} required />
             <Input name="priority" type="number" min={1} defaultValue={100} aria-label={t("priority")} />
             <Input name="counterparty" placeholder={t("counterparty")} />
+            <Select name="counterpartyOperator" defaultValue="contains" aria-label={t("operator")}>
+              <option value="contains">{t("contains")}</option>
+              <option value="equals">{t("equals")}</option>
+              <option value="regex">{t("regex")}</option>
+            </Select>
+            <Input name="note" placeholder={t("note")} />
             <Select name="categoryId" defaultValue="">
               <option value="">{t("noCategory")}</option>
               {categories.map((category) => (
@@ -73,7 +89,14 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("preview")}</CardTitle>
+          <CardTitle>
+            {selectedRule ? t("previewRule", { name: selectedRule.name }) : t("preview")}
+          </CardTitle>
+          {selectedRule ? (
+            <Link href="/rules" className="mt-1 inline-block text-xs text-accent hover:underline">
+              {t("allRules")}
+            </Link>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-ink-2">
@@ -83,6 +106,7 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="from" value={from} />
             <input type="hidden" name="to" value={today} />
+            <input type="hidden" name="ruleId" value={search.ruleId ?? ""} />
             <Button type="submit" disabled={preview.matched === 0}>
               {t("apply")}
             </Button>
@@ -172,7 +196,13 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
                             : "—"}
                         </td>
                         <td className="py-2.5 text-right">
-                          <form action={deleteRuleAction}>
+                          <Link
+                            href={`/rules?ruleId=${rule.id}`}
+                            className="mr-3 text-xs font-medium text-accent hover:underline"
+                          >
+                            {t("previewAction")}
+                          </Link>
+                          <form action={deleteRuleAction} className="inline">
                             <input type="hidden" name="locale" value={locale} />
                             <input type="hidden" name="id" value={rule.id} />
                             <Button type="submit" size="sm" variant="ghost">
@@ -183,6 +213,42 @@ export default async function RulesPage({ params }: { params: Promise<{ locale: 
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("runHistory")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {runs.length === 0 ? (
+            <p className="py-6 text-center text-sm text-ink-3">{t("noRuns")}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-ink-3">
+                    <th className="pb-3 pr-4">{t("rule")}</th>
+                    <th className="pb-3 pr-4">{t("runDate")}</th>
+                    <th className="pb-3 pr-4 text-right">{t("runMatched")}</th>
+                    <th className="pb-3 text-right">{t("runUpdated")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/70">
+                  {runs.map((run) => (
+                    <tr key={run.id}>
+                      <td className="py-2 pr-4 text-ink-2">{run.ruleName}</td>
+                      <td className="py-2 pr-4 text-ink-3">
+                        {formatDate(run.createdAt.toISOString(), locale)}
+                      </td>
+                      <td className="py-2 pr-4 text-right text-ink-2">{run.matched}</td>
+                      <td className="py-2 text-right text-ink-2">{run.updated}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

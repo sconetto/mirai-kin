@@ -266,6 +266,22 @@ export const transactionRules = pgTable("transaction_rules", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ruleRuns = pgTable(
+  "rule_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => transactionRules.id, { onDelete: "cascade" }),
+    fromDate: date("from_date").notNull(),
+    toDate: date("to_date").notNull(),
+    matched: integer("matched").notNull().default(0),
+    updated: integer("updated").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rule_runs_rule_idx").on(t.ruleId, t.createdAt)],
+);
+
 export const transactions = pgTable(
   "transactions",
   {

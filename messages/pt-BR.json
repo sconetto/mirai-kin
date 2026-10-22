@@ -922,7 +922,12 @@
     "new": "Nova regra",
     "name": "Nome",
     "priority": "Prioridade",
-    "counterparty": "Contraparte contém",
+    "counterparty": "Contraparte",
+    "operator": "Operador",
+    "contains": "Contém",
+    "equals": "Igual a",
+    "regex": "Regex",
+    "note": "Nota contém",
     "noCategory": "Sem categoria",
     "amountMin": "Valor mínimo",
     "amountMax": "Valor máximo",
@@ -937,6 +942,14 @@
     "noMatches": "Nenhuma correspondência na janela de prévia",
     "rules": "Regras",
     "condition": "Condição",
-    "empty": "Nenhuma regra ainda"
+    "empty": "Nenhuma regra ainda",
+    "previewAction": "Prévia",
+    "previewRule": "Prévia: {name}",
+    "allRules": "Prévia de todas as regras",
+    "runHistory": "Histórico de execuções",
+    "noRuns": "Nenhuma execução de regra ainda",
+    "runDate": "Data da execução",
+    "runMatched": "Correspondências",
+    "runUpdated": "Atualizadas"
   }
 }

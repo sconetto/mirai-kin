@@ -53,7 +53,7 @@ import { bulkRecategorize, createTransaction, markReviewed } from "@/services/tr
 import { pairTransactions, unpairTransfer } from "@/services/transfers";
 import { reconcileAccount, setOpeningBalance } from "@/services/reconciliation";
 import { applyRules, createRule, deleteRule } from "@/services/rules";
-import type { RuleActions, RuleConditions } from "@/services/rules";
+import type { RuleActions, RuleConditions, RuleTextOperator } from "@/services/rules";
 import {
   confirmDetection,
   ignoreDetection,
@@ -244,7 +244,17 @@ export async function createRuleAction(formData: FormData) {
 
   const conditions: RuleConditions = {};
   const counterparty = field(formData, "counterparty");
-  if (counterparty) conditions.counterparty = { operator: "contains", value: counterparty };
+  const operator = field(formData, "counterpartyOperator");
+  if (counterparty) {
+    conditions.counterparty = {
+      operator: (["contains", "equals", "regex"].includes(operator ?? "")
+        ? operator
+        : "contains") as RuleTextOperator,
+      value: counterparty,
+    };
+  }
+  const note = field(formData, "note");
+  if (note) conditions.note = { operator: "contains", value: note };
   const amountMin = field(formData, "amountMin");
   const amountMax = field(formData, "amountMax");
   if (amountMin) conditions.amountMin = Number(amountMin);
@@ -278,8 +288,9 @@ export async function applyRulesAction(formData: FormData) {
   const locale = localeOf(formData);
   const from = field(formData, "from");
   const to = field(formData, "to");
+  const ruleId = field(formData, "ruleId");
   if (from && to) {
-    await applyRules({ from, to });
+    await applyRules({ from, to, ...(ruleId ? { ruleId } : {}) });
   }
   revalidatePath(`/${locale}/rules`);
   revalidatePath(`/${locale}/spending/transactions`);
