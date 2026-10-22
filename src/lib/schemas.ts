@@ -7,6 +7,7 @@ import {
   BUDGET_PERIODS,
   CATEGORY_TYPES,
   DEBT_TYPES,
+  ENTITY_KINDS,
   GOAL_FUNDING_MODES,
   GOAL_TYPES,
   IMPORT_SOURCES,
@@ -187,6 +188,27 @@ export const goalCreateSchema = z.object({
 
 export const goalUpdateSchema = goalCreateSchema.partial();
 
+export const entityCreateSchema = z.object({
+  kind: z.enum(ENTITY_KINDS),
+  name: z.string().min(1),
+  currency: currencyCode,
+  accountId: z.uuid().nullish(),
+  value: decimal.nullish(),
+  balance: decimal.nullish(),
+  amount: decimal.nullish(),
+  interestRate: decimal.nullish(),
+  termMonths: z.coerce.number().int().min(1).max(600).nullish(),
+  monthlyPayment: decimal.nullish(),
+  startDate: isoDate.nullish(),
+  dueDay: z.coerce.number().int().min(1).max(31).nullish(),
+  frequency: z.enum(RECURRENCE_FREQUENCIES).nullish(),
+  nextDueDate: isoDate.nullish(),
+  appreciationRate: decimal.nullish(),
+  notes: z.string().nullish(),
+});
+
+export const entityUpdateSchema = entityCreateSchema.partial();
+
 export const scenarioAssumptionsSchema = z.object({
   expectedReturn: z.number().min(-0.99).max(1).optional(),
   inflation: z.number().min(-0.5).max(1).optional(),
@@ -279,6 +301,8 @@ export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
 export type GoalAllocationInput = z.infer<typeof goalAllocationInputSchema>;
 export type GoalCreateInput = z.infer<typeof goalCreateSchema>;
 export type GoalUpdateInput = z.infer<typeof goalUpdateSchema>;
+export type EntityCreateInput = z.infer<typeof entityCreateSchema>;
+export type EntityUpdateInput = z.infer<typeof entityUpdateSchema>;
 export type ScenarioAssumptionsInput = z.infer<typeof scenarioAssumptionsSchema>;
 export type ScenarioCreateInput = z.infer<typeof scenarioCreateSchema>;
 export type ScenarioUpdateInput = z.infer<typeof scenarioUpdateSchema>;

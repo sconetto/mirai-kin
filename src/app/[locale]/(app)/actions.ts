@@ -9,6 +9,8 @@ import {
   accountUpdateSchema,
   budgetCreateSchema,
   debtCreateSchema,
+  entityCreateSchema,
+  entityUpdateSchema,
   goalCreateSchema,
   goalUpdateSchema,
   investmentPositionCreateSchema,
@@ -20,6 +22,7 @@ import { updateAccount } from "@/services/accounts";
 import { createBudget } from "@/services/budgets";
 import { importCsv } from "@/services/csv";
 import { createDebt } from "@/services/debts";
+import { createEntity, deleteEntity, updateEntity } from "@/services/entities";
 import { createBeneficiary, createDocument, updateDocumentStatus } from "@/services/estate";
 import { recordSnapshot } from "@/services/equity";
 import { createGoal, deleteGoal, GoalValidationError, updateGoal } from "@/services/planner";
@@ -725,6 +728,62 @@ export async function deleteGoalAction(formData: FormData) {
   const id = field(formData, "id");
   if (id) await deleteGoal(id);
   revalidatePath(`/${locale}/planner`);
+}
+
+function entityFormValues(formData: FormData) {
+  const interestRate = field(formData, "interestRatePct");
+  const appreciationRate = field(formData, "appreciationRatePct");
+  return {
+    kind: field(formData, "kind") ?? "loan",
+    name: field(formData, "name") ?? "",
+    currency: field(formData, "currency") ?? "",
+    accountId: field(formData, "accountId") ?? null,
+    value: field(formData, "value") ?? null,
+    balance: field(formData, "balance") ?? null,
+    amount: field(formData, "amount") ?? null,
+    interestRate: interestRate ? Number(interestRate) / 100 : null,
+    termMonths: field(formData, "termMonths") ?? null,
+    monthlyPayment: field(formData, "monthlyPayment") ?? null,
+    startDate: field(formData, "startDate") ?? null,
+    dueDay: field(formData, "dueDay") ?? null,
+    frequency: field(formData, "frequency") ?? null,
+    nextDueDate: field(formData, "nextDueDate") ?? null,
+    appreciationRate: appreciationRate ? Number(appreciationRate) / 100 : null,
+    notes: field(formData, "notes") ?? null,
+  };
+}
+
+export async function createEntityAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const parsed = entityCreateSchema.safeParse(entityFormValues(formData));
+  if (!parsed.success) {
+    redirect(`/${locale}/entities?error=validation`);
+  }
+  const entity = await createEntity(parsed.data);
+  revalidatePath(`/${locale}/entities`);
+  redirect(`/${locale}/entities?kind=${entity.kind}`);
+}
+
+export async function updateEntityAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  const parsed = entityUpdateSchema.safeParse(entityFormValues(formData));
+  if (!parsed.success) {
+    redirect(`/${locale}/entities?error=validation`);
+  }
+  const entity = await updateEntity(id, parsed.data);
+  revalidatePath(`/${locale}/entities`);
+  redirect(`/${locale}/entities?kind=${entity?.kind ?? parsed.data.kind ?? "loan"}`);
+}
+
+export async function deleteEntityAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (!id) return;
+  await deleteEntity(id);
+  revalidatePath(`/${locale}/entities`);
+  redirect(`/${locale}/entities`);
 }
 
 export async function createBeneficiaryAction(formData: FormData) {

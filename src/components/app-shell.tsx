@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  Boxes,
   Briefcase,
   ChartLine,
   House,
@@ -59,6 +60,7 @@ const SECTIONS: NavSection[] = [
       { href: "/brokerage", key: "nav.brokerage", icon: Briefcase },
       { href: "/tax", key: "nav.tax", icon: Receipt },
       { href: "/planner", key: "nav.planner", icon: Target },
+      { href: "/entities", key: "nav.entities", icon: Boxes },
       { href: "/estate", key: "nav.estate", icon: Landmark },
       { href: "/rules", key: "nav.rules", icon: Wand2 },
       { href: "/reconciliation", key: "nav.reconciliation", icon: RefreshCw },

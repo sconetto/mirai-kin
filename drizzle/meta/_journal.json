@@ -85,6 +85,13 @@
       "when": 1792616804272,
       "tag": "0011_lying_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792698386345,
+      "tag": "0012_mysterious_katie_power",
+      "breakpoints": true
     }
   ]
 }

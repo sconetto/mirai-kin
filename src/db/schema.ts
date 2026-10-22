@@ -90,6 +90,16 @@ export type GoalType = (typeof GOAL_TYPES)[number];
 export const GOAL_FUNDING_MODES = ["accounts", "manual"] as const;
 export type GoalFundingMode = (typeof GOAL_FUNDING_MODES)[number];
 
+export const ENTITY_KINDS = [
+  "loan",
+  "property",
+  "vehicle",
+  "credit_card",
+  "subscription",
+  "bill",
+] as const;
+export type EntityKind = (typeof ENTITY_KINDS)[number];
+
 export const TAX_TREATMENTS = ["none", "deductible", "income", "capital_gain", "dividend"] as const;
 export type TaxTreatment = (typeof TAX_TREATMENTS)[number];
 
@@ -589,6 +599,32 @@ export const goalAllocations = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("goal_allocations_goal_account_idx").on(t.goalId, t.accountId)],
+);
+
+export const entities = pgTable(
+  "entities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").$type<EntityKind>().notNull(),
+    name: text("name").notNull(),
+    currency: text("currency").notNull(),
+    accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
+    value: money("value"),
+    balance: money("balance"),
+    amount: money("amount"),
+    interestRate: rate("interest_rate"),
+    termMonths: integer("term_months"),
+    monthlyPayment: money("monthly_payment"),
+    startDate: date("start_date"),
+    dueDay: integer("due_day"),
+    frequency: text("frequency").$type<RecurrenceFrequency>(),
+    nextDueDate: date("next_due_date"),
+    appreciationRate: rate("appreciation_rate"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("entities_kind_idx").on(t.kind)],
 );
 
 export const scenarios = pgTable("scenarios", {
