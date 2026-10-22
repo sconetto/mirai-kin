@@ -17,6 +17,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
+    "tokens:build": "tsx scripts/build-tokens.ts",
     "api:types": "curl -s http://localhost:3100/api/v1/openapi.json -o /tmp/openapi.json && openapi-typescript /tmp/openapi.json -o src/lib/api-types.ts",
     "test": "vitest run",
     "test:watch": "vitest",

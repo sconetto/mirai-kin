@@ -1,0 +1,155 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$version": "1.0.0",
+  "$description": "Mirai Kin design tokens. Edit this file and run `pnpm tokens:build`.",
+  "paper": {
+    "$value": "#f6f7f9",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#0b1220" }
+  },
+  "subtle": {
+    "$value": "#f1f3f5",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#111a2c" }
+  },
+  "surface": {
+    "$value": "#ffffff",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#151f33" }
+  },
+  "ink": {
+    "$value": "#101828",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#f8fafc" }
+  },
+  "ink-2": {
+    "$value": "#344054",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#d1d9e6" }
+  },
+  "ink-3": {
+    "$value": "#475467",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#93a1b5" }
+  },
+  "line": {
+    "$value": "#d0d5dd",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#263449" }
+  },
+  "accent": {
+    "$value": "#0b6b5d",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#2dd4bf" }
+  },
+  "accent-strong": {
+    "$value": "#075247",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#5eead4" }
+  },
+  "accent-soft": {
+    "$value": "#e6f2ef",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#0d2f2c" }
+  },
+  "positive": {
+    "$value": "#067647",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#6ce9a6" }
+  },
+  "negative": {
+    "$value": "#b42318",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#fda29b" }
+  },
+  "warning": {
+    "$value": "#b54708",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#fdb022" }
+  },
+  "on-accent": {
+    "$value": "#ffffff",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#042f2e" }
+  },
+  "on-negative": {
+    "$value": "#ffffff",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#2b0b0b" }
+  },
+  "strong": {
+    "$value": "#101828",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#050a13" }
+  },
+  "on-strong": {
+    "$value": "#ffffff",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#ffffff" }
+  },
+  "warning-soft": {
+    "$value": "#fffaeb",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#2b1d0a" }
+  },
+  "negative-soft": {
+    "$value": "#fef3f2",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#2b1515" }
+  },
+  "positive-soft": {
+    "$value": "#ecfdf3",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#0d2b1c" }
+  },
+  "chart-1": {
+    "$value": "#0b6b5d",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#2dd4bf" }
+  },
+  "chart-2": {
+    "$value": "#3b82f6",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#60a5fa" }
+  },
+  "chart-3": {
+    "$value": "#8b5cf6",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#a78bfa" }
+  },
+  "chart-4": {
+    "$value": "#f59e0b",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#fbbf24" }
+  },
+  "chart-5": {
+    "$value": "#ec4899",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#f472b6" }
+  },
+  "chart-6": {
+    "$value": "#14b8a6",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#5eead4" }
+  },
+  "chart-7": {
+    "$value": "#f97316",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#fb923c" }
+  },
+  "chart-8": {
+    "$value": "#6366f1",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#818cf8" }
+  },
+  "chart-9": {
+    "$value": "#84cc16",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#a3e635" }
+  },
+  "chart-10": {
+    "$value": "#ef4444",
+    "$type": "color",
+    "$extensions": { "mirai.dark": "#f87171" }
+  }
+}
