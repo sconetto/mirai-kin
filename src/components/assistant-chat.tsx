@@ -2,15 +2,33 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+export type AssistantChatCitation = {
+  type: string;
+  id: string;
+  label: string;
+  href: string | null;
+};
+
+export type AssistantChatToolCall = {
+  id: string;
+  toolName: string;
+  inputSummary: unknown;
+  outputSummary: unknown;
+  error: string | null;
+  citations: AssistantChatCitation[];
+  createdAt: string;
+};
 
 export type AssistantChatMessage = {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   createdAt: string;
+  toolCalls?: AssistantChatToolCall[];
 };
 
 export type AssistantChatAction = {
@@ -119,6 +137,7 @@ export function AssistantChat({
         );
       }
       router.refresh();
+      window.setTimeout(() => router.refresh(), 800);
     } catch {
       setError(t("error"));
       setMessages((current) => current.filter((message) => message.id !== assistantId));
@@ -189,6 +208,58 @@ export function AssistantChat({
               >
                 {message.content || (busy && !isUser ? t("thinking") : "")}
               </div>
+
+              {!isUser && message.toolCalls && message.toolCalls.length > 0 ? (
+                <details className="w-full max-w-[85%] rounded-lg border border-line/70 bg-surface px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-medium text-ink-2">
+                    {t("toolCalls", { count: message.toolCalls.length })}
+                  </summary>
+                  <div className="mt-2 space-y-3">
+                    {message.toolCalls.map((call) => (
+                      <div key={call.id} className="rounded-md border border-line/60 bg-paper p-2.5">
+                        <p className="text-xs font-semibold text-ink">
+                          {call.toolName.replaceAll("_", " ")}
+                        </p>
+                        {call.citations.length > 0 ? (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                            <span className="text-ink-3">{t("citedSources")}</span>
+                            {call.citations.map((citation) =>
+                              citation.href ? (
+                                <Link
+                                  key={`${citation.type}-${citation.id}`}
+                                  href={citation.href}
+                                  className="font-medium text-accent hover:underline"
+                                >
+                                  {citation.label}
+                                </Link>
+                              ) : (
+                                <span key={`${citation.type}-${citation.id}`} className="text-ink-2">
+                                  {citation.label}
+                                </span>
+                              ),
+                            )}
+                          </div>
+                        ) : null}
+                        {call.error ? (
+                          <p className="mt-1.5 text-xs text-negative">{call.error}</p>
+                        ) : null}
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-[11px] font-medium text-ink-3">
+                            {t("toolDetails")}
+                          </summary>
+                          <pre className="mt-1.5 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-paper p-2 text-[11px] text-ink-2">
+                            {JSON.stringify(
+                              { input: call.inputSummary, output: call.outputSummary },
+                              null,
+                              2,
+                            )}
+                          </pre>
+                        </details>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
             </div>
           );
         })}

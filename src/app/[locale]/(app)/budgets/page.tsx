@@ -72,7 +72,7 @@ export default async function BudgetsPage({ params }: { params: Promise<{ locale
                 </thead>
                 <tbody className="divide-y divide-line/70">
                   {budgets.map((budget) => (
-                    <tr key={budget.id}>
+                    <tr key={budget.id} id={`budget-${budget.id}`}>
                       <td className="py-2 font-medium">{budget.name}</td>
                       <td className="py-2 text-ink-2">
                         {formatDate(budget.startDate, locale)} · {te(`period.${budget.periodType}`)}

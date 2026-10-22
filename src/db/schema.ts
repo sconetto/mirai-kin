@@ -725,6 +725,22 @@ export const assistantMessages = pgTable("assistant_messages", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ASSISTANT_CITATION_TYPES = [
+  "account",
+  "transaction",
+  "goal",
+  "report",
+  "budget",
+  "category",
+] as const;
+export type AssistantCitationType = (typeof ASSISTANT_CITATION_TYPES)[number];
+
+export type AssistantCitation = {
+  type: AssistantCitationType;
+  id: string;
+  label: string;
+};
+
 export const ASSISTANT_ACTION_STATUSES = ["pending", "confirmed", "cancelled"] as const;
 export type AssistantActionStatus = (typeof ASSISTANT_ACTION_STATUSES)[number];
 
@@ -739,6 +755,36 @@ export const assistantActions = pgTable("assistant_actions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
+
+export const assistantToolCalls = pgTable(
+  "assistant_tool_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => assistantMessages.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => assistantConversations.id, { onDelete: "cascade" }),
+    toolCallId: text("tool_call_id").notNull(),
+    toolName: text("tool_name").notNull(),
+    inputSummary: jsonb("input_summary")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    outputSummary: jsonb("output_summary").$type<unknown>(),
+    error: text("error"),
+    citations: jsonb("citations")
+      .$type<AssistantCitation[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("assistant_tool_calls_message_idx").on(t.messageId),
+    index("assistant_tool_calls_conversation_idx").on(t.conversationId, t.createdAt),
+  ],
+);
 
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
@@ -759,6 +805,7 @@ export type User = typeof users.$inferSelect;
 export type AssistantConversation = typeof assistantConversations.$inferSelect;
 export type AssistantMessage = typeof assistantMessages.$inferSelect;
 export type AssistantAction = typeof assistantActions.$inferSelect;
+export type AssistantToolCall = typeof assistantToolCalls.$inferSelect;
 export type AccountReconciliation = typeof accountReconciliations.$inferSelect;
 export type TransactionRule = typeof transactionRules.$inferSelect;
 export type RecurringDetection = typeof recurringDetections.$inferSelect;

@@ -341,7 +341,7 @@ export default async function PlannerPage({
       ) : (
         <div className="grid gap-4">
           {planner.goals.map((goal) => (
-            <Card key={goal.id}>
+            <Card key={goal.id} id={`goal-${goal.id}`}>
               <CardHeader className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <CardTitle>{goal.name}</CardTitle>

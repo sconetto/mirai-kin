@@ -7,12 +7,14 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Link } from "@/i18n/navigation";
 import { resolveAssistantConfig } from "@/services/settings";
 import { formatDate } from "@/lib/format";
+import { resolveCitations } from "@/lib/assistant-citations";
 import {
   getConversation,
   listActions,
   listConversations,
   listMessages,
 } from "@/services/assistant";
+import { listToolCallsForMessages } from "@/services/assistant/audit";
 
 type Search = { c?: string };
 
@@ -35,7 +37,20 @@ export default async function AssistantPage({
   if (!config) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("title")} subtitle={t("subtitle")} />
+        <PageHeader title={t("title")} subtitle={t("subtitle")}>
+          <Link
+            href="/assistant/activity"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+          >
+            {t("activity")}
+          </Link>
+          <Link
+            href="/settings?section=assistant"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+          >
+            {t("manage")}
+          </Link>
+        </PageHeader>
         <Card>
           <CardHeader>
             <CardTitle>{t("disabledTitle")}</CardTitle>
@@ -69,6 +84,15 @@ ASSISTANT_API_KEY=<server-only key, not needed for local models>`}
   const [messages, actions] = selected
     ? await Promise.all([listMessages(selected.id), listActions(selected.id)])
     : [[], []];
+  const toolCalls = selected
+    ? await listToolCallsForMessages(messages.map((message) => message.id))
+    : [];
+  const toolCallsByMessage = new Map<string, typeof toolCalls>();
+  for (const call of toolCalls) {
+    const rows = toolCallsByMessage.get(call.messageId) ?? [];
+    rows.push(call);
+    toolCallsByMessage.set(call.messageId, rows);
+  }
 
   return (
     <div className="space-y-6">
@@ -76,6 +100,18 @@ ASSISTANT_API_KEY=<server-only key, not needed for local models>`}
         <Badge tone="neutral">
           {config.provider} · {config.model}
         </Badge>
+        <Link
+          href="/assistant/activity"
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+        >
+          {t("activity")}
+        </Link>
+        <Link
+          href="/settings?section=assistant"
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
+        >
+          {t("manage")}
+        </Link>
         <Link
           href="/assistant"
           className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-paper"
@@ -119,13 +155,22 @@ ASSISTANT_API_KEY=<server-only key, not needed for local models>`}
 
         <div className="min-w-0 space-y-3">
           <AssistantChat
-            key={selected?.id ?? "new"}
+            key={`${selected?.id ?? "new"}-${messages.length}-${toolCalls.length}`}
             conversationId={selected?.id ?? null}
             initialMessages={messages.map((message) => ({
               id: message.id,
               role: message.role,
               content: message.content,
               createdAt: message.createdAt.toISOString(),
+              toolCalls: (toolCallsByMessage.get(message.id) ?? []).map((call) => ({
+                id: call.id,
+                toolName: call.toolName,
+                inputSummary: call.inputSummary,
+                outputSummary: call.outputSummary,
+                error: call.error,
+                citations: resolveCitations(call.citations),
+                createdAt: call.createdAt.toISOString(),
+              })),
             }))}
             initialActions={actions.map((action) => ({
               id: action.id,

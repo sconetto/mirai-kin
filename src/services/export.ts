@@ -133,7 +133,7 @@ export async function collectExportData() {
       app: "mirai-kin",
       exportedAt: new Date().toISOString(),
       version: 1,
-      note: "Secrets, assistant conversations, and assistant actions are excluded.",
+      note: "Secrets, assistant conversations, messages, actions, and tool calls are excluded.",
       counts: Object.fromEntries(
         Object.entries(domains).map(([key, value]) => [
           key,

@@ -120,7 +120,11 @@ export function TransactionReview({
             </thead>
             <tbody className="divide-y divide-line/70">
               {rows.map((row) => (
-                <tr key={row.id} className="transition-colors hover:bg-paper">
+                <tr
+                  key={row.id}
+                  id={`transaction-${row.id}`}
+                  className="transition-colors hover:bg-paper"
+                >
                   <td className="py-2.5 pr-2">
                     <input
                       type="checkbox"

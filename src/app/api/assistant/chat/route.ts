@@ -11,6 +11,7 @@ import {
 import { getAssistantModel } from "@/services/assistant/provider";
 import { buildAssistantSystemPrompt } from "@/services/assistant/prompt";
 import { buildAssistantTools } from "@/services/assistant/tools";
+import { recordAssistantToolCalls } from "@/services/assistant/audit";
 
 const chatSchema = z.object({
   conversationId: z.uuid().nullish(),
@@ -65,15 +66,41 @@ export async function POST(request: Request) {
       const text =
         event.text.trim() ||
         "I could not produce an answer from the available data. Try a narrower question or check that the data is imported.";
-      const toolCalls = event.steps.flatMap((step) =>
-        step.toolCalls.map((call) => call.toolName),
+      const resultsByCallId = new Map(
+        event.steps
+          .flatMap((step) => step.toolResults)
+          .map((result) => [result.toolCallId, result]),
       );
-      await addMessage({
+      const calls = event.steps.flatMap((step) =>
+        step.toolCalls.map((call) => ({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: call.input,
+          output: resultsByCallId.get(call.toolCallId)?.output,
+          error: call.error,
+        })),
+      );
+      const message = await addMessage({
         conversationId: conversation.id,
         role: "assistant",
         content: text,
-        metadata: { toolCalls: [...new Set(toolCalls)] },
+        metadata: {
+          toolCalls: [...new Set(calls.map((call) => call.toolName))],
+          toolCallCount: calls.length,
+        },
       });
+      try {
+        await recordAssistantToolCalls({
+          messageId: message.id,
+          conversationId: conversation.id,
+          calls,
+        });
+      } catch (error) {
+        console.error(
+          "assistant audit error",
+          error instanceof Error ? error.message : "unknown error",
+        );
+      }
     },
     onError: ({ error }) => {
       console.error(

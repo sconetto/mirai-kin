@@ -6,41 +6,46 @@ import { transactions } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { createEntity, deleteEntity, getEntity, updateEntity } from "./entities";
 
-async function transactionCount(): Promise<number> {
-  const [row] = await getDb()
-    .select({ count: sql<number>`count(*)::int` })
-    .from(transactions);
-  return row?.count ?? 0;
-}
-
 describe.skipIf(!process.env.DATABASE_URL)("entity CRUD", () => {
   afterAll(async () => {
     await closeDb();
   });
 
   it("creates, updates, and deletes an entity without creating transactions", async () => {
-    const before = await transactionCount();
-    const created = await createEntity({
-      kind: "loan",
-      name: `TEST entity ${randomUUID()}`,
-      currency: "BRL",
-      balance: "10000",
-      interestRate: "0.12",
-      termMonths: 12,
-      startDate: "2026-01-01",
-    });
+    // Other test files insert transactions concurrently; a repeatable-read
+    // snapshot keeps this count assertion isolated from that traffic.
+    await getDb().transaction(async (tx) => {
+      await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`);
+      const transactionCount = async () => {
+        const [row] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(transactions);
+        return row?.count ?? 0;
+      };
 
-    try {
-      expect(created.kind).toBe("loan");
-      expect(await getEntity(created.id)).not.toBeNull();
+      const before = await transactionCount();
+      const created = await createEntity({
+        kind: "loan",
+        name: `TEST entity ${randomUUID()}`,
+        currency: "BRL",
+        balance: "10000",
+        interestRate: "0.12",
+        termMonths: 12,
+        startDate: "2026-01-01",
+      });
 
-      const updated = await updateEntity(created.id, { name: "TEST entity updated" });
-      expect(updated?.name).toBe("TEST entity updated");
+      try {
+        expect(created.kind).toBe("loan");
+        expect(await getEntity(created.id)).not.toBeNull();
+
+        const updated = await updateEntity(created.id, { name: "TEST entity updated" });
+        expect(updated?.name).toBe("TEST entity updated");
+        expect(await transactionCount()).toBe(before);
+      } finally {
+        await deleteEntity(created.id);
+      }
+
       expect(await transactionCount()).toBe(before);
-    } finally {
-      await deleteEntity(created.id);
-    }
-
-    expect(await transactionCount()).toBe(before);
+    });
   });
 });

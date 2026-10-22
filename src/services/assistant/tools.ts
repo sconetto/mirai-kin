@@ -55,6 +55,7 @@ export function buildAssistantTools(conversationId: string) {
           netWorth: data.netWorth,
           month: data.month,
           balances: data.balances.map((account) => ({
+            id: account.id,
             name: account.name,
             type: account.type,
             currency: account.currency,
@@ -154,6 +155,9 @@ export function buildAssistantTools(conversationId: string) {
           })
           .slice(0, limit)
           .map((transaction) => ({
+            id: transaction.id,
+            accountId: transaction.accountId,
+            categoryId: transaction.categoryId,
             date: transaction.recordDate.toISOString().slice(0, 10),
             amount: transaction.amount,
             currency: transaction.currency,
@@ -176,6 +180,7 @@ export function buildAssistantTools(conversationId: string) {
       execute: async () => {
         const budgets = await listBudgetsWithSpend();
         return budgets.map((budget) => ({
+          id: budget.id,
           name: budget.name,
           periodType: budget.periodType,
           startDate: budget.startDate,
@@ -231,6 +236,7 @@ export function buildAssistantTools(conversationId: string) {
           essentialMonthly: planner.essentialMonthly,
           runwayMonths: planner.runwayMonths,
           goals: planner.goals.map((goal) => ({
+            id: goal.id,
             name: goal.name,
             type: goal.type,
             targetAmount: goal.target,
@@ -325,6 +331,8 @@ export function buildAssistantTools(conversationId: string) {
 
         return {
           actionId: action.id,
+          accountId: resolvedAccount.account.id,
+          categoryId,
           status: "pending",
           requiresConfirmation: true,
           summary,
