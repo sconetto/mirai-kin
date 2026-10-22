@@ -7,7 +7,7 @@ Track goals, scenarios, required contributions, and emergency runway.
 ## Requirements
 
 ### Requirement: Goals
-The system SHALL manage financial goals with one of four kinds — savings, purchase, debt payoff, or income — with a target amount, optional target date, currency, priority, notes, a funding mode where applicable, planned monthly amount, expected nominal return, inflation assumption, down-payment percentage for purchases, and interest rate for debt.
+The system SHALL manage financial goals with one of four kinds — savings, purchase, debt payoff, or income — with a target amount, optional target date, currency, priority, notes, a funding mode where applicable, planned monthly amount, expected nominal return, inflation assumption, down-payment percentage for purchases, and interest rate for debt. Goals SHALL also support dated pledges and withdrawal detection for goal-linked accounts.
 
 #### Scenario: Create a savings goal
 - **WHEN** a user creates a savings goal with a target amount, target date, funding source, monthly contribution, return, and inflation
@@ -32,6 +32,14 @@ The system SHALL manage financial goals with one of four kinds — savings, purc
 #### Scenario: Update assumptions
 - **WHEN** a user changes a goal's kind, amount, contribution, return, inflation, down payment, interest rate, or funding source
 - **THEN** the system recalculates its trajectory using the new assumptions
+
+#### Scenario: Goal with pledge
+- **WHEN** a goal has an open pledge
+- **THEN** the planner shows the pledge and includes it in the goal's funding outlook
+
+#### Scenario: Goal with withdrawal
+- **WHEN** a goal has a detected withdrawal
+- **THEN** the planner surfaces a withdrawal warning on that goal
 
 ### Requirement: Scenarios
 The system SHALL support saved, user-editable conservative, base, and optimistic scenarios with configurable expected return, inflation, monthly contribution, and horizon assumptions, and SHALL show their projected outcomes side by side.
