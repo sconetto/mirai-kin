@@ -680,6 +680,21 @@
     "interestLine": "Juros {rate}% / ano",
     "share": "cota",
     "validationError": "Verifique os campos da meta e as cotas de financiamento e tente novamente.",
+    "pledgeValidationError": "Verifique o valor, a moeda e a data do compromisso e tente novamente.",
+    "pledges": "Compromissos",
+    "pledgeAmount": "Valor do compromisso",
+    "pledgeDueDate": "Data do compromisso",
+    "pledgeNotes": "Notas do compromisso",
+    "addPledge": "Adicionar compromisso",
+    "noPledges": "Nenhum compromisso ainda.",
+    "fulfillPledge": "Marcar como cumprido",
+    "pledgeHint": "Compromissos abertos entram na projeção da meta até a data. Eles nunca criam transações.",
+    "pledgeStatus": {
+      "open": "Aberto",
+      "fulfilled": "Cumprido",
+      "expired": "Expirado"
+    },
+    "withdrawalWarning": "Saques: {amount} saíram das contas desta meta em {count} transferência(s) nos últimos 90 dias.",
     "status": {
       "on_track": "No caminho",
       "at_risk": "Em risco",

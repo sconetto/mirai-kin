@@ -1,14 +1,23 @@
-import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { accounts, categories, goalAllocations, goals, transactions } from "@/db/schema";
-import type { GoalType } from "@/db/schema";
+import {
+  accounts,
+  categories,
+  goalAllocations,
+  goals,
+  transactions,
+  transfers,
+} from "@/db/schema";
+import type { GoalPledgeStatus, GoalType } from "@/db/schema";
 import type { GoalCreateInput, GoalUpdateInput } from "@/lib/schemas";
 import {
   classifyGoalStatus,
   DEFAULT_INFLATION_RATE,
+  futureValue,
   monthsBetween,
   projectedMonthlyIncome,
   projectionRange,
+  realAnnualReturn,
   remainingDebt,
   requiredDebtPayment,
   requiredIncomeIncrease,
@@ -19,6 +28,7 @@ import { emergencyRunway } from "@/lib/planner-math";
 import { getAccountValues, getNetWorth } from "./equity";
 import { getBaseCurrency } from "./settings";
 import { resolveRate } from "./fx";
+import { expireGoalPledges, listGoalPledgesForGoals } from "./goal-pledges";
 
 export class GoalValidationError extends Error {
   constructor(message: string) {
@@ -348,6 +358,29 @@ export type PlanGoal = {
   expectedReturn: number;
   inflationRate: number;
   allocations: { accountId: string; sharePct: number }[];
+  pledged: number;
+  pledges: PlanGoalPledge[];
+  withdrawals: PlanGoalWithdrawal[];
+  withdrawalTotal: number;
+};
+
+export type PlanGoalPledge = {
+  id: string;
+  amount: number;
+  amountBase: number;
+  currency: string;
+  dueDate: string;
+  status: GoalPledgeStatus;
+  notes: string | null;
+};
+
+export type PlanGoalWithdrawal = {
+  id: string;
+  date: string;
+  amount: number;
+  currency: string;
+  fromAccountId: string;
+  toAccountId: string;
 };
 
 export type PlanStatus = {
@@ -361,12 +394,20 @@ export type PlanStatus = {
 
 export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
   const db = getDb();
-  const [baseCurrency, goalRows, allocationRows, accountValues] = await Promise.all([
+  await expireGoalPledges(asOf);
+  const withdrawalFrom = new Date(asOf);
+  withdrawalFrom.setUTCDate(withdrawalFrom.getUTCDate() - 90);
+  const [baseCurrency, goalRows, allocationRows, accountValues, transferRows] = await Promise.all([
     getBaseCurrency(),
     db.select().from(goals).orderBy(goals.priority, goals.createdAt),
     listGoalAllocations(),
     getAccountValues(asOf),
+    db
+      .select()
+      .from(transfers)
+      .where(and(gte(transfers.date, withdrawalFrom), lte(transfers.date, asOf))),
   ]);
+  const pledgeRows = await listGoalPledgesForGoals(goalRows.map((goal) => goal.id));
 
   const accountById = new Map(accountValues.map((account) => [account.id, account]));
   const allocationsByGoal = new Map<string, Allocation[]>();
@@ -374,6 +415,13 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
     const rows = allocationsByGoal.get(allocation.goalId) ?? [];
     rows.push({ accountId: allocation.accountId, sharePct: numberValue(allocation.sharePct) });
     allocationsByGoal.set(allocation.goalId, rows);
+  }
+
+  const pledgesByGoal = new Map<string, typeof pledgeRows>();
+  for (const pledge of pledgeRows) {
+    const rows = pledgesByGoal.get(pledge.goalId) ?? [];
+    rows.push(pledge);
+    pledgesByGoal.set(pledge.goalId, rows);
   }
 
   const netWorth = await getNetWorth(asOf);
@@ -399,6 +447,47 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
         : storedAllocations.length > 0
           ? storedAllocations
           : (goal.accountIds as string[]).map((accountId) => ({ accountId, sharePct: 100 }));
+
+    const asOfDay = asOf.toISOString().slice(0, 10);
+    const pledgeDetails: PlanGoalPledge[] = [];
+    let pledged = 0;
+    for (const pledge of pledgesByGoal.get(goal.id) ?? []) {
+      const status = pledge.status === "open" && pledge.dueDate < asOfDay ? "expired" : pledge.status;
+      const amountBase =
+        numberValue(pledge.amount) *
+        (await rateOrOne(pledge.currency, baseCurrency, asOf));
+      if (status === "open") pledged += amountBase;
+      pledgeDetails.push({
+        id: pledge.id,
+        amount: numberValue(pledge.amount),
+        amountBase,
+        currency: pledge.currency.toUpperCase(),
+        dueDate: pledge.dueDate,
+        status,
+        notes: pledge.notes,
+      });
+    }
+
+    const goalAccountIds = new Set(effectiveAllocations.map((allocation) => allocation.accountId));
+    const goalWithdrawals: PlanGoalWithdrawal[] = [];
+    let withdrawalTotal = 0;
+    for (const transfer of transferRows) {
+      if (!goalAccountIds.has(transfer.fromAccountId)) continue;
+      if (goalAccountIds.has(transfer.toAccountId)) continue;
+      const amountBase =
+        numberValue(transfer.amount) *
+        (await rateOrOne(transfer.currency, baseCurrency, transfer.date));
+      withdrawalTotal += amountBase;
+      goalWithdrawals.push({
+        id: transfer.id,
+        date: transfer.date.toISOString().slice(0, 10),
+        amount: amountBase,
+        currency: transfer.currency.toUpperCase(),
+        fromAccountId: transfer.fromAccountId,
+        toAccountId: transfer.toAccountId,
+      });
+    }
+    goalWithdrawals.sort((a, b) => b.date.localeCompare(a.date));
 
     let current = 0;
     let fundingMissing = false;
@@ -437,7 +526,39 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
     const purchasePct = Math.min(100, Math.max(0, downPaymentPct ?? 20));
     const effectiveTarget =
       kind === "purchase" ? targetBase * (purchasePct / 100) : targetBase;
-    const outstandingDebt = Math.max(0, targetBase - current);
+
+    const pledgeProjection = { conservative: 0, base: 0, optimistic: 0 };
+    if (targetDate && kind !== "income") {
+      const targetDay = targetDate.toISOString().slice(0, 10);
+      for (const pledge of pledgeDetails) {
+        if (pledge.status !== "open" || pledge.dueDate > targetDay) continue;
+        const due = new Date(`${pledge.dueDate}T00:00:00.000Z`);
+        const monthsToTarget = monthsBetween(due, targetDate);
+        pledgeProjection.conservative += futureValue(
+          pledge.amountBase,
+          0,
+          realAnnualReturn(Math.max(-0.99, expectedReturn - RETURN_BAND), inflationRate),
+          monthsToTarget,
+        );
+        pledgeProjection.base += futureValue(
+          pledge.amountBase,
+          0,
+          realReturn,
+          monthsToTarget,
+        );
+        pledgeProjection.optimistic += futureValue(
+          pledge.amountBase,
+          0,
+          realAnnualReturn(expectedReturn + RETURN_BAND, inflationRate),
+          monthsToTarget,
+        );
+      }
+    }
+
+    const outstandingDebt = Math.max(
+      0,
+      targetBase - current - (kind === "debt" ? pledgeProjection.base : 0),
+    );
 
     let projected: { conservative: number; base: number; optimistic: number };
     let requiredMonthly: number | null;
@@ -497,8 +618,18 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
         inflationRate,
         months,
       );
+      projected = {
+        conservative: projected.conservative + pledgeProjection.conservative,
+        base: projected.base + pledgeProjection.base,
+        optimistic: projected.optimistic + pledgeProjection.optimistic,
+      };
       requiredMonthly = targetDate
-        ? requiredMonthlyContribution(current, effectiveTarget, realReturn, months)
+        ? requiredMonthlyContribution(
+            current,
+            Math.max(0, effectiveTarget - pledgeProjection.base),
+            realReturn,
+            months,
+          )
         : null;
       progress = effectiveTarget > 0 ? Math.min(100, (current / effectiveTarget) * 100) : 0;
       gap = Math.max(0, effectiveTarget - projected.conservative);
@@ -565,6 +696,17 @@ export async function getPlanStatus(asOf = new Date()): Promise<PlanStatus> {
       expectedReturn,
       inflationRate,
       allocations: effectiveAllocations,
+      pledged: round4(pledged),
+      pledges: pledgeDetails.map((pledge) => ({
+        ...pledge,
+        amount: round4(pledge.amount),
+        amountBase: round4(pledge.amountBase),
+      })),
+      withdrawals: goalWithdrawals.map((withdrawal) => ({
+        ...withdrawal,
+        amount: round4(withdrawal.amount),
+      })),
+      withdrawalTotal: round4(withdrawalTotal),
     });
   }
 

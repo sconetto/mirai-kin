@@ -680,6 +680,21 @@
     "interestLine": "Interest {rate}% / year",
     "share": "share",
     "validationError": "Check the goal fields and funding shares, then try again.",
+    "pledgeValidationError": "Check the pledge amount, currency, and due date, then try again.",
+    "pledges": "Pledges",
+    "pledgeAmount": "Pledge amount",
+    "pledgeDueDate": "Pledge due date",
+    "pledgeNotes": "Pledge notes",
+    "addPledge": "Add pledge",
+    "noPledges": "No pledges yet.",
+    "fulfillPledge": "Mark fulfilled",
+    "pledgeHint": "Open pledges count toward the funding outlook until their due date. They never create transactions.",
+    "pledgeStatus": {
+      "open": "Open",
+      "fulfilled": "Fulfilled",
+      "expired": "Expired"
+    },
+    "withdrawalWarning": "Withdrawals: {amount} left this goal's accounts in {count} transfer(s) over the last 90 days.",
     "status": {
       "on_track": "On track",
       "at_risk": "At risk",

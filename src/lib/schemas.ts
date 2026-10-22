@@ -9,6 +9,7 @@ import {
   DEBT_TYPES,
   ENTITY_KINDS,
   GOAL_FUNDING_MODES,
+  GOAL_PLEDGE_STATUSES,
   GOAL_TYPES,
   IMPORT_SOURCES,
   INSTRUMENT_TYPES,
@@ -188,6 +189,22 @@ export const goalCreateSchema = z.object({
 
 export const goalUpdateSchema = goalCreateSchema.partial();
 
+export const goalPledgeCreateSchema = z.object({
+  goalId: z.uuid(),
+  amount: decimal,
+  currency: currencyCode,
+  dueDate: isoDate,
+  notes: z.string().max(500).nullish(),
+});
+
+export const goalPledgeUpdateSchema = z.object({
+  amount: decimal.optional(),
+  currency: currencyCode.optional(),
+  dueDate: isoDate.optional(),
+  status: z.enum(GOAL_PLEDGE_STATUSES).optional(),
+  notes: z.string().max(500).nullish(),
+});
+
 export const entityCreateSchema = z.object({
   kind: z.enum(ENTITY_KINDS),
   name: z.string().min(1),
@@ -301,6 +318,8 @@ export type BudgetCreateInput = z.infer<typeof budgetCreateSchema>;
 export type GoalAllocationInput = z.infer<typeof goalAllocationInputSchema>;
 export type GoalCreateInput = z.infer<typeof goalCreateSchema>;
 export type GoalUpdateInput = z.infer<typeof goalUpdateSchema>;
+export type GoalPledgeCreateInput = z.infer<typeof goalPledgeCreateSchema>;
+export type GoalPledgeUpdateInput = z.infer<typeof goalPledgeUpdateSchema>;
 export type EntityCreateInput = z.infer<typeof entityCreateSchema>;
 export type EntityUpdateInput = z.infer<typeof entityUpdateSchema>;
 export type ScenarioAssumptionsInput = z.infer<typeof scenarioAssumptionsSchema>;

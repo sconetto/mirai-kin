@@ -617,6 +617,27 @@ export const goalAllocations = pgTable(
   (t) => [uniqueIndex("goal_allocations_goal_account_idx").on(t.goalId, t.accountId)],
 );
 
+export const GOAL_PLEDGE_STATUSES = ["open", "fulfilled", "expired"] as const;
+export type GoalPledgeStatus = (typeof GOAL_PLEDGE_STATUSES)[number];
+
+export const goalPledges = pgTable(
+  "goal_pledges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    goalId: uuid("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    amount: money("amount").notNull(),
+    currency: text("currency").notNull(),
+    dueDate: date("due_date").notNull(),
+    status: text("status").$type<GoalPledgeStatus>().notNull().default("open"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("goal_pledges_goal_due_idx").on(t.goalId, t.dueDate)],
+);
+
 export const entities = pgTable(
   "entities",
   {

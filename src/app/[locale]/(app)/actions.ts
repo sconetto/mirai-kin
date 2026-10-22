@@ -12,6 +12,7 @@ import {
   entityCreateSchema,
   entityUpdateSchema,
   goalCreateSchema,
+  goalPledgeCreateSchema,
   goalUpdateSchema,
   investmentPositionCreateSchema,
   scenarioCreateSchema,
@@ -26,6 +27,12 @@ import { createEntity, deleteEntity, updateEntity } from "@/services/entities";
 import { createBeneficiary, createDocument, updateDocumentStatus } from "@/services/estate";
 import { recordSnapshot } from "@/services/equity";
 import { createGoal, deleteGoal, GoalValidationError, updateGoal } from "@/services/planner";
+import {
+  createGoalPledge,
+  deleteGoalPledge,
+  GoalPledgeValidationError,
+  updateGoalPledge,
+} from "@/services/goal-pledges";
 import {
   createScenario,
   deleteScenario,
@@ -739,6 +746,42 @@ export async function deleteGoalAction(formData: FormData) {
   const locale = localeOf(formData);
   const id = field(formData, "id");
   if (id) await deleteGoal(id);
+  revalidatePath(`/${locale}/planner`);
+}
+
+export async function createGoalPledgeAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const parsed = goalPledgeCreateSchema.safeParse({
+    goalId: field(formData, "goalId"),
+    amount: field(formData, "amount") ?? "0",
+    currency: field(formData, "currency"),
+    dueDate: field(formData, "dueDate"),
+    notes: field(formData, "notes") ?? null,
+  });
+  if (!parsed.success) redirect(`/${locale}/planner?error=pledge`);
+
+  try {
+    await createGoalPledge(parsed.data);
+  } catch (error) {
+    if (error instanceof GoalPledgeValidationError) {
+      redirect(`/${locale}/planner?error=pledge`);
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/planner`);
+}
+
+export async function fulfillGoalPledgeAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await updateGoalPledge(id, { status: "fulfilled" });
+  revalidatePath(`/${locale}/planner`);
+}
+
+export async function deleteGoalPledgeAction(formData: FormData) {
+  const locale = localeOf(formData);
+  const id = field(formData, "id");
+  if (id) await deleteGoalPledge(id);
   revalidatePath(`/${locale}/planner`);
 }
 

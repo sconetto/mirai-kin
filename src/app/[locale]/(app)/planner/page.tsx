@@ -8,7 +8,14 @@ import { Stat } from "@/components/ui/stat";
 import { GOAL_FUNDING_MODES, GOAL_TYPES } from "@/db/schema";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { getPlanner } from "@/services/planner";
-import { createGoalAction, deleteGoalAction, updateGoalAction } from "../actions";
+import {
+  createGoalAction,
+  createGoalPledgeAction,
+  deleteGoalAction,
+  deleteGoalPledgeAction,
+  fulfillGoalPledgeAction,
+  updateGoalAction,
+} from "../actions";
 
 type PlannerAccount = {
   id: string;
@@ -286,7 +293,9 @@ export default async function PlannerPage({
 
       {search.error ? (
         <Card className="border-negative/40 bg-negative-soft">
-          <CardContent className="py-3 text-sm text-negative">{t("validationError")}</CardContent>
+          <CardContent className="py-3 text-sm text-negative">
+            {search.error === "pledge" ? t("pledgeValidationError") : t("validationError")}
+          </CardContent>
         </Card>
       ) : null}
 
@@ -425,6 +434,106 @@ export default async function PlannerPage({
                     </p>
                   </div>
                 )}
+
+                {goal.withdrawalTotal > 0 ? (
+                  <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
+                    {t("withdrawalWarning", {
+                      amount: formatCurrency(goal.withdrawalTotal, currency, locale),
+                      count: goal.withdrawals.length,
+                    })}
+                  </p>
+                ) : null}
+
+                <details className="rounded-lg border border-line/70 px-3 py-2">
+                  <summary className="cursor-pointer text-sm font-medium text-ink">
+                    {t("pledges")}
+                    {goal.pledged > 0
+                      ? ` · ${formatCurrency(goal.pledged, currency, locale)}`
+                      : ""}
+                  </summary>
+                  <div className="mt-3 space-y-3">
+                    {goal.pledges.length === 0 ? (
+                      <p className="text-xs text-ink-3">{t("noPledges")}</p>
+                    ) : (
+                      <ul className="divide-y divide-line/70">
+                        {goal.pledges.map((pledge) => (
+                          <li
+                            key={pledge.id}
+                            className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="tabular text-sm text-ink">
+                                {formatCurrency(pledge.amount, pledge.currency, locale)}
+                              </p>
+                              <p className="mt-0.5 text-xs text-ink-3">
+                                {formatDate(pledge.dueDate, locale)} ·{" "}
+                                {t(`pledgeStatus.${pledge.status}`)}
+                                {pledge.notes ? ` · ${pledge.notes}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {pledge.status === "open" ? (
+                                <form action={fulfillGoalPledgeAction}>
+                                  <input type="hidden" name="locale" value={locale} />
+                                  <input type="hidden" name="id" value={pledge.id} />
+                                  <Button type="submit" size="sm" variant="ghost">
+                                    {t("fulfillPledge")}
+                                  </Button>
+                                </form>
+                              ) : null}
+                              <form action={deleteGoalPledgeAction}>
+                                <input type="hidden" name="locale" value={locale} />
+                                <input type="hidden" name="id" value={pledge.id} />
+                                <Button type="submit" size="sm" variant="ghost">
+                                  {tc("delete")}
+                                </Button>
+                              </form>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <form
+                      action={createGoalPledgeAction}
+                      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+                    >
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="goalId" value={goal.id} />
+                      <label className="text-xs text-ink-3">
+                        {t("pledgeAmount")}
+                        <Input
+                          name="amount"
+                          inputMode="decimal"
+                          required
+                          className="mt-1"
+                        />
+                      </label>
+                      <label className="text-xs text-ink-3">
+                        {t("currency")}
+                        <Input
+                          name="currency"
+                          defaultValue={goal.goalCurrency}
+                          maxLength={3}
+                          className="mt-1"
+                        />
+                      </label>
+                      <label className="text-xs text-ink-3">
+                        {t("pledgeDueDate")}
+                        <Input name="dueDate" type="date" required className="mt-1" />
+                      </label>
+                      <label className="text-xs text-ink-3">
+                        {t("pledgeNotes")}
+                        <Input name="notes" className="mt-1" />
+                      </label>
+                      <div className="flex items-end">
+                        <Button type="submit" size="sm" variant="secondary">
+                          {t("addPledge")}
+                        </Button>
+                      </div>
+                    </form>
+                    <p className="text-xs text-ink-3">{t("pledgeHint")}</p>
+                  </div>
+                </details>
 
                 <details className="rounded-lg border border-line/70 px-3 py-2">
                   <summary className="cursor-pointer text-sm font-medium text-ink">

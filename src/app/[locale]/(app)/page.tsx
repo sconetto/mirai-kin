@@ -355,6 +355,14 @@ export default async function DashboardPage({
                         </div>
                       </dl>
                     )}
+                    {goal.withdrawalTotal > 0 ? (
+                      <p className="mt-2 text-xs text-warning">
+                        {tp("withdrawalWarning", {
+                          amount: formatCurrency(goal.withdrawalTotal, currency, locale),
+                          count: goal.withdrawals.length,
+                        })}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
