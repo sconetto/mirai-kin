@@ -2,13 +2,15 @@
 
 import { ChartColumn, ChartLine } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -30,6 +32,9 @@ export function ReportChart({
 }) {
   const t = useTranslations("reports");
   const [variant, setVariant] = useState<"bar" | "line">("bar");
+  const gradientBase = useId().replace(/:/g, "");
+  const positiveGradient = `report-positive-${gradientBase}`;
+  const negativeGradient = `report-negative-${gradientBase}`;
 
   if (data.length === 0) {
     return <div className="flex h-64 items-center justify-center text-sm text-ink-3">—</div>;
@@ -49,6 +54,16 @@ export function ReportChart({
 
   const axes = (
     <>
+      <defs>
+        <linearGradient id={positiveGradient} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--color-positive)" stopOpacity={0.95} />
+          <stop offset="100%" stopColor="var(--color-positive)" stopOpacity={0.35} />
+        </linearGradient>
+        <linearGradient id={negativeGradient} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--color-negative)" stopOpacity={0.35} />
+          <stop offset="100%" stopColor="var(--color-negative)" stopOpacity={0.95} />
+        </linearGradient>
+      </defs>
       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
       <XAxis
         dataKey="name"
@@ -64,11 +79,12 @@ export function ReportChart({
         axisLine={false}
         width={80}
       />
+      <ReferenceLine y={0} stroke="var(--color-ink-3)" strokeWidth={1.5} />
       <Tooltip
         formatter={(value) => formatCurrency(Number(value), currency, locale)}
         contentStyle={{
           background: "var(--color-surface)",
-              borderRadius: 8,
+          borderRadius: 8,
           border: "1px solid var(--color-line)",
           fontSize: 12,
           color: "var(--color-ink)",
@@ -120,7 +136,14 @@ export function ReportChart({
                 radius={[4, 4, 0, 0]}
                 maxBarSize={48}
                 isAnimationActive={false}
-              />
+              >
+                {data.map((item, index) => (
+                  <Cell
+                    key={`${item.name}-${index}`}
+                    fill={`url(#${item.total >= 0 ? positiveGradient : negativeGradient})`}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           ) : (
             <LineChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
