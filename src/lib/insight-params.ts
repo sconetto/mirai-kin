@@ -27,6 +27,7 @@ export function insightParams(
     case "category_spike":
       return {
         name: String(locale === "en" ? (data.nameEn ?? data.name) : (data.namePt ?? data.name)),
+        month: formatMonth(String(data.month), locale),
         ratio: formatNumber(String(data.ratio), locale),
       };
     case "upcoming_bill":
@@ -36,7 +37,10 @@ export function insightParams(
         amount: formatCurrency(String(data.amount), baseCurrency, locale),
       };
     case "debt_burden":
-      return { ratio: formatNumber(String(data.ratio), locale) };
+      return {
+        month: formatMonth(String(data.month), locale),
+        ratio: formatNumber(String(data.ratio), locale),
+      };
     case "allocation_concentration":
       return { symbol: String(data.symbol), share: formatNumber(String(data.share), locale) };
     case "net_worth_trend":

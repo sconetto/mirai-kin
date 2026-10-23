@@ -69,6 +69,17 @@ function monthBounds(date: Date) {
   };
 }
 
+/**
+ * Month-derived insights only use a month that has finished. The current month
+ * is still changing (for example, salary may not have arrived yet), so treating
+ * it as final produces misleading rates and anomalies.
+ */
+export function closedMonthBounds(now = new Date()) {
+  return monthBounds(
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)),
+  );
+}
+
 async function rateOrOne(from: string, to: string, date: Date): Promise<number> {
   if (from === to) return 1;
   try {
@@ -83,10 +94,10 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
   const db = getDb();
   const settings = await getSettings();
   const baseCurrency = settings.baseCurrency;
-  const { start, end, startDate, endDate, key: monthKey } = monthBounds(now);
+  const { start, end, startDate, endDate, key: monthKey } = closedMonthBounds(now);
   const insights: Insight[] = [];
 
-  // Savings rate for the current month.
+  // Savings rate for the last fully closed month.
   const [monthAgg] = await db
     .select({
       income: sql<string>`coalesce(sum(case when ${transactions.amount} > 0 and (${transactions.paymentType} is null or ${transactions.paymentType} <> 'transfer') then ${transactions.baseAmount} else 0 end), 0)`,
@@ -116,7 +127,9 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         income: Number(income.toFixed(2)),
         expenses: Number(expenses.toFixed(2)),
       },
-      action: { href: "/spending/reports" },
+      action: {
+        href: `/spending/reports?type=cashflow&from=${startDate}&to=${endDate}`,
+      },
     });
   }
 
@@ -143,7 +156,8 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     });
   }
 
-  // Budget variance.
+  // Budget alerts stay current: an overrun is an already-observed fact, not a
+  // projection. Other month-derived insights use the last closed month above.
   const budgets = await listBudgetsWithSpend();
   for (const budget of budgets) {
     const amount = Number(budget.amount);
@@ -182,8 +196,8 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     }
   }
 
-  // Category spending spikes vs the trailing three-month average.
-  const trailingStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1));
+  // Category spending spikes in the last closed month vs the prior three months.
+  const trailingStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 3, 1));
   const categoryRows = await db
     .select({
       categoryId: categories.id,
@@ -249,19 +263,22 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
           name: entry.name,
           nameEn: entry.nameEn,
           namePt: entry.namePt,
+          month: monthKey,
           current: Number(entry.current.toFixed(2)),
           average: Number(average.toFixed(2)),
           ratio: Number((entry.current / average).toFixed(2)),
           currency: baseCurrency,
         },
-        action: { href: "/spending/reports" },
+        action: {
+          href: `/spending/reports?type=breakdown&from=${startDate}&to=${endDate}`,
+        },
       });
     }
   }
 
-  // Monthly spending anomaly against the trailing five months.
+  // Monthly spending anomaly in the last closed month against the prior five.
   const anomalyKeys = Array.from({ length: 5 }, (_, index) => {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1));
+    const date = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - (5 - index), 1));
     return date.toISOString().slice(0, 7);
   });
   const anomalyStart = new Date(`${anomalyKeys[0]}-01T00:00:00.000Z`);
@@ -298,7 +315,9 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
         threshold: anomaly.threshold,
         currency: baseCurrency,
       },
-      action: { href: "/spending/reports" },
+      action: {
+        href: `/spending/reports?type=cashflow&from=${startDate}&to=${endDate}`,
+      },
     });
   }
 
@@ -356,7 +375,7 @@ export async function getInsights(now = new Date()): Promise<Insight[]> {
     }
   }
 
-  // Debt burden for the current month.
+  // Debt burden for the last fully closed month.
   const debtRows = await db
     .select({ payment: debtSchedule.payment, currency: debts.currency })
     .from(debtSchedule)

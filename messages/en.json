@@ -536,6 +536,7 @@
   "insights": {
     "title": "Insights",
     "subtitle": "What your data is telling you",
+    "closedMonthNote": "Month-based insights use the last fully closed month. Budget alerts, upcoming bills, forecasts, and goal projections still reflect today.",
     "empty": "No insights right now. Import more data to get started.",
     "acknowledge": "Dismiss",
     "severity": {
@@ -546,9 +547,9 @@
     "savings_rate": "Your savings rate in {month} was {rate}%.",
     "budget_over": "The \"{name}\" budget is over by {surplus}.",
     "budget_near": "The \"{name}\" budget has used {percent}% of its limit.",
-    "category_spike": "Spending on {name} is {ratio}x your recent average.",
+    "category_spike": "Spending on {name} in {month} was {ratio}x the recent average.",
     "upcoming_bill": "{label} is expected on {nextExpected} (about {amount}).",
-    "debt_burden": "Debt payments consume {ratio}% of your income this month.",
+    "debt_burden": "Debt payments consumed {ratio}% of your income in {month}.",
     "allocation_concentration": "{symbol} is {share}% of your portfolio.",
     "net_worth_trend": "Your net worth changed {changePct}% since the last snapshot.",
     "idle_cash": "You have {amount} in liquid cash, about {months} months of essential expenses.",

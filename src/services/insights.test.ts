@@ -6,7 +6,7 @@ import { closeDb, getDb } from "@/db";
 import { budgets, insightAcknowledgements, transactions } from "@/db/schema";
 import { createAccount, deleteAccount } from "./accounts";
 import { listBudgetsWithSpend } from "./budgets";
-import { acknowledgeInsight, getInsights } from "./insights";
+import { acknowledgeInsight, closedMonthBounds, getInsights } from "./insights";
 
 describe.skipIf(!process.env.DATABASE_URL)("getInsights (database)", () => {
   let budgetId = "";
@@ -59,6 +59,24 @@ describe.skipIf(!process.env.DATABASE_URL)("getInsights (database)", () => {
     await db.delete(budgets).where(eq(budgets.id, budgetId));
     if (accountId) await deleteAccount(accountId);
     await closeDb();
+  });
+
+  it("uses the previous fully closed month for month-derived insights", async () => {
+    const now = new Date("2026-10-23T12:00:00.000Z");
+    const bounds = closedMonthBounds(now);
+    expect(bounds.key).toBe("2026-09");
+    expect(bounds.startDate).toBe("2026-09-01");
+    expect(bounds.endDate).toBe("2026-09-30");
+
+    const insights = await getInsights(now);
+    const monthDerived = insights.filter((insight) =>
+      ["savings_rate", "category_spike", "spending_anomaly", "debt_burden"].includes(
+        insight.type,
+      ),
+    );
+    for (const insight of monthDerived) {
+      expect(insight.data.month).toBe("2026-09");
+    }
   });
 
   it("produces a budget-overrun insight", async () => {

@@ -27,6 +27,10 @@ export default async function InsightsPage({ params }: { params: Promise<{ local
     <div className="space-y-6">
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
+      <p className="rounded-lg border border-line bg-paper px-4 py-3 text-xs text-ink-3">
+        {t("closedMonthNote")}
+      </p>
+
       {insights.length === 0 ? (
         <Card>
           <CardContent>

@@ -536,6 +536,7 @@
   "insights": {
     "title": "Insights",
     "subtitle": "O que os seus dados estão dizendo",
+    "closedMonthNote": "Insights mensais usam o último mês totalmente fechado. Alertas de orçamento, contas futuras, previsões e projeções de metas ainda refletem a data atual.",
     "empty": "Nenhum insight no momento. Importe mais dados para começar.",
     "acknowledge": "Dispensar",
     "severity": {
@@ -546,9 +547,9 @@
     "savings_rate": "Sua taxa de poupança em {month} foi de {rate}%.",
     "budget_over": "O orçamento \"{name}\" estourou em {surplus}.",
     "budget_near": "O orçamento \"{name}\" já usou {percent}% do limite.",
-    "category_spike": "Os gastos em {name} estão {ratio}x acima da média recente.",
+    "category_spike": "Os gastos em {name} em {month} foram {ratio}x acima da média recente.",
     "upcoming_bill": "{label} deve ser cobrado em {nextExpected} (aprox. {amount}).",
-    "debt_burden": "As parcelas de dívidas consomem {ratio}% da sua renda este mês.",
+    "debt_burden": "As parcelas de dívidas consumiram {ratio}% da sua renda em {month}.",
     "allocation_concentration": "{symbol} representa {share}% do seu portfólio.",
     "net_worth_trend": "Seu patrimônio variou {changePct}% desde o último registro.",
     "idle_cash": "Você tem {amount} em caixa, cerca de {months} meses de despesas essenciais.",

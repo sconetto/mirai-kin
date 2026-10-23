@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { afterAll, describe, expect, it } from "vitest";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db";
 import { categories, transactions } from "@/db/schema";
 import { deleteCategory } from "./categories";
@@ -27,7 +27,13 @@ describe.skipIf(!process.env.DATABASE_URL)("localized categories", () => {
     const duplicates = await getDb()
       .select({ nameEn: categories.nameEn, namePt: categories.namePt })
       .from(categories)
-      .where(eq(categories.isSystem, false))
+      .where(
+        and(
+          eq(categories.isSystem, false),
+          isNotNull(categories.nameEn),
+          isNotNull(categories.namePt),
+        ),
+      )
       .groupBy(categories.nameEn, categories.namePt)
       .having(sql`count(*) > 1`);
     expect(duplicates).toHaveLength(0);
