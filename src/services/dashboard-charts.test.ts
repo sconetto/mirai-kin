@@ -1,11 +1,13 @@
 import "dotenv/config";
 import { afterAll, describe, expect, it } from "vitest";
 import { closeDb } from "@/db";
+import { buildCashflowGraph } from "@/lib/cashflow-graph";
 import {
   getMonthlyInsights,
   groupSmallCategories,
   parseMonth,
   shiftMonth,
+  type MonthlyCashflow,
   type MonthlyCategory,
 } from "./dashboard-charts";
 
@@ -23,7 +25,11 @@ describe("month helpers", () => {
 });
 
 describe("category grouping", () => {
-  const category = (id: string, total: number): MonthlyCategory => ({
+  const category = (
+    id: string,
+    total: number,
+    children: MonthlyCategory[] = [],
+  ): MonthlyCategory => ({
     id,
     name: id,
     nameEn: id,
@@ -31,7 +37,7 @@ describe("category grouping", () => {
     total,
     color: null,
     icon: null,
-    children: [],
+    children,
   });
 
   it("groups categories below the threshold into Other", () => {
@@ -52,6 +58,25 @@ describe("category grouping", () => {
   it("leaves categories above the threshold untouched", () => {
     const items = [category("rent", 60), category("food", 30), category("transport", 10)];
     expect(groupSmallCategories(items)).toBe(items);
+  });
+
+  it("exposes parent and child graph stages from cashflow categories", () => {
+    const food = category("food", 100, [category("groceries", 100)]);
+    const data: MonthlyCashflow = {
+      income: 100,
+      expenses: 100,
+      surplus: 0,
+      savingsDraw: 0,
+      incomeSources: [category("salary", 100)],
+      expenseCategories: [food],
+      outcomes: [food],
+    };
+    const graph = buildCashflowGraph(data, { hub: "Hub", direct: "Direct" }, (item) => item.name);
+
+    expect(graph.nodes.filter((node) => node.kind === "parent")).toHaveLength(1);
+    expect(graph.nodes.filter((node) => node.kind === "child")).toHaveLength(1);
+    expect(graph.nodes.find((node) => node.kind === "hub")?.depth).toBe(1);
+    expect(graph.links.filter((link) => link.kind === "child")).toHaveLength(1);
   });
 });
 

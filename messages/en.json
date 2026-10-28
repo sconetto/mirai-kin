@@ -196,6 +196,7 @@
     "cashflow": "Cash flow",
     "cashflowSubtitle": "Income to spending and surplus in {month}",
     "cashflowHub": "Cash flow",
+    "cashflowDirect": "Direct",
     "cashflowEmpty": "No cash flow data for this month.",
     "surplus": "Surplus",
     "outflows": "Outflows",

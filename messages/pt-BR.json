@@ -196,6 +196,7 @@
     "cashflow": "Fluxo de caixa",
     "cashflowSubtitle": "Receitas para gastos e sobra em {month}",
     "cashflowHub": "Fluxo de caixa",
+    "cashflowDirect": "Direto",
     "cashflowEmpty": "Sem dados de fluxo de caixa para este mês.",
     "surplus": "Sobra",
     "outflows": "Saídas",

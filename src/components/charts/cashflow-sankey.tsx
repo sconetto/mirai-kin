@@ -4,6 +4,7 @@ import { useId } from "react";
 import { Sankey, ResponsiveContainer, Tooltip } from "recharts";
 import type { SankeyLinkProps, SankeyNodeProps } from "recharts";
 import { useTranslations } from "next-intl";
+import { buildCashflowGraph } from "@/lib/cashflow-graph";
 import { localizedCategoryName } from "@/lib/category-name";
 import { formatCurrency, intlLocale } from "@/lib/format";
 import type { MonthlyCashflow } from "@/services/dashboard-charts";
@@ -23,6 +24,7 @@ export function CashflowSankey({
   const outflowGradient = `cashflow-out-${gradientBase}`;
   const sources = data.incomeSources;
   const outcomes = data.outcomes;
+
   if (sources.length === 0 || outcomes.length === 0) {
     return (
       <div className="flex h-80 items-center justify-center text-sm text-ink-3">
@@ -31,36 +33,39 @@ export function CashflowSankey({
     );
   }
 
-  const nodes = [
-    ...sources.map((item) => ({
-      name: localizedCategoryName(item, locale),
-      color: item.id === "savings-draw" ? "var(--warning)" : "var(--positive)",
-    })),
-    { name: t("cashflowHub"), color: "var(--color-accent)" },
-    ...outcomes.map((item) => ({
-      name: localizedCategoryName(item, locale),
-      color: item.id === "surplus" ? "var(--positive)" : "var(--negative)",
-    })),
-  ];
-  const hub = sources.length;
-  const links = [
-    ...sources.map((item, index) => ({ source: index, target: hub, value: item.total })),
-    ...outcomes.map((item, index) => ({
-      source: hub,
-      target: hub + 1 + index,
-      value: item.total,
-    })),
-  ];
+  const graph = buildCashflowGraph(
+    data,
+    { hub: t("cashflowHub"), direct: t("cashflowDirect") },
+    (category) => localizedCategoryName(category, locale),
+  );
+  const { nodes, links } = graph;
+  const chartHeight = Math.max(420, 120 + nodes.length * 24);
 
   const renderNode = ({ x, y, width, height, payload, index }: SankeyNodeProps) => {
-    const isSource = payload.depth === 0;
-    const isHub = payload.depth === 1;
-    const label = payload.name.length > 24 ? `${payload.name.slice(0, 23)}…` : payload.name;
-    const textX = isSource ? x - 9 : x + width + 9;
-    const textY = y + height / 2;
-    const color = isHub
-      ? "var(--color-accent)"
-      : (nodes[index]?.color ?? "var(--color-accent)");
+    const node = nodes[index];
+    const isSource = node?.kind === "income";
+    const isHub = node?.kind === "hub";
+    const isChild = node?.kind === "child";
+    const isParentLike = node?.kind === "parent" || node?.kind === "outcome";
+    const compactChild = isChild && height < 24;
+    const label = payload.name.length > (compactChild ? 18 : 24)
+      ? `${payload.name.slice(0, compactChild ? 17 : 23)}…`
+      : payload.name;
+    const textAnchor = isSource
+      ? "end"
+      : isHub
+        ? "middle"
+        : isChild
+          ? "start"
+          : "end";
+    const textX = isHub
+      ? x + width / 2
+      : isSource || isParentLike
+        ? x - 9
+        : x + width + 9;
+    const textY = isHub ? y - 18 : y + height / 2;
+    const color = node?.color ?? "var(--color-accent)";
+    const amount = formatCurrency(Number(payload.value), currency, locale);
     return (
       <g>
         <rect
@@ -70,38 +75,52 @@ export function CashflowSankey({
           height={height}
           rx={3}
           fill={color}
-          fillOpacity={isHub ? 1 : 0.92}
+          fillOpacity={isHub ? 1 : isChild ? 0.72 : 0.92}
         />
-        <text
-          x={textX}
-          y={textY - 7}
-          textAnchor={isSource ? "end" : "start"}
-          fill="var(--color-ink-2)"
-          fontSize={11}
-          fontWeight={500}
-        >
-          {label}
-        </text>
-        <text
-          x={textX}
-          y={textY + 8}
-          textAnchor={isSource ? "end" : "start"}
-          fill="var(--color-ink-3)"
-          fontSize={10}
-        >
-          {formatCurrency(Number(payload.value), currency, locale)}
-        </text>
+        {compactChild ? (
+          <text
+            x={textX}
+            y={textY + 3}
+            textAnchor={textAnchor}
+            fill="var(--color-ink-2)"
+            fontSize={10}
+          >
+            {`${label} · ${amount}`}
+          </text>
+        ) : (
+          <>
+            <text
+              x={textX}
+              y={isHub ? textY : textY - 7}
+              textAnchor={textAnchor}
+              fill="var(--color-ink-2)"
+              fontSize={11}
+              fontWeight={500}
+            >
+              {label}
+            </text>
+            <text
+              x={textX}
+              y={isHub ? textY + 12 : textY + 8}
+              textAnchor={textAnchor}
+              fill="var(--color-ink-3)"
+              fontSize={10}
+            >
+              {amount}
+            </text>
+          </>
+        )}
       </g>
     );
   };
 
   const renderLink = (props: SankeyLinkProps) => {
-    const outgoing = props.payload.source.depth === 1;
+    const incoming = props.payload.source.depth === 0;
     return (
       <path
         d={`M${props.sourceX},${props.sourceY} C${props.sourceControlX},${props.sourceY} ${props.targetControlX},${props.targetY} ${props.targetX},${props.targetY}`}
         fill="none"
-        stroke={`url(#${outgoing ? outflowGradient : inflowGradient})`}
+        stroke={`url(#${incoming ? inflowGradient : outflowGradient})`}
         strokeWidth={props.linkWidth}
         strokeOpacity={0.5}
         strokeLinecap="butt"
@@ -109,16 +128,27 @@ export function CashflowSankey({
     );
   };
 
+  const parentSummaries = nodes
+    .filter((node) => node.kind === "parent" || node.kind === "outcome")
+    .slice(0, 3)
+    .map((parent) => {
+      const children = nodes
+        .filter((node) => node.kind === "child" && node.parentId === parent.id)
+        .slice(0, 4)
+        .map((child) => child.name);
+      return children.length > 0 ? `${parent.name}: ${children.join(", ")}` : parent.name;
+    });
+
   return (
-    <div className="h-[26rem] w-full">
+    <div className="w-full" style={{ height: chartHeight }}>
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
           data={{ nodes, links }}
           node={renderNode}
           link={renderLink}
           nodeWidth={12}
-          nodePadding={24}
-          margin={{ top: 14, right: 138, bottom: 14, left: 138 }}
+          nodePadding={20}
+          margin={{ top: 28, right: 200, bottom: 14, left: 120 }}
           iterations={32}
         >
           <defs>
@@ -132,7 +162,23 @@ export function CashflowSankey({
             </linearGradient>
           </defs>
           <Tooltip
-            formatter={(value) => formatCurrency(Number(value), currency, locale)}
+            formatter={(value, name, item) => {
+              const payload = item?.payload as
+                | { source?: number; target?: number }
+                | undefined;
+              if (
+                typeof payload?.source === "number" &&
+                typeof payload?.target === "number"
+              ) {
+                const source = nodes[payload.source]?.name ?? "";
+                const target = nodes[payload.target]?.name ?? "";
+                return [
+                  formatCurrency(Number(value), currency, locale),
+                  `${source} → ${target}`,
+                ];
+              }
+              return [formatCurrency(Number(value), currency, locale), String(name ?? "")];
+            }}
             contentStyle={{
               background: "var(--color-surface)",
               borderRadius: 8,
@@ -149,7 +195,8 @@ export function CashflowSankey({
           currency,
           maximumFractionDigits: 0,
         }).format(data.income)}{" "}
-        income, {formatCurrency(data.expenses, currency, locale)} spending
+        income, {formatCurrency(data.expenses, currency, locale)} spending.
+        {parentSummaries.length > 0 ? ` ${parentSummaries.join("; ")}.` : ""}
       </p>
     </div>
   );

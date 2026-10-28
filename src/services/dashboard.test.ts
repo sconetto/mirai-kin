@@ -33,7 +33,7 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard view model", () => {
   });
 
   it("returns a history-building view when no snapshots exist", async () => {
-    const dashboard = await getDashboard("1y", new Date("2000-01-01T00:00:00.000Z"));
+    const dashboard = await getDashboard("1y", new Date("2099-01-01T00:00:00.000Z"));
     expect(dashboard.history).toHaveLength(1);
     expect(dashboard.movement).toBeNull();
   });
