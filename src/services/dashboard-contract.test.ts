@@ -72,6 +72,24 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard contract fields", () => {
       dashboard.plan.asOf,
     );
     expect(dashboard.assumptions.horizonMonths).toBe(120);
+    expect(Object.keys(dashboard.assumptions.assetClassRates).sort()).toEqual(
+      [
+        "cash",
+        "investments",
+        "liabilities",
+        "other_appreciating",
+        "other_depreciating",
+        "real_estate",
+        "vehicles",
+      ].sort(),
+    );
+    expect(
+      dashboard.composition.every((item) =>
+        ["cash", "investments", "realEstate", "vehicles", "otherAssets", "liabilities"].includes(
+          item.key,
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("separates FX from market movement when native values exist", async () => {

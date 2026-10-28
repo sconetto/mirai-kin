@@ -20,6 +20,7 @@ type EditableAccount = {
   statementCloseDay: number | null;
   dueDay: number | null;
   creditLimit: string | null;
+  growthRate: string | null;
   creditUsed: string | null;
   creditUtilization: number | null;
   archived: boolean;
@@ -102,6 +103,21 @@ export function AccountEditForm({
         />
       </label>
 
+      {!["credit_card", "loan", "mortgage"].includes(type) ? (
+        <label className="text-xs text-ink-3">
+          {t("projectionGrowthRate")}
+          <Input
+            name="growthRatePct"
+            type="number"
+            step="0.1"
+            defaultValue={
+              account.growthRate == null ? "" : Number(account.growthRate) * 100
+            }
+            className="mt-1"
+          />
+        </label>
+      ) : null}
+
       {type === "credit_card" ? (
         <>
           <label className="text-xs text-ink-3">
@@ -159,7 +175,7 @@ export function AccountEditForm({
       ) : null}
 
       <p className="text-xs text-ink-3 sm:col-span-2 lg:col-span-4">
-        {t("ownershipHint")}. {t("importHint")}
+        {t("ownershipHint")}. {t("importHint")} {t("projectionGrowthHint")}
       </p>
       <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
         <Button type="submit">{tc("save")}</Button>

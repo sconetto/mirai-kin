@@ -10,6 +10,7 @@ import {
   shiftMonths,
   type DashboardRange,
 } from "@/lib/dashboard-range";
+import type { AssetClass } from "@/lib/asset-classes";
 import { getEquity, getNetWorthSeries } from "./equity";
 import { getPlanStatus, type PlanGoal } from "./planner";
 import { planTrajectory, type PlanAssumptionOverrides } from "./projections";
@@ -51,7 +52,7 @@ export type DashboardPace = {
 };
 
 export type DashboardComposition = {
-  key: "cash" | "investments" | "property" | "liabilities";
+  key: "cash" | "investments" | "realEstate" | "vehicles" | "otherAssets" | "liabilities";
   value: number;
 };
 
@@ -76,6 +77,7 @@ export type DashboardModel = {
     monthlyContribution: number;
     returnBand: number;
     horizonMonths: number;
+    assetClassRates: Record<AssetClass, number>;
   };
 };
 
@@ -270,20 +272,34 @@ function compositionFor(components: Awaited<ReturnType<typeof getEquity>>["compo
   const totals = new Map<DashboardComposition["key"], number>([
     ["cash", 0],
     ["investments", 0],
-    ["property", 0],
+    ["realEstate", 0],
+    ["vehicles", 0],
+    ["otherAssets", 0],
     ["liabilities", 0],
   ]);
 
   for (const component of components) {
     let key: DashboardComposition["key"];
-    if (component.kind === "liability") {
-      key = "liabilities";
-    } else if (["checking", "savings", "cash"].includes(component.type)) {
-      key = "cash";
-    } else if (component.type === "investment") {
-      key = "investments";
-    } else {
-      key = "property";
+    switch (component.assetClass) {
+      case "cash":
+        key = "cash";
+        break;
+      case "investments":
+        key = "investments";
+        break;
+      case "real_estate":
+        key = "realEstate";
+        break;
+      case "vehicles":
+        key = "vehicles";
+        break;
+      case "other_appreciating":
+      case "other_depreciating":
+        key = "otherAssets";
+        break;
+      case "liabilities":
+        key = "liabilities";
+        break;
     }
     totals.set(key, (totals.get(key) ?? 0) + component.value);
   }

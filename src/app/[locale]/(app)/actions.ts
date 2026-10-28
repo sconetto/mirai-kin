@@ -346,11 +346,16 @@ export async function updateAccountAction(formData: FormData) {
   if (!id) return;
 
   const type = field(formData, "type") ?? "checking";
+  const growthRate = field(formData, "growthRatePct");
   const input = accountUpdateSchema.parse({
     name: field(formData, "name"),
     type,
     currency: field(formData, "currency"),
     openingBalance: field(formData, "openingBalance"),
+    growthRate:
+      !["credit_card", "loan", "mortgage"].includes(type) && growthRate
+        ? Number(growthRate) / 100
+        : null,
     ownershipType: field(formData, "ownershipType") ?? "personal",
     assetSubtype:
       type === "investment" || type === "asset"

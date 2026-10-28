@@ -1,7 +1,8 @@
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, estateAssets, netWorthSnapshots, transactions } from "@/db/schema";
-import type { AccountType } from "@/db/schema";
+import type { AccountType, AssetSubtype } from "@/db/schema";
+import { classifyAccount, classifyEstateAsset, type AssetClass } from "@/lib/asset-classes";
 import { getBaseCurrency } from "./settings";
 import { resolveRate } from "./fx";
 import { listPositionsWithValue } from "./investments";
@@ -11,6 +12,8 @@ const LIABILITY_TYPES: AccountType[] = ["credit_card", "loan", "mortgage"];
 export type EquityComponent = {
   kind: "asset" | "liability";
   type: string;
+  assetClass: AssetClass;
+  growthRate: string | null;
   label: string;
   value: number;
   nativeValue: number;
@@ -31,6 +34,8 @@ export type AccountValue = {
   id: string;
   name: string;
   type: AccountType;
+  assetSubtype: AssetSubtype | null;
+  growthRate: string | null;
   currency: string;
   valueBase: number;
   nativeValue: number;
@@ -62,6 +67,8 @@ export async function getAccountValues(asOf = new Date()): Promise<AccountValue[
       id: accounts.id,
       name: accounts.name,
       type: accounts.type,
+      assetSubtype: accounts.assetSubtype,
+      growthRate: accounts.growthRate,
       currency: accounts.currency,
       openingBalance: accounts.openingBalance,
       txTotal: sql<string>`coalesce(sum(${transactions.amount}), 0)`,
@@ -99,6 +106,8 @@ export async function getAccountValues(asOf = new Date()): Promise<AccountValue[
       id: row.id,
       name: row.name,
       type: row.type,
+      assetSubtype: row.assetSubtype,
+      growthRate: row.growthRate,
       currency: row.currency,
       valueBase: Number(valueBase.toFixed(4)),
       nativeValue: Number(native.toFixed(4)),
@@ -123,6 +132,12 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
     components.push({
       kind: liability ? "liability" : "asset",
       type: row.type,
+      assetClass: classifyAccount({
+        type: row.type,
+        assetSubtype: row.assetSubtype,
+        hasPositions: positionsByAccount.has(row.id),
+      }),
+      growthRate: row.growthRate,
       label: row.name,
       value: liability ? Math.max(0, -row.valueBase) : row.valueBase,
       nativeValue: row.nativeValue,
@@ -134,6 +149,8 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
     components.push({
       kind: "asset",
       type: "investment",
+      assetClass: "investments",
+      growthRate: null,
       label: `${position.symbol} — ${position.name}`,
       value: Number(position.value) * rate,
       nativeValue: Number(position.value),
@@ -147,6 +164,8 @@ export async function getEquity(asOf = new Date()): Promise<Equity> {
     components.push({
       kind: "asset",
       type: asset.type,
+      assetClass: classifyEstateAsset(asset.type),
+      growthRate: asset.growthRate,
       label: asset.name,
       value: Number(asset.value) * rate,
       nativeValue: Number(asset.value),

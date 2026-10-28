@@ -39,7 +39,9 @@ const RANGE_LABEL = {
 const COMPOSITION_COLORS = {
   cash: "var(--chart-1)",
   investments: "var(--chart-3)",
-  property: "var(--chart-6)",
+  realEstate: "var(--chart-6)",
+  vehicles: "var(--chart-4)",
+  otherAssets: "var(--chart-8)",
   liabilities: "var(--negative)",
 } as const;
 
@@ -281,6 +283,8 @@ export default async function DashboardPage({
               goals={data.plan.goals}
               currency={currency}
               locale={locale}
+              today={data.asOf}
+              assumptions={data.assumptions}
             />
             {data.history.length < 2 ? (
               <p className="mt-2 text-xs text-ink-3">{t("historyBuilding")}</p>

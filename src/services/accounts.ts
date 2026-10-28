@@ -75,6 +75,10 @@ export async function createAccount(input: AccountCreateInput) {
       creditLimit: input.creditLimit !== undefined && input.creditLimit !== null
         ? String(input.creditLimit)
         : null,
+      growthRate:
+        input.growthRate !== undefined && input.growthRate !== null
+          ? String(input.growthRate)
+          : null,
       archived: input.archived ?? false,
       externalSource: input.externalSource,
       externalId: input.externalId,
@@ -96,6 +100,9 @@ export async function updateAccount(id: string, input: AccountUpdateInput) {
   if (input.dueDay !== undefined) patch.dueDay = input.dueDay;
   if (input.creditLimit !== undefined) {
     patch.creditLimit = input.creditLimit === null ? null : String(input.creditLimit);
+  }
+  if (input.growthRate !== undefined) {
+    patch.growthRate = input.growthRate === null ? null : String(input.growthRate);
   }
   if (input.archived !== undefined) patch.archived = input.archived;
   if (input.externalSource !== undefined) patch.externalSource = input.externalSource;
@@ -142,6 +149,7 @@ export async function listAccountBalances() {
       statementCloseDay: accounts.statementCloseDay,
       dueDay: accounts.dueDay,
       creditLimit: accounts.creditLimit,
+      growthRate: accounts.growthRate,
       archived: accounts.archived,
       txTotal: sql<string>`coalesce(sum(${transactions.amount}), 0)`,
     })

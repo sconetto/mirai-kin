@@ -9,9 +9,15 @@ import {
   realAnnualReturn,
   RETURN_BAND,
 } from "@/lib/goal-trajectory";
+import {
+  ASSET_CLASSES,
+  defaultNominalGrowth,
+  type AssetClass,
+} from "@/lib/asset-classes";
 import { getBaseCurrency } from "./settings";
 import type { RecurringTransactionCreateInput } from "@/lib/schemas";
 import { resolveRate } from "./fx";
+import { getEquity } from "./equity";
 import { getPlanStatus } from "./planner";
 
 function round4(value: number): number {
@@ -233,6 +239,24 @@ export type PlanTrajectoryAssumptions = {
   monthlyContribution: number;
   returnBand: number;
   horizonMonths: number;
+  assetClassRates: Record<AssetClass, number>;
+};
+
+export type TrajectoryComponent = {
+  assetClass: AssetClass;
+  value: number;
+  growthRate?: number | null;
+};
+
+export type AssetClassTrajectoryInput = {
+  components: TrajectoryComponent[];
+  baseCurrency: string;
+  asOf: string;
+  expectedReturn: number;
+  inflation: number;
+  monthlyContribution: number;
+  horizonMonths: number;
+  returnBand?: number;
 };
 
 export type PlanTrajectory = {
@@ -253,6 +277,165 @@ export function resolvePlanAssumptions(
     monthlyContribution: overrides.monthlyContribution ?? base.monthlyContribution,
     returnBand: base.returnBand,
     horizonMonths: overrides.horizonMonths ?? horizonMonths,
+    assetClassRates: base.assetClassRates,
+  };
+}
+
+function defaultAssetClassRates(
+  inflation: number,
+  investmentReturn: number,
+): Record<AssetClass, number> {
+  return Object.fromEntries(
+    ASSET_CLASSES.map((assetClass) => [
+      assetClass,
+      defaultNominalGrowth(assetClass, inflation, investmentReturn),
+    ]),
+  ) as Record<AssetClass, number>;
+}
+
+type TrajectoryBucket = {
+  assetClass: AssetClass;
+  nominalRate: number;
+  value: number;
+  contributionShare: number;
+};
+
+function monthlyRealRate(nominalRate: number, inflation: number): number {
+  const real = realAnnualReturn(nominalRate, inflation);
+  return Math.pow(1 + real, 1 / 12) - 1;
+}
+
+/**
+ * Projects each asset class independently. Only financial investments receive
+ * the conservative/optimistic band; other classes use their configured rates.
+ */
+export function projectAssetClassTrajectory(input: AssetClassTrajectoryInput): PlanTrajectory {
+  const band = input.returnBand ?? RETURN_BAND;
+  const buckets = new Map<string, TrajectoryBucket>();
+
+  for (const component of input.components) {
+    const nominalRate =
+      component.growthRate ??
+      defaultNominalGrowth(component.assetClass, input.inflation, input.expectedReturn);
+    const key = `${component.assetClass}:${nominalRate}`;
+    const bucket = buckets.get(key) ?? {
+      assetClass: component.assetClass,
+      nominalRate,
+      value: 0,
+      contributionShare: 0,
+    };
+    bucket.value += component.value;
+    buckets.set(key, bucket);
+  }
+
+  if (![...buckets.values()].some((bucket) => bucket.assetClass === "investments")) {
+    buckets.set(`investments:${input.expectedReturn}`, {
+      assetClass: "investments",
+      nominalRate: input.expectedReturn,
+      value: 0,
+      contributionShare: 0,
+    });
+  }
+
+  const bucketList = [...buckets.values()];
+  const cashTotal = bucketList
+    .filter((bucket) => bucket.assetClass === "cash")
+    .reduce((sum, bucket) => sum + Math.max(0, bucket.value), 0);
+  const investmentTotal = bucketList
+    .filter((bucket) => bucket.assetClass === "investments")
+    .reduce((sum, bucket) => sum + Math.max(0, bucket.value), 0);
+  const financialTotal = cashTotal + investmentTotal;
+  const cashShare = financialTotal > 0 ? cashTotal / financialTotal : 0;
+
+  for (const bucket of bucketList) {
+    if (bucket.assetClass === "cash" && cashTotal > 0) {
+      bucket.contributionShare = (Math.max(0, bucket.value) / cashTotal) * cashShare;
+    } else if (bucket.assetClass === "investments" && investmentTotal > 0) {
+      bucket.contributionShare =
+        (Math.max(0, bucket.value) / investmentTotal) * (1 - cashShare);
+    } else if (bucket.assetClass === "investments" && financialTotal === 0) {
+      bucket.contributionShare = 1;
+    }
+  }
+
+  const baseValues = bucketList.map((bucket) => bucket.value);
+  const conservativeValues = bucketList.map((bucket) => bucket.value);
+  const optimisticValues = bucketList.map((bucket) => bucket.value);
+  const startDate = input.asOf.slice(0, 10);
+  const points: PlanTrajectoryPoint[] = [];
+
+  const sumPoint = (values: number[]) =>
+    round4(
+      bucketList.reduce((sum, bucket, index) => {
+        return bucket.assetClass === "liabilities"
+          ? sum - values[index]
+          : sum + values[index];
+      }, 0),
+    );
+
+  for (let month = 0; month <= input.horizonMonths; month += 1) {
+    points.push({
+      date: addMonths(startDate, month),
+      conservative: sumPoint(conservativeValues),
+      base: sumPoint(baseValues),
+      optimistic: sumPoint(optimisticValues),
+    });
+
+    if (month === input.horizonMonths) break;
+
+    for (const [index, bucket] of bucketList.entries()) {
+      if (bucket.assetClass === "liabilities") continue;
+      const baseRate = monthlyRealRate(bucket.nominalRate, input.inflation);
+      const conservativeRate =
+        bucket.assetClass === "investments"
+          ? monthlyRealRate(
+              Math.max(-0.99, input.expectedReturn - band),
+              input.inflation,
+            )
+          : baseRate;
+      const optimisticRate =
+        bucket.assetClass === "investments"
+          ? monthlyRealRate(input.expectedReturn + band, input.inflation)
+          : baseRate;
+      baseValues[index] *= 1 + baseRate;
+      conservativeValues[index] *= 1 + conservativeRate;
+      optimisticValues[index] *= 1 + optimisticRate;
+
+      const contribution = input.monthlyContribution * bucket.contributionShare;
+      if (contribution !== 0) {
+        baseValues[index] += contribution;
+        conservativeValues[index] += contribution;
+        optimisticValues[index] += contribution;
+      }
+    }
+  }
+
+  const assetClassRates = defaultAssetClassRates(input.inflation, input.expectedReturn);
+  for (const assetClass of ASSET_CLASSES) {
+    const matching = bucketList.filter((bucket) => bucket.assetClass === assetClass);
+    const total = matching.reduce((sum, bucket) => sum + Math.max(0, bucket.value), 0);
+    if (total > 0) {
+      assetClassRates[assetClass] = round4(
+        matching.reduce(
+          (sum, bucket) => sum + bucket.nominalRate * Math.max(0, bucket.value),
+          0,
+        ) / total,
+      );
+    }
+  }
+
+  return {
+    asOf: startDate,
+    baseCurrency: input.baseCurrency,
+    assumptions: {
+      expectedReturn: input.expectedReturn,
+      inflation: input.inflation,
+      monthlyContribution: round4(input.monthlyContribution),
+      returnBand: band,
+      horizonMonths: input.horizonMonths,
+      assetClassRates,
+    },
+    points,
   };
 }
 
@@ -296,6 +479,7 @@ export function projectPlanTrajectory(input: {
       monthlyContribution: round4(input.monthlyContribution),
       returnBand: RETURN_BAND,
       horizonMonths: input.horizonMonths,
+      assetClassRates: defaultAssetClassRates(input.inflation, input.expectedReturn),
     },
     points,
   };
@@ -312,7 +496,7 @@ export async function planTrajectory(
   asOf = new Date(),
   overrides: PlanAssumptionOverrides = {},
 ): Promise<PlanTrajectory> {
-  const plan = await getPlanStatus(asOf);
+  const [plan, equity] = await Promise.all([getPlanStatus(asOf), getEquity(asOf)]);
   const funded = plan.goals.filter((goal) => goal.target > 0);
   const weight = funded.reduce((sum, goal) => sum + goal.target, 0);
   const baseReturn =
@@ -331,18 +515,33 @@ export async function planTrajectory(
       monthlyContribution: baseContribution,
       returnBand: RETURN_BAND,
       horizonMonths,
+      assetClassRates: defaultAssetClassRates(baseInflation, baseReturn),
     },
     overrides,
     horizonMonths,
   );
 
-  return projectPlanTrajectory({
-    netWorth: plan.netWorth.net,
+  const components = equity.components.map((component) => ({
+    assetClass: component.assetClass,
+    value: component.value,
+    growthRate: component.growthRate === null ? null : Number(component.growthRate),
+  }));
+  if (components.length === 0 && plan.netWorth.net !== 0) {
+    components.push({
+      assetClass: "investments",
+      value: plan.netWorth.net,
+      growthRate: null,
+    });
+  }
+
+  return projectAssetClassTrajectory({
+    components,
     baseCurrency: plan.baseCurrency,
     asOf: plan.asOf,
     expectedReturn: effective.expectedReturn,
     inflation: effective.inflation,
     monthlyContribution: effective.monthlyContribution,
     horizonMonths: effective.horizonMonths,
+    returnBand: effective.returnBand,
   });
 }

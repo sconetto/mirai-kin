@@ -46,6 +46,7 @@ export const accountCreateSchema = z.object({
   statementCloseDay: z.number().int().min(1).max(31).nullish(),
   dueDay: z.number().int().min(1).max(31).nullish(),
   creditLimit: decimal.nullish(),
+  growthRate: decimal.nullish(),
   archived: z.boolean().optional(),
   externalSource: z.enum(IMPORT_SOURCES).optional(),
   externalId: z.string().min(1).max(200).optional(),

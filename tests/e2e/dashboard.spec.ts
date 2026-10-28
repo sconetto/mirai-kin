@@ -55,12 +55,12 @@ test("dashboard shows a funded goal and a needs-setup goal", async ({ page }) =>
   try {
     await createGoal(page, funded, true);
     await page.goto("/pt-BR");
-    await expect(page.getByRole("link", { name: funded })).toBeVisible();
+    await expect(page.getByRole("link", { name: funded, exact: true })).toBeVisible();
     await expect(page.getByText("Fora do caminho").last()).toBeVisible();
 
     await createGoal(page, incomplete, false);
     await page.goto("/pt-BR");
-    await expect(page.getByRole("link", { name: incomplete })).toBeVisible();
+    await expect(page.getByRole("link", { name: incomplete, exact: true })).toBeVisible();
     await expect(page.getByText("Configurar").last()).toBeVisible();
   } finally {
     await deleteGoal(page, funded);

@@ -10,6 +10,9 @@ import { getAccountValues, getEquity, getNetWorth } from "./equity";
 describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
   let investmentId = "";
   let cashId = "";
+  let vehicleId = "";
+  let propertyId = "";
+  let liabilityId = "";
   let manualAssetId = "";
   let investmentName = "";
   let manualAssetName = "";
@@ -30,6 +33,30 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
       openingBalance: "500",
     });
     cashId = cash.id;
+    const vehicle = await createAccount({
+      name: `TEST net worth vehicle ${randomUUID()}`,
+      type: "investment",
+      assetSubtype: "vehicle",
+      growthRate: "-0.15",
+      currency: "BRL",
+      openingBalance: "1000",
+    });
+    vehicleId = vehicle.id;
+    const property = await createAccount({
+      name: `TEST net worth property ${randomUUID()}`,
+      type: "investment",
+      assetSubtype: "real_estate",
+      currency: "BRL",
+      openingBalance: "2000",
+    });
+    propertyId = property.id;
+    const liability = await createAccount({
+      name: `TEST net worth liability ${randomUUID()}`,
+      type: "credit_card",
+      currency: "BRL",
+      openingBalance: "-500",
+    });
+    liabilityId = liability.id;
     manualAssetName = `TEST net worth asset ${randomUUID()}`;
     const [asset] = await getDb()
       .insert(estateAssets)
@@ -47,6 +74,9 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
     await getDb().delete(estateAssets).where(eq(estateAssets.id, manualAssetId));
     await deleteAccount(investmentId);
     await deleteAccount(cashId);
+    await deleteAccount(vehicleId);
+    await deleteAccount(propertyId);
+    await deleteAccount(liabilityId);
     await closeDb();
   });
 
@@ -93,6 +123,20 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
     expect(
       equity.components.find((component) => component.label === investmentName),
     ).toBeUndefined();
+  });
+
+  it("classifies vehicles, real estate, manual assets, and liabilities", async () => {
+    const equity = await getEquity();
+    const vehicle = equity.components.find((component) => component.label.includes("vehicle"));
+    const property = equity.components.find((component) => component.label.includes("property"));
+    const liability = equity.components.find((component) => component.label.includes("liability"));
+    const manual = equity.components.find((component) => component.label === manualAssetName);
+
+    expect(vehicle).toMatchObject({ assetClass: "vehicles" });
+    expect(Number(vehicle?.growthRate)).toBeCloseTo(-0.15);
+    expect(property).toMatchObject({ assetClass: "real_estate" });
+    expect(liability).toMatchObject({ kind: "liability", assetClass: "liabilities" });
+    expect(manual).toMatchObject({ assetClass: "other_appreciating" });
   });
 
   it("keeps the canonical total internally consistent", async () => {

@@ -144,6 +144,7 @@ export const accounts = pgTable(
     statementCloseDay: integer("statement_close_day"),
     dueDay: integer("due_day"),
     creditLimit: money("credit_limit"),
+    growthRate: rate("growth_rate"),
     archived: boolean("archived").notNull().default(false),
     externalSource: text("external_source").$type<ImportSource>(),
     externalId: text("external_id"),
@@ -679,6 +680,7 @@ export const estateAssets = pgTable("estate_assets", {
   value: money("value").notNull(),
   currency: text("currency").notNull(),
   accountId: uuid("account_id").references(() => accounts.id, { onDelete: "set null" }),
+  growthRate: rate("growth_rate"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -6,13 +6,16 @@ import {
   ComposedChart,
   Line,
   ReferenceDot,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { useTranslations } from "next-intl";
-import { formatCurrency, formatMonth, intlLocale } from "@/lib/format";
+import { Link } from "@/i18n/navigation";
+import { formatCurrency, formatDate, formatMonth, formatNumber, intlLocale } from "@/lib/format";
+import type { PlanTrajectoryAssumptions } from "@/services/projections";
 
 type Point = {
   date: string;
@@ -23,6 +26,7 @@ type Point = {
 };
 
 type Target = {
+  id: string;
   name: string;
   targetDate: string | null;
   target: number;
@@ -34,13 +38,18 @@ export function PlanTrajectoryChart({
   goals,
   currency,
   locale,
+  today,
+  assumptions,
 }: {
   data: Point[];
   goals: Target[];
   currency: string;
   locale: string;
+  today: string;
+  assumptions: PlanTrajectoryAssumptions;
 }) {
   const t = useTranslations("dashboard");
+  const tp = useTranslations("planner");
 
   if (data.length === 0) {
     return <div className="flex h-64 items-center justify-center text-sm text-ink-3">{t("noHistory")}</div>;
@@ -52,31 +61,23 @@ export function PlanTrajectoryChart({
     notation: "compact",
     maximumFractionDigits: 1,
   });
-  const chartData = [...data];
-  const seen = new Set(chartData.map((point) => point.date));
-  for (const goal of goals) {
-    if (!goal.targetDate || seen.has(goal.targetDate)) continue;
-    chartData.push({
-      date: goal.targetDate,
-      actual: null,
-      conservative: null,
-      base: null,
-      optimistic: null,
-    });
-    seen.add(goal.targetDate);
+  const values = data
+    .flatMap((point) => [point.actual, point.conservative, point.base, point.optimistic])
+    .filter((value): value is number => value !== null);
+  if (values.length === 0) {
+    return <div className="flex h-64 items-center justify-center text-sm text-ink-3">{t("noHistory")}</div>;
   }
-  chartData.sort((a, b) => a.date.localeCompare(b.date));
-  const targets = goals.filter((goal) => goal.targetDate);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max((max - min) * 0.08, Math.abs(max) * 0.015, 1);
+  const domain: [number, number] = [min - padding, max + padding];
+  const current = data.find((point) => point.date === today)?.actual ?? null;
 
   return (
     <figure className="w-full">
       <figcaption className="sr-only">
         {t("trajectorySummary", {
-          current: formatCurrency(
-            data.find((point) => point.actual !== null)?.actual ?? 0,
-            currency,
-            locale,
-          ),
+          current: formatCurrency(current ?? 0, currency, locale),
         })}
       </figcaption>
       <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-3">
@@ -89,15 +90,13 @@ export function PlanTrajectoryChart({
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-4 rounded-sm bg-accent/10" /> {t("range")}
         </span>
-        {targets.length > 0 ? (
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-warning" /> {t("goalTarget")}
-          </span>
-        ) : null}
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-accent" /> {t("today")}
+        </span>
       </div>
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 12, right: 16, bottom: 4, left: 0 }}>
+          <ComposedChart data={data} margin={{ top: 18, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
             <XAxis
               dataKey="date"
@@ -108,6 +107,7 @@ export function PlanTrajectoryChart({
               minTickGap={36}
             />
             <YAxis
+              domain={domain}
               tickFormatter={(value: number) => compact.format(value)}
               tick={{ fontSize: 11, fill: "var(--color-ink-3)" }}
               tickLine={false}
@@ -163,33 +163,76 @@ export function PlanTrajectoryChart({
               name={t("actual")}
               stroke="var(--color-accent)"
               strokeWidth={2.5}
-              dot={false}
+              dot={data.filter((point) => point.actual !== null).length <= 12
+                ? { r: 2.5, fill: "var(--color-accent)" }
+                : false}
               connectNulls
               isAnimationActive={false}
             />
-            {targets.map((goal) => (
+            <ReferenceLine
+              x={today}
+              stroke="var(--color-line)"
+              strokeDasharray="2 4"
+              ifOverflow="extendDomain"
+            />
+            {current !== null ? (
               <ReferenceDot
-                key={`${goal.name}-${goal.targetDate}`}
-                x={goal.targetDate ?? undefined}
-                y={goal.target}
+                x={today}
+                y={current}
                 r={4}
-                fill="var(--color-warning)"
+                fill="var(--color-accent)"
                 stroke="var(--color-surface)"
                 strokeWidth={2}
                 ifOverflow="extendDomain"
                 label={{
-                  value: goal.name.length > 22 ? `${goal.name.slice(0, 21)}…` : goal.name,
+                  value: t("today"),
                   position: "top",
                   fill: "var(--color-ink-3)",
                   fontSize: 10,
                 }}
               />
-            ))}
+            ) : null}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {targets.length > 0 ? (
-        <p className="mt-2 text-xs text-ink-3">{t("goalTargetHint")}</p>
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-3 sm:grid-cols-3">
+        {(
+          [
+            ["cash", assumptions.assetClassRates.cash],
+            ["investments", assumptions.assetClassRates.investments],
+            ["realEstate", assumptions.assetClassRates.real_estate],
+            ["vehicles", assumptions.assetClassRates.vehicles],
+            ["otherAssets", assumptions.assetClassRates.other_appreciating],
+            ["liabilities", assumptions.assetClassRates.liabilities],
+          ] as const
+        ).map(([key, rate]) => (
+          <span key={key}>
+            {t(key)}: {formatNumber(rate * 100, locale)}%
+          </span>
+        ))}
+      </div>
+      {goals.length > 0 ? (
+        <div className="mt-4 border-t border-line/70 pt-3">
+          <p className="text-xs font-medium text-ink-3">{t("goalRail")}</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {goals.map((goal) => (
+              <Link
+                key={goal.id}
+                href="/planner"
+                className="rounded-lg border border-line/70 bg-paper px-3 py-2 text-xs hover:border-accent/40"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium text-ink">{goal.name}</span>
+                  <span className="text-ink-3">{tp(`status.${goal.status}` as never)}</span>
+                </div>
+                <p className="mt-1 text-ink-3">
+                  {formatCurrency(goal.target, currency, locale)} ·{" "}
+                  {goal.targetDate ? formatDate(goal.targetDate, locale) : "—"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
       ) : null}
     </figure>
   );
