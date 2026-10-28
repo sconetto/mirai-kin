@@ -156,7 +156,7 @@ export function groupSmallCategories(
   ];
 }
 
-function buildCashflow(
+export function buildCashflow(
   rows: { categoryId: string | null; income: string; expenses: string }[],
   incomeCategories: MonthlyCategory[],
   expenseCategories: MonthlyCategory[],
@@ -199,8 +199,11 @@ function buildCashflow(
       children: [],
     });
   }
+  // Cap expense categories separately; surplus is not an expense and must
+  // remain a top-level outcome instead of being folded into "Other".
+  const cappedOutcomes = capCategories(outcomes, 6, outcomeFallback);
   if (surplus > 0) {
-    outcomes.push({
+    cappedOutcomes.push({
       id: "surplus",
       name: "Surplus",
       nameEn: "Surplus",
@@ -219,7 +222,7 @@ function buildCashflow(
     savingsDraw,
     incomeSources: capCategories(sources, 6, sourceFallback),
     expenseCategories,
-    outcomes: capCategories(outcomes, 6, outcomeFallback),
+    outcomes: cappedOutcomes,
   };
 }
 

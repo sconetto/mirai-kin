@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import { Sankey, ResponsiveContainer, Tooltip } from "recharts";
 import type { SankeyLinkProps, SankeyNodeProps } from "recharts";
 import { useTranslations } from "next-intl";
@@ -19,9 +18,6 @@ export function CashflowSankey({
   locale: string;
 }) {
   const t = useTranslations("dashboard");
-  const gradientBase = useId().replace(/:/g, "");
-  const inflowGradient = `cashflow-in-${gradientBase}`;
-  const outflowGradient = `cashflow-out-${gradientBase}`;
   const sources = data.incomeSources;
   const outcomes = data.outcomes;
 
@@ -39,7 +35,7 @@ export function CashflowSankey({
     (category) => localizedCategoryName(category, locale),
   );
   const { nodes, links } = graph;
-  const chartHeight = Math.max(480, 140 + nodes.length * 30);
+  const chartHeight = Math.max(480, 120 + nodes.length * 22);
 
   const renderNode = ({ x, y, width, height, payload, index }: SankeyNodeProps) => {
     const node = nodes[index];
@@ -47,7 +43,7 @@ export function CashflowSankey({
     const isHub = node?.kind === "hub";
     const isChild = node?.kind === "child";
     const isParentLike = node?.kind === "parent" || node?.kind === "outcome";
-    const compact = !isHub && height < 30;
+    const compact = isChild || (!isHub && height < 30);
     const maxLabelLength = compact ? 18 : 24;
     const label = payload.name.length > maxLabelLength
       ? `${payload.name.slice(0, maxLabelLength - 1)}…`
@@ -74,9 +70,11 @@ export function CashflowSankey({
           y={y}
           width={width}
           height={height}
-          rx={3}
+          rx={4}
           fill={color}
-          fillOpacity={isHub ? 1 : isChild ? 0.72 : 0.92}
+          fillOpacity={isHub ? 1 : isChild ? 0.82 : 0.94}
+          stroke="var(--color-surface)"
+          strokeWidth={1}
         />
         {compact ? (
           <text
@@ -121,9 +119,9 @@ export function CashflowSankey({
       <path
         d={`M${props.sourceX},${props.sourceY} C${props.sourceControlX},${props.sourceY} ${props.targetControlX},${props.targetY} ${props.targetX},${props.targetY}`}
         fill="none"
-        stroke={`url(#${incoming ? inflowGradient : outflowGradient})`}
+        stroke={links[props.index]?.color ?? "var(--color-accent)"}
         strokeWidth={props.linkWidth}
-        strokeOpacity={0.5}
+        strokeOpacity={incoming ? 0.34 : 0.28}
         strokeLinecap="butt"
       />
     );
@@ -149,22 +147,12 @@ export function CashflowSankey({
             node={renderNode}
             link={renderLink}
             nodeWidth={12}
-            nodePadding={18}
+            nodePadding={16}
             margin={{ top: 28, right: 200, bottom: 14, left: 190 }}
             iterations={32}
             sort={false}
             align="left"
           >
-            <defs>
-              <linearGradient id={inflowGradient} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--positive)" stopOpacity={0.65} />
-                <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0.65} />
-              </linearGradient>
-              <linearGradient id={outflowGradient} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.65} />
-                <stop offset="100%" stopColor="var(--negative)" stopOpacity={0.65} />
-              </linearGradient>
-            </defs>
             <Tooltip
               formatter={(value, name, item) => {
                 const payload = item?.payload as

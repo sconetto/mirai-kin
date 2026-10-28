@@ -19,6 +19,7 @@ export type CashflowGraphLink = {
   target: number;
   value: number;
   kind: CashflowGraphLinkKind;
+  color: string;
 };
 
 export type CashflowGraph = {
@@ -38,8 +39,17 @@ function round4(value: number): number {
   return Math.round(value * 10_000) / 10_000;
 }
 
-function parentColor(category: MonthlyCategory): string {
-  return category.id === "surplus" ? "var(--positive)" : "var(--negative)";
+const EXPENSE_FALLBACKS = [
+  "var(--chart-10)",
+  "var(--chart-7)",
+  "var(--chart-5)",
+  "var(--chart-4)",
+  "var(--chart-8)",
+];
+
+function parentColor(category: MonthlyCategory, index: number): string {
+  if (category.id === "surplus") return "var(--positive)";
+  return category.color ?? EXPENSE_FALLBACKS[index % EXPENSE_FALLBACKS.length];
 }
 
 /**
@@ -77,7 +87,13 @@ export function buildCashflowGraph(
   });
 
   for (const [index, source] of cashflow.incomeSources.entries()) {
-    links.push({ source: index, target: hubIndex, value: source.total, kind: "income" });
+    links.push({
+      source: index,
+      target: hubIndex,
+      value: source.total,
+      kind: "income",
+      color: nodes[index]?.color ?? "var(--positive)",
+    });
   }
 
   // Keep parent order deterministic: largest parent first, with surplus last.
@@ -88,7 +104,7 @@ export function buildCashflowGraph(
   });
 
   const outcomeIndexes: number[] = [];
-  for (const outcome of outcomes) {
+  for (const [outcomeIndex, outcome] of outcomes.entries()) {
     const index = nodes.length;
     outcomeIndexes.push(index);
     nodes.push({
@@ -97,9 +113,15 @@ export function buildCashflowGraph(
       total: outcome.total,
       depth: 2,
       kind: outcome.id === "surplus" ? "outcome" : "parent",
-      color: parentColor(outcome),
+      color: parentColor(outcome, outcomeIndex),
     });
-    links.push({ source: hubIndex, target: index, value: outcome.total, kind: "expense" });
+    links.push({
+      source: hubIndex,
+      target: index,
+      value: outcome.total,
+      kind: "expense",
+      color: nodes[index]?.color ?? "var(--negative)",
+    });
   }
 
   for (const [outcomePosition, outcome] of outcomes.entries()) {
@@ -128,6 +150,7 @@ export function buildCashflowGraph(
         target: childIndex,
         value: child.total,
         kind: "child",
+        color: nodes[parentIndex]?.color ?? "var(--negative)",
       });
     }
 
@@ -148,6 +171,7 @@ export function buildCashflowGraph(
         target: childIndex,
         value: residual,
         kind: "child",
+        color: nodes[parentIndex]?.color ?? "var(--negative)",
       });
     }
   }

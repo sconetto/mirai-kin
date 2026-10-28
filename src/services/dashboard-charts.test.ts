@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { closeDb } from "@/db";
 import { buildCashflowGraph } from "@/lib/cashflow-graph";
 import {
+  buildCashflow,
   getMonthlyInsights,
   groupSmallCategories,
   parseMonth,
@@ -58,6 +59,23 @@ describe("category grouping", () => {
   it("leaves categories above the threshold untouched", () => {
     const items = [category("rent", 60), category("food", 30), category("transport", 10)];
     expect(groupSmallCategories(items)).toBe(items);
+  });
+
+  it("keeps surplus outside the capped expense bucket", () => {
+    const expenses = Array.from({ length: 7 }, (_, index) =>
+      category(`expense-${index}`, 10),
+    );
+    const cashflow = buildCashflow(
+      [{ categoryId: null, income: "120", expenses: "70" }],
+      [category("salary", 120)],
+      expenses,
+    );
+
+    const surplus = cashflow.outcomes.find((outcome) => outcome.id === "surplus");
+    expect(surplus?.total).toBe(50);
+    expect(cashflow.outcomes.at(-1)?.id).toBe("surplus");
+    const other = cashflow.outcomes.find((outcome) => outcome.id === "other-expense");
+    expect(other?.children.some((child) => child.id === "surplus")).toBe(false);
   });
 
   it("exposes parent and child graph stages from cashflow categories", () => {
