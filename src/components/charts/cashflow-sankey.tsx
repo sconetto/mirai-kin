@@ -150,6 +150,8 @@ export function CashflowSankey({
           nodePadding={20}
           margin={{ top: 28, right: 200, bottom: 14, left: 120 }}
           iterations={32}
+          sort={false}
+          align="left"
         >
           <defs>
             <linearGradient id={inflowGradient} x1="0" y1="0" x2="1" y2="0">

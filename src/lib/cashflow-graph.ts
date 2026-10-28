@@ -80,8 +80,15 @@ export function buildCashflowGraph(
     links.push({ source: index, target: hubIndex, value: source.total, kind: "income" });
   }
 
+  // Keep parent order deterministic: largest parent first, with surplus last.
+  const outcomes = [...cashflow.outcomes].sort((a, b) => {
+    if (a.id === "surplus") return 1;
+    if (b.id === "surplus") return -1;
+    return b.total - a.total;
+  });
+
   const outcomeIndexes: number[] = [];
-  for (const outcome of cashflow.outcomes) {
+  for (const outcome of outcomes) {
     const index = nodes.length;
     outcomeIndexes.push(index);
     nodes.push({
@@ -95,7 +102,7 @@ export function buildCashflowGraph(
     links.push({ source: hubIndex, target: index, value: outcome.total, kind: "expense" });
   }
 
-  for (const [outcomePosition, outcome] of cashflow.outcomes.entries()) {
+  for (const [outcomePosition, outcome] of outcomes.entries()) {
     if (outcome.children.length === 0) continue;
 
     const parentIndex = outcomeIndexes[outcomePosition];

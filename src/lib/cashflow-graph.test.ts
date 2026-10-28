@@ -60,6 +60,29 @@ describe("buildCashflowGraph", () => {
     expect(childLinks.reduce((sum, link) => sum + link.value, 0)).toBe(100);
   });
 
+  it("orders parents by amount and children by amount within each parent", () => {
+    const small = category("small", 10, [category("small-child", 10)]);
+    const large = category("large", 90, [
+      category("large-small", 30),
+      category("large-big", 60),
+    ]);
+    const graph = buildCashflowGraph(
+      cashflow({ expenseCategories: [small, large], outcomes: [small, large] }),
+      labels,
+      localize,
+    );
+
+    const parents = graph.nodes
+      .filter((node) => node.kind === "parent")
+      .map((node) => node.name);
+    expect(parents).toEqual(["large", "small"]);
+
+    const largeChildren = graph.nodes
+      .filter((node) => node.kind === "child" && node.parentId === "outcome:large")
+      .map((node) => node.name);
+    expect(largeChildren).toEqual(["large-big", "large-small"]);
+  });
+
   it("keeps a parent without children as a leaf", () => {
     const rent = category("rent", 100);
     const graph = buildCashflowGraph(
