@@ -6,7 +6,6 @@ import {
   DEFAULT_DASHBOARD_RANGE,
   historyMonths,
   paceMonths,
-  projectionMonths,
   shiftMonths,
   type DashboardRange,
 } from "@/lib/dashboard-range";
@@ -309,6 +308,9 @@ function compositionFor(components: Awaited<ReturnType<typeof getEquity>>["compo
     .filter((item) => item.value > 0);
 }
 
+const TRAJECTORY_HISTORY_MONTHS = 3;
+const TRAJECTORY_PROJECTION_MONTHS = 36;
+
 export async function getDashboard(
   range: DashboardRange = DEFAULT_DASHBOARD_RANGE,
   asOf = new Date(),
@@ -320,7 +322,7 @@ export async function getDashboard(
     getNetWorthSeries(5000),
   ]);
   const trajectory = await planTrajectory(
-    projectionMonths(range),
+    TRAJECTORY_PROJECTION_MONTHS,
     asOf,
     (activeScenario?.assumptions ?? {}) as PlanAssumptionOverrides,
   );
@@ -352,8 +354,24 @@ export async function getDashboard(
         }
       : null;
 
+  const trajectoryStartDate = shiftMonths(asOf, -TRAJECTORY_HISTORY_MONTHS)
+    .toISOString()
+    .slice(0, 10);
+  const trajectoryHistory = snapshots
+    .filter((snapshot) => snapshot.date >= trajectoryStartDate)
+    .map((snapshot) => ({
+      date: snapshot.date,
+      value: Number(snapshot.net),
+    }));
+  if (
+    trajectoryHistory.length === 0 ||
+    trajectoryHistory[trajectoryHistory.length - 1]?.date !== equity.asOf
+  ) {
+    trajectoryHistory.push({ date: equity.asOf, value: equity.net });
+  }
+
   const points = new Map<string, DashboardPoint>();
-  for (const point of history) {
+  for (const point of trajectoryHistory) {
     points.set(point.date, {
       date: point.date,
       actual: point.value,

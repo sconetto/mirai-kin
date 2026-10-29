@@ -144,7 +144,7 @@
     "assets": "Ativos",
     "liabilities": "Passivos",
     "trajectory": "Trajetória do patrimônio",
-    "trajectorySubtitle": "Histórico e faixa projetada com o plano atual",
+    "trajectorySubtitle": "Últimos 3 meses reais e próximos 36 meses projetados com o plano atual",
     "activeScenario": "Cenário ativo: {name}",
     "activeScenarioDetail": "Cenário ativo: {name} · retorno {return}% · inflação {inflation}% · {contribution}/mês · {horizon} meses",
     "historyBuilding": "O histórico ainda está sendo formado. A projeção começa no patrimônio de hoje.",

@@ -286,7 +286,7 @@ export default async function DashboardPage({
               today={data.asOf}
               assumptions={data.assumptions}
             />
-            {data.history.length < 2 ? (
+            {data.points.filter((point) => point.actual !== null).length < 2 ? (
               <p className="mt-2 text-xs text-ink-3">{t("historyBuilding")}</p>
             ) : null}
           </CardContent>

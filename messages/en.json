@@ -144,7 +144,7 @@
     "assets": "Assets",
     "liabilities": "Liabilities",
     "trajectory": "Net worth trajectory",
-    "trajectorySubtitle": "History and projected range under the current plan",
+    "trajectorySubtitle": "Last 3 months actual and next 36 months projected under the current plan",
     "activeScenario": "Active scenario: {name}",
     "activeScenarioDetail": "Active scenario: {name} · {return}% return · {inflation}% inflation · {contribution}/month · {horizon} months",
     "historyBuilding": "History is still building. The projection starts from today's net worth.",

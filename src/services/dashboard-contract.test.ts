@@ -65,13 +65,25 @@ describe.skipIf(!process.env.DATABASE_URL)("dashboard contract fields", () => {
     expect(dashboard.pace?.actualTotal).toBeGreaterThanOrEqual(500);
   });
 
+  it("uses a fixed 3-month history and 36-month trajectory window", async () => {
+    const asOf = new Date("2026-10-28T00:00:00.000Z");
+    const dashboard = await getDashboard("1m", asOf);
+    expect(dashboard.assumptions.horizonMonths).toBe(36);
+    expect(dashboard.points.at(-1)?.date).toBe("2029-10-28");
+    expect(
+      dashboard.points
+        .filter((point) => point.actual !== null)
+        .every((point) => point.date >= "2026-07-28"),
+    ).toBe(true);
+  });
+
   it("reports the rate date and trajectory horizon", async () => {
     const dashboard = await getDashboard("plan");
     expect(dashboard.plan.rateDate).toBe(dashboard.plan.asOf);
     expect(dashboard.plan.goals.find((goal) => goal.id === goalId)?.rateDate).toBe(
       dashboard.plan.asOf,
     );
-    expect(dashboard.assumptions.horizonMonths).toBe(120);
+    expect(dashboard.assumptions.horizonMonths).toBe(36);
     expect(Object.keys(dashboard.assumptions.assetClassRates).sort()).toEqual(
       [
         "cash",
