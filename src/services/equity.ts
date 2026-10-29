@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accounts, estateAssets, netWorthSnapshots, transactions } from "@/db/schema";
 import type { AccountType, AssetSubtype } from "@/db/schema";
@@ -74,7 +74,10 @@ export async function getAccountValues(asOf = new Date()): Promise<AccountValue[
       txTotal: sql<string>`coalesce(sum(${transactions.amount}), 0)`,
     })
     .from(accounts)
-    .leftJoin(transactions, eq(transactions.accountId, accounts.id))
+    .leftJoin(
+      transactions,
+      and(eq(transactions.accountId, accounts.id), lte(transactions.recordDate, asOf)),
+    )
     .where(eq(accounts.archived, false))
     .groupBy(accounts.id);
 

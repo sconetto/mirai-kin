@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db";
-import { estateAssets, investmentPositions } from "@/db/schema";
+import { estateAssets, investmentPositions, transactions } from "@/db/schema";
 import { createAccount, deleteAccount } from "./accounts";
 import { getAccountValues, getEquity, getNetWorth } from "./equity";
 
@@ -137,6 +137,35 @@ describe.skipIf(!process.env.DATABASE_URL)("canonical net worth", () => {
     expect(property).toMatchObject({ assetClass: "real_estate" });
     expect(liability).toMatchObject({ kind: "liability", assetClass: "liabilities" });
     expect(manual).toMatchObject({ assetClass: "other_appreciating" });
+  });
+
+  it("reconstructs account balances at a past date", async () => {
+    const db = getDb();
+    const [transaction] = await db
+      .insert(transactions)
+      .values({
+        accountId: cashId,
+        amount: "100",
+        currency: "BRL",
+        baseCurrency: "BRL",
+        baseAmount: "100",
+        recordDate: new Date("2026-01-15T12:00:00.000Z"),
+        reviewStatus: "reviewed",
+      })
+      .returning();
+
+    try {
+      const past = await getEquity(new Date("2026-01-01T00:00:00.000Z"));
+      const current = await getEquity(new Date("2026-02-01T00:00:00.000Z"));
+      expect(
+        past.components.find((component) => component.label.includes("cash"))?.value,
+      ).toBe(500);
+      expect(
+        current.components.find((component) => component.label.includes("cash"))?.value,
+      ).toBe(600);
+    } finally {
+      await db.delete(transactions).where(eq(transactions.id, transaction.id));
+    }
   });
 
   it("keeps the canonical total internally consistent", async () => {
